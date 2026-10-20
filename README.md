@@ -42,7 +42,7 @@ Exports: an `.xlsx` for the current version, one `.xlsx` with all versions, a CS
 
 - Rates are 2026 B2B planning benchmarks, not quotes. Override them on the Rates tab.
 - Specs marked "Confirm" vary by platform or publisher. Check the current spec before production.
-- When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use the built-in Claude, which reads the PDF's text. On the standalone site, connect an AI agent (an Anthropic API key, saved only in your browser and sent only to `api.anthropic.com`) for the same features plus full-PDF reading. With no agent, "Fill inputs from doc" falls back to a keyword scan and you write the copy by hand.
+- When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use the built-in Claude on your Claude account (no key needed). PDFs are sent as text plus page images, so charts, tables and scanned pages are read too. On the standalone site, connect an AI agent (an Anthropic API key, saved only in your browser and sent only to `api.anthropic.com`) for the same features plus full-PDF reading. With no agent, "Fill inputs from doc" falls back to a keyword scan and you write the copy by hand.
 - Inputs are saved in your browser's localStorage. Use "Reload Unity example" to reset.
 
 ## Files
