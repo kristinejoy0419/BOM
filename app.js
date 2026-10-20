@@ -169,7 +169,7 @@ function exampleState(){return{
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
  formats:defaultFormats(),landing:'https://unity.com/',copy:exampleCopy()
 };}
-function exampleCopy(){return{
+function exampleCopy(){return{src:'One Unity · Unity Acquire 2026',
  voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
  ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
  proof:'Unico: Ad Revenue ROAS campaigns drove 4x+ scale on iOS and Android with flat CPI\nZephyrMobile: ~50% more installs and 7% lower iOS CPI across 6 puzzle titles with Vector\nVoodoo: improved campaign results at scale with high-quality users',
@@ -185,7 +185,7 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
 if(!S||!S.markets)S=exampleState();
-if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://unity.com/';if(!S.copy)S.copy=exampleCopy();
+if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://unity.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.src==null&&S.name==='One Unity · Unity Acquire 2026')S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}
@@ -339,7 +339,7 @@ function utmTable(R){
  const rows=R.lines.map(l=>{const src=UTM_SRC[l.c.id]||slugU(l.channel),med=UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
   const q=`utm_source=${encodeURIComponent(src)}&utm_medium=${encodeURIComponent(med)}&utm_campaign=${encodeURIComponent(camp)}&utm_content=${encodeURIComponent(cont)}&utm_term=${encodeURIComponent(term)}`;
   const lim={};l.units.forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
-  const ad=adCopy({fmt:UNITS[l.units[0]].fmt,lim,ini:S.initiatives[l.p.ini]?l.p.ini:0,concepts:l.concepts,langs:[l.lang]});
+  const ad=applyEdits(adCopy({fmt:UNITS[l.units[0]].fmt,lim,ini:S.initiatives[l.p.ini]?l.p.ini:0,concepts:l.concepts,langs:[l.lang]}),editKey(R.tier,l));
   const files=[...l.bom].map(k=>{const m=idByKey[k];return m?m.id+' '+m.name:''}).filter(Boolean).join('; ')+' → '+l.units.flatMap(u=>variantsOf(u).map(v=>UNITS[u].name+' '+v)).join(', ')+` (${l.concepts} concepts × ${l.rounds} rounds)`;
   return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,pixel:(TAGS[l.c.id]||{}).tag||'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
    src,med,camp,cont,term,url:base+(base.includes('?')?'&':'?')+q}});
@@ -376,7 +376,7 @@ function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(
 /* ==================== INPUT RENDERING ==================== */
 function bindSimple(){
  const map=[['#in-name','name'],['#in-product','product'],['#in-brief','brief'],['#in-start','start'],['#in-end','end']];
- map.forEach(([sel,k])=>{const el=$(sel);el.value=S[k]||'';el.oninput=()=>{S[k]=el.value;changed()}});
+ map.forEach(([sel,k])=>{const el=$(sel);el.value=S[k]||'';el.oninput=()=>{S[k]=el.value;if(k==='name')renderCopyInputs();changed()}});
  TIERS.forEach(t=>{[['#b-','budgets'],['#c-','concepts'],['#r-','refresh']].forEach(([p,k])=>{const el=$(p+t);el.value=S[k][t];el.oninput=()=>{S[k][t]=+el.value;changed()}})});
 }
 function renderCopyInputs(){
@@ -384,7 +384,9 @@ function renderCopyInputs(){
  $('#cp-voice').value=C.voice||'';$('#cp-voice').oninput=e=>{C.voice=e.target.value;changed()};
  $('#cp-cta').value=C.ctas||'';$('#cp-cta').oninput=e=>{C.ctas=e.target.value;changed()};
  $('#cp-proof').value=C.proof||'';$('#cp-proof').oninput=e=>{C.proof=e.target.value;changed()};
- $('#cp-ini').innerHTML=S.initiatives.map((x,i)=>`<div class="li ini" style="grid-template-columns:1fr"><div class="eyebrow">${esc(x.name||'Initiative '+(i+1))}</div>
+ const stale=C.src&&C.src!==S.name,empty=!C.ini.some(q=>q&&(q.h||q.b));
+ $('#cp-src').innerHTML=empty?'No copy yet for this brief. Press “Draft copy with Claude” or write it below.':stale?`<span class="chip flag">Out of date</span> This copy was written for “${esc(C.src)}”. Redraft it for the current brief.`:`Copy written for “${esc(C.src||S.name)}”.`;
+ $('#cp-ini').innerHTML=S.initiatives.map((x,i)=>`<div class="li ini" style="grid-template-columns:1fr"><div class="eyebrow">Initiative ${i+1}</div><div class="note" style="margin-top:-4px">${esc(x.name||'Untitled')}</div>
   <label class="f">Headlines<textarea id="cp-h-${i}" rows="3">${esc(C.ini[i].h)}</textarea></label>
   <label class="f">Body copy<textarea id="cp-b-${i}" rows="3">${esc(C.ini[i].b)}</textarea></label></div>`).join('');
  S.initiatives.forEach((x,i)=>{$('#cp-h-'+i).oninput=e=>{C.ini[i].h=e.target.value;changed()};$('#cp-b-'+i).oninput=e=>{C.ini[i].b=e.target.value;changed()}});
@@ -412,7 +414,7 @@ function renderInputs(){
   <select id="in-s-${i}" aria-label="Funnel stage">${Object.keys(STAGE).map(s=>`<option ${s===x.stage?'selected':''}>${s}</option>`).join('')}</select>
   <input class="full" type="text" id="in-p-${i}" value="${esc(x.pillar)}" aria-label="Message pillar" placeholder="Message pillar">
   <div class="full btns" style="justify-content:space-between"><span class="note">Initiative ${i+1}${[' · brand & awareness lines',' · cross-sell & conversion lines',' · data & technical lines'][i]||''}</span><button class="x" data-i="${i}" aria-label="Remove initiative">×</button></div></div>`).join('');
- S.initiatives.forEach((x,i)=>{$(`#in-n-${i}`).oninput=e=>{x.name=e.target.value;changed()};$(`#in-s-${i}`).onchange=e=>{x.stage=e.target.value;changed()};$(`#in-p-${i}`).oninput=e=>{x.pillar=e.target.value;changed()}});
+ S.initiatives.forEach((x,i)=>{$(`#in-n-${i}`).oninput=e=>{x.name=e.target.value;renderCopyInputs();changed()};$(`#in-s-${i}`).onchange=e=>{x.stage=e.target.value;changed()};$(`#in-p-${i}`).oninput=e=>{x.pillar=e.target.value;changed()}});
  $('#ini-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.initiatives.splice(+b.dataset.i,1);S.copy.ini.splice(+b.dataset.i,1);renderInputs();changed()});
  // moments
  $('#mom-list').innerHTML=S.moments.map((x,i)=>`<div class="li mom"><input class="full" type="text" id="mo-n-${i}" value="${esc(x.name)}" aria-label="Moment name">
@@ -502,17 +504,33 @@ function renderMVP(R){
  </tbody></table></div>
  <div class="note" style="margin-top:8px">“Budget on lines” is the media budget of the lines that use a master. A line with several units counts toward each of them, so this column does not add up to the plan total.${R.lens.length>1?` Video masters are cut into ${R.lens.length} lengths (${esc(R.lens.join(', '))}).`:''}</div>`;
 }
+// agency edits to a line's ad copy, keyed by version + placement + market so they survive renumbering
+const editKey=(tier,l)=>TIERS[tier]+'|'+l.p.id+'|'+l.m.id;
+function applyEdits(ad,lk){
+ const E=(S.copyEdits||{})[lk];ad.lk=lk;if(!E||!ad.rows.length)return ad;
+ ad.rows.forEach(r=>r.parts.forEach((p,j)=>{const v=E[r.label+'|'+j];if(v!=null){p.t=v;p.edited=true;p.over=p.lim?Math.max(0,v.length-p.lim):0}}));
+ ad.text=ad.rows.map(r=>r.label+': '+r.parts.map(p=>`${p.k} "${p.t}"${p.over>0?` [over ${p.lim} by ${p.over}]`:''}`).join(' | ')).join('\n')+(ad.note?'\n'+ad.note:'');
+ ad.flags=ad.rows.reduce((a,r)=>a+r.parts.filter(p=>p.over>0).length,0);ad.edited=true;return ad;
+}
+function adCellEdit(ad){
+ if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
+ return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span>${r.parts.map((p,j)=>{const long=(p.lim||0)>90||p.t.length>90;
+  const attrs=`class="cp-edit" data-lk="${esc(ad.lk)}" data-key="${esc(r.label+'|'+j)}" data-lim="${p.lim||''}" aria-label="${esc(r.label+' '+p.k)}"`;
+  return `<div style="margin-top:4px"><div class="sub2" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(p.k)}${p.edited?' · edited':''}</span><span class="cp-count ${p.over>0?'over':''}">${p.lim?`${p.t.length}/${p.lim}`:p.t.length+' chars'}</span></div>
+   ${long?`<textarea ${attrs} rows="2">${esc(p.t)}</textarea>`:`<input type="text" ${attrs} value="${esc(p.t)}">`}</div>`}).join('')}</div>`).join('')}
+  ${ad.edited?`<button class="btn sm ghost cp-reset" data-lk="${esc(ad.lk)}">Reset to bank copy</button>`:''}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
+}
 function adCell(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
  return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip flag">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
 function renderTagging(R){
  const px=pixelTable(R),ut=utmTable(R);
- return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits, the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits (edit any line here to trim it; counters turn amber when over), the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
    <label class="f" style="min-width:260px">Landing page URL<input type="text" id="in-landing" value="${esc(S.landing)}"></label></div>
   <div class="tscroll"><table><thead><tr><th>Line</th><th>Placement · market</th><th>BOM items</th><th>Files to traffic</th><th>Ad copy</th><th>Ad name</th><th>UTMs</th><th>Tracked URL</th><th>Due</th></tr></thead><tbody>
   ${ut.rows.map(r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.channel)} · ${esc(r.market)} · ${esc(r.lang)}</div></td>
-   <td class="m" style="white-space:nowrap">${esc(r.bom)}</td><td class="sub2" style="min-width:240px">${esc(r.files)}</td><td style="min-width:300px">${adCell(r._ad)}</td>
+   <td class="m" style="white-space:nowrap">${esc(r.bom)}</td><td class="sub2" style="min-width:240px">${esc(r.files)}</td><td style="min-width:420px">${adCellEdit(r._ad)}</td>
    <td class="m" style="min-width:200px;word-break:break-all">${esc(r.adname)}</td>
    <td class="m" style="min-width:200px">source=${esc(r.src)}<br>medium=${esc(r.med)}<br>campaign=${esc(r.camp)}<br>content=${esc(r.cont)}<br>term=${esc(r.term)}</td>
    <td class="m" style="min-width:260px;word-break:break-all">${esc(r.url)}</td><td class="m">${esc(r.due)}</td></tr>`).join('')}
@@ -584,6 +602,9 @@ function renderOut(){
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
  v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tagging:renderTagging}[UI.tab](R);
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
+ v.querySelectorAll('.cp-edit').forEach(el=>{const lim=+el.dataset.lim||0;const mark=()=>{const n=el.value.length,c=el.parentElement.querySelector('.cp-count');c.textContent=lim?n+'/'+lim:n+' chars';const o=lim&&n>lim;c.classList.toggle('over',!!o);el.classList.toggle('over',!!o)};mark();
+  el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
+ v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
  if(UI.tab==='assump'){CH.forEach(c=>c.pl.forEach(p=>{const el=$('#rt-'+p.id);el.onchange=()=>{S.rates[p.id]=el.value===''?null:+el.value;save()}}));
   $('#rates-reset').onclick=()=>{S.rates={};save();renderOut()}}
@@ -655,6 +676,7 @@ function applyExtract(x){
  if(Array.isArray(x.personas))x.personas.forEach(p=>{if(S.personas[p.role]&&p.label){S.personas[p.role].label=p.label;S.personas[p.role].on=true}});
  if(Array.isArray(x.personas)&&x.personas.length)changes.push('personas');
  if(Array.isArray(x.initiatives)&&x.initiatives.length){S.initiatives=x.initiatives.slice(0,5).map(i=>({name:i.name||'Initiative',stage:STAGE[i.stage]?i.stage:'Consideration',pillar:i.pillar||''}));changes.push(S.initiatives.length+' initiatives')}
+ if(x._clearMoments){S.moments=[];changes.push('example launch moments cleared')}
  if(Array.isArray(x.moments)&&x.moments.length){S.moments=x.moments.filter(m=>/^\d{4}-\d{2}$/.test(m.month||'')).map(m=>({name:m.name||'Moment',month:m.month,type:['launch','event','content'].includes(m.type)?m.type:'launch',ini:+m.initiative||0}));changes.push(S.moments.length+' moments')}
  if(Array.isArray(x.channels)&&x.channels.length){CH.forEach(c=>{S.channels[c.id].on=x.channels.includes(c.id)});
   // local platforms follow their market
@@ -672,6 +694,9 @@ function localExtract(text){
  const tot=sum(x.markets.map(m=>m.weight));x.markets.forEach(m=>m.weight=Math.max(5,Math.round(m.weight/tot*100)));
  for(const k in CH_RULES)if(CH_RULES[k].test(text))x.channels.push(k);
  const first=text.split('\n').map(s=>s.trim()).find(s=>s.length>3&&s.length<90);if(first)x.campaignName=first;
+ // a keyword scan cannot read initiatives or launch dates, so swap the example's for neutral placeholders
+ x.initiatives=[{name:'Brand & awareness',stage:'Awareness',pillar:''},{name:'Adoption & conversion',stage:'Conversion',pillar:''},{name:'Product & technical education',stage:'Consideration',pillar:''}];
+ x._clearMoments=true;
  return x;
 }
 let SAMPLE=null;
@@ -705,17 +730,20 @@ ${text.slice(0,60000)}
 """`;
    x=await SAMPLE.json(prompt,{modelTier:'default'});how='Claude';
   }else{x=localExtract(text);how='keyword scan'}
-  const ch=applyExtract(x||{});renderInputs();changed();$('#exampleBadge').hidden=true;
+  const ch=applyExtract(x||{});clearCopyForNewBrief();renderInputs();changed();$('#exampleBadge').hidden=true;
   setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);
+  if(SAMPLE)draftCopy();else setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');
  }catch(e){
-  if(e&&e.code==='not_granted'){const x=localExtract(text);const ch=applyExtract(x);renderInputs();changed();setStatus('#extract-status','Claude access was declined, so a keyword scan filled: '+(ch.join(', ')||'nothing')+'.')}
+  if(e&&e.code==='not_granted'){const x=localExtract(text);const ch=applyExtract(x);clearCopyForNewBrief();renderInputs();changed();setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');setStatus('#extract-status','Claude access was declined, so a keyword scan filled: '+(ch.join(', ')||'nothing')+'.')}
   else setStatus('#extract-status','Extraction failed'+(e&&e.code?' ('+e.code+')':'')+'. Try again, or shorten the text to the key sections.',true)
  }finally{btn.disabled=false}
 };
 
-$('#btn-copy').onclick=async()=>{
- if(!SAMPLE)return setStatus('#copy-status','Claude is not available in this view. Write the copy by hand.',true);
- const btn=$('#btn-copy');btn.disabled=true;setStatus('#copy-status','Claude is drafting copy…');
+function clearCopyForNewBrief(){S.copyEdits={};S.copy={src:S.name,voice:'',ctas:'',proof:'',ini:S.initiatives.map(()=>({h:'',b:''}))}}
+$('#btn-copy').onclick=()=>draftCopy();
+async function draftCopy(){
+ if(!SAMPLE)return setStatus('#copy-status','Claude is not available in this view. Write the copy for this brief by hand.',true);
+ const btn=$('#btn-copy');btn.disabled=true;setStatus('#copy-status','Claude is drafting copy for '+(S.name||'this brief')+'…');
  try{
   const prompt=`You are a B2B performance copywriter. Write paid media ad copy for this campaign.
 Campaign: ${S.name}
@@ -733,10 +761,10 @@ Rules: one entry in "initiatives" per initiative above, same order. For each: 5 
   const x=await SAMPLE.json(prompt,{modelTier:'default'});
   if(x.voice)S.copy.voice=x.voice;if(Array.isArray(x.ctas))S.copy.ctas=x.ctas.join('\n');if(Array.isArray(x.proof)&&x.proof.length)S.copy.proof=x.proof.join('\n');
   if(Array.isArray(x.initiatives))x.initiatives.forEach((q,i)=>{if(!S.copy.ini[i])S.copy.ini[i]={h:'',b:''};S.copy.ini[i].h=(q.headlines||[]).join('\n');S.copy.ini[i].b=(q.body||[]).join('\n')});
-  renderCopyInputs();changed();setStatus('#copy-status','Copy drafted. Edit any line; the BOM updates as you type.');
+  S.copy.src=S.name;renderCopyInputs();changed();setStatus('#copy-status','Copy drafted for '+(S.name||'this brief')+'. Edit any line; the BOM updates as you type.');
  }catch(e){setStatus('#copy-status',e&&e.code==='not_granted'?'Claude access was declined. Write the copy by hand.':'Drafting failed'+(e&&e.code?' ('+e.code+')':'')+'. Try again.',true)}
  finally{btn.disabled=false}
-};
+}
 
 /* ==================== BOOT ==================== */
 renderInputs();renderOut();
