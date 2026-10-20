@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Playfair+Display+SC:wght@400;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -30,16 +31,27 @@
         <div class="sec">
           <label class="f">Campaign name<input type="text" id="in-name"></label>
           <label class="f">Product / solution<input type="text" id="in-product"></label>
-          <label class="f">GTM doc text (paste, or upload a .docx / .txt)
+          <label class="f">GTM doc text (paste, or upload a .pdf / .docx / .txt)
             <textarea id="in-brief" rows="9"></textarea></label>
           <div class="btns">
             <label class="btn sm" for="in-file" style="display:inline-flex;align-items:center">Upload doc</label>
-            <input type="file" id="in-file" accept=".docx,.txt,.md" hidden>
+            <input type="file" id="in-file" accept=".pdf,.docx,.txt,.md" hidden>
             <button class="btn sm primary" id="btn-extract">Fill inputs from doc</button>
             <button class="btn sm rose" id="btn-reset">Reload Unity example</button>
           </div>
           <div class="status" id="extract-status" role="status"></div>
-          <div class="note">“Fill inputs from doc” asks Claude to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
+          <div class="note">“Fill inputs from doc” asks the AI agent to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
+          <details class="agent" id="d-agent">
+            <summary>AI agent <span class="chip" id="agent-chip">Not connected</span></summary>
+            <div class="agent-body">
+              <div class="note" id="agent-msg"></div>
+              <label class="f">Anthropic API key<input type="password" id="agent-key" autocomplete="off" spellcheck="false"></label>
+              <label class="f">Model<select id="agent-model"></select></label>
+              <div class="btns"><button class="btn sm primary" id="agent-on">Connect</button><button class="btn sm" id="agent-off" hidden>Disconnect</button></div>
+              <div class="status" id="agent-status" role="status"></div>
+              <div class="note">The key is saved only in this browser and is sent only to api.anthropic.com. Create one at console.anthropic.com → API keys. Usage is billed to that account.</div>
+            </div>
+          </details>
         </div>
       </details>
 
