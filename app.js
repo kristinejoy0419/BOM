@@ -762,16 +762,26 @@ function parseReply(t){
 const GEM='https://generativelanguage.googleapis.com/v1beta';
 function gemErr(r,j){const m=(j.error&&j.error.message)||('HTTP '+r.status);const s=j.error&&j.error.status;
  return {code:r.status===429||s==='RESOURCE_EXHAUSTED'?'rate_limited':/API key|API_KEY/i.test(m)||r.status===401||r.status===403?'agent_key':r.status===413?'agent_too_big':'agent_error',message:m}}
-async function geminiJSON(prompt,pdf){
+async function geminiJSON(prompt,pdf,tried=[]){
  const parts=[];
  if(pdf)parts.push({inline_data:{mime_type:'application/pdf',data:pdf.b64}});
  parts.push({text:pdf?'The attached PDF is the GTM strategy doc. Read all of it, including tables and charts.\n\n'+prompt:prompt});
  let r;
- try{r=await fetch(`${GEM}/models/${encodeURIComponent(AGENT.model||'gemini-2.5-flash')}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':AGENT.key},
+ try{r=await fetch(`${GEM}/models/${encodeURIComponent(AGENT.model||((AGENT.models||[])[0]||['gemini-flash-latest'])[0])}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':AGENT.key},
   body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json',maxOutputTokens:16000}})})}
  catch(e){throw {code:'agent_network',message:'Could not reach Google’s Gemini API from this browser.'}}
  const j=await r.json().catch(()=>({}));
- if(!r.ok)throw gemErr(r,j);
+ if(!r.ok){
+  // Retired or unknown model: switch to the one Google suggests, else the next listed one, and retry (up to 3 times).
+  const msg=(j.error&&j.error.message)||'';const cur=AGENT.model;
+  if((r.status===404||r.status===400)&&/no longer available|not found|not supported|deprecated|retired|update your code/i.test(msg)&&tried.length<3){
+   const done=[...tried,cur];const sug=[...msg.matchAll(/models\/(gemini[\w.-]*\w)/g)].map(m=>m[1]).filter(m=>!done.includes(m));
+   const next=sug.pop()||((AGENT.models||[]).map(m=>m[0]).find(m=>!done.includes(m)));
+   if(next){AGENT.model=next;if(AGENT.models&&!AGENT.models.some(m=>m[0]===next))AGENT.models.unshift([next,next]);
+    try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}renderAgent();return geminiJSON(prompt,pdf,done)}
+  }
+  throw gemErr(r,j);
+ }
  const c=(j.candidates||[])[0];
  if(!c)throw {code:'agent_refusal',message:'Gemini returned no answer'+(j.promptFeedback&&j.promptFeedback.blockReason?' ('+j.promptFeedback.blockReason+')':'')};
  return parseReply(((c.content&&c.content.parts)||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join(''));
@@ -797,7 +807,7 @@ const PROV={gemini:{label:'Google Gemini',key:'Gemini API key',ph:'AIza… or AQ
  anthropic:{label:'Anthropic Claude',key:'Anthropic API key',ph:'sk-ant-…',test:/^sk-ant-/,bad:'That does not look like an Anthropic API key (it starts with sk-ant-).',
   note:'Create a key at console.anthropic.com → API keys. Usage is billed to that account.'}};
 const provNow=()=>agentOn()?AGENT.provider||'anthropic':$('#agent-prov').value||'gemini';
-function modelOpts(p){return p==='gemini'?((agentOn()&&AGENT.provider==='gemini'&&AGENT.models)||[['gemini-2.5-flash','Gemini 2.5 Flash'],['gemini-2.5-pro','Gemini 2.5 Pro']]):AGENT_MODELS}
+function modelOpts(p){return p==='gemini'?((agentOn()&&AGENT.provider==='gemini'&&AGENT.models)||[['','Newest Flash (picked when you connect)']]):AGENT_MODELS}
 function renderAgent(){
  const on=agentOn(),p=provNow(),P=PROV[p];
  $('#agent-chip').textContent=SAMPLE?'Your Claude account':on?(p==='gemini'?'Gemini connected':'Claude connected'):'Not connected';
@@ -833,7 +843,7 @@ $('#agent-on').onclick=async()=>{
   let models=null;
   if(p==='gemini'){setStatus('#agent-status','Checking the key and loading the models it can use…');
    models=await geminiModels(key);if(!models.length)throw {code:'agent_error',message:'This key has no Gemini models that can read documents'};
-   if(!models.some(m=>m[0]===model))model=models[0][0]}
+   if(!model||!models.some(m=>m[0]===model))model=models[0][0]}
   AGENT={provider:p,key,model,models};try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}
   renderAgent();setStatus('#agent-status','Saved. Testing the connection…');
   await agentJSON('Reply with only this JSON: {"ok":true}');setStatus('#agent-status',(p==='gemini'?'Gemini':'Claude')+' is connected and answering.');
