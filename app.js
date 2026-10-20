@@ -656,13 +656,13 @@ $('#x-copy').onclick=()=>{const txt=UI.tier===3?'':toDelim(currentTable(),'\t');
 /* ==================== DOC UPLOAD + EXTRACTION ==================== */
 $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatus('#extract-status','Reading '+f.name+'…');
  try{let text;PDF=null;
-  if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){const buf=await f.arrayBuffer();const r=await pdfRead(buf);PDF={name:f.name,b64:b64(buf),text:r.text.replace(/\n{3,}/g,'\n\n').trim(),pages:r.pages};text=PDF.text;
+  if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){const buf=await f.arrayBuffer();const r=await pdfRead(buf);PDF={name:f.name,buf,pageChars:r.pageChars,b64:b64(buf),text:r.text.replace(/\n{3,}/g,'\n\n').trim(),pages:r.pages};text=PDF.text;
    if(text.length<40){S.brief='';$('#in-brief').value='';save();
-    return setStatus('#extract-status',agentOn()?`Loaded ${f.name} (${r.pages} pages). It has no selectable text, so the AI agent will read the pages directly. Press “Fill inputs from doc”.`:`${f.name} has no selectable text (it may be scanned). Connect an AI agent below so it can read the pages, or paste the text.`,!agentOn())}}
+    return setStatus('#extract-status',(agentOn()||SAMPLE)?`Loaded ${f.name} (${r.pages} page${r.pages>1?'s':''}). It has no selectable text, so ${SAMPLE?'Claude':'the AI agent'} will read the pages directly. Press “Fill inputs from doc”.`:`${f.name} has no selectable text (it may be scanned). Connect an AI agent below so it can read the pages, or paste the text.`,!(agentOn()||SAMPLE))}}
   else if(/\.docx$/i.test(f.name)){if(!window.mammoth)throw new Error('Word reader did not load');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});text=r.value}
   else text=await f.text();
   S.brief=text.replace(/\n{3,}/g,'\n\n').trim();$('#in-brief').value=S.brief;save();
-  setStatus('#extract-status',`Loaded ${f.name}${PDF?` (${PDF.pages} pages, ${S.brief.length.toLocaleString()} characters)`:` (${S.brief.length.toLocaleString()} characters)`}.${PDF&&agentOn()?' The AI agent will read the PDF itself.':''} Press “Fill inputs from doc”.`)}
+  setStatus('#extract-status',`Loaded ${f.name}${PDF?` (${PDF.pages} pages, ${S.brief.length.toLocaleString()} characters)`:` (${S.brief.length.toLocaleString()} characters)`}.${PDF&&SAMPLE?' Claude will also look at the pages, so charts and scans count.':PDF&&agentOn()?' The AI agent will read the PDF itself.':''} Press “Fill inputs from doc”.`)}
  catch(err){setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
@@ -714,13 +714,27 @@ const AGENT_LS='paid-media-bom-agent';
 let AGENT=null;try{AGENT=JSON.parse(localStorage.getItem(AGENT_LS)||'null')}catch(e){AGENT=null}
 let PDF=null; // {name,b64,text,pages} of the last uploaded PDF, kept in memory only
 const AGENT_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (best)'],['claude-sonnet-5-5','Claude Sonnet 5.5 (faster)'],['claude-haiku-5-5','Claude Haiku 5.5 (cheapest)']];
-const agentOn=()=>!!(AGENT&&AGENT.key);
+const agentOn=()=>!SAMPLE&&!!(AGENT&&AGENT.key);
 const aiReady=()=>agentOn()||!!SAMPLE;
 const aiLabel=()=>agentOn()?'Your AI agent':'Claude';
-function pdfForBrief(){return PDF&&(!PDF.text.trim()||(S.brief||'').trim()===PDF.text.trim())?PDF:null}
+// Page images for the built-in Claude: scanned or chart-heavy pages first, up to the view's image limit.
+async function pdfImages(pdf){
+ const lim=await SAMPLE.limits().catch(()=>null);const max=lim&&lim.images&&lim.images.maxCount;if(!max||!window.pdfjsLib)return null;
+ const order=pdf.pageChars.map((c,i)=>[c,i+1]).sort((a,b)=>(a[0]>=400)-(b[0]>=400)||a[1]-b[1]).slice(0,max).map(x=>x[1]).sort((a,b)=>a-b);
+ if(pdf.pageChars.every(c=>c>=400)&&pdf.pages>max)order.splice(0,order.length,...Array.from({length:Math.min(max,pdf.pages)},(_,i)=>i+1));
+ const doc=await pdfjsLib.getDocument({data:new Uint8Array(pdf.buf.slice(0))}).promise;const blobs=[];
+ for(const n of order){const pg=await doc.getPage(n);const v1=pg.getViewport({scale:1});const sc=Math.min(2,Math.sqrt(1.2e6/(v1.width*v1.height)));
+  const v=pg.getViewport({scale:sc});const c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);
+  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:v}).promise;
+  blobs.push(await new Promise(r=>c.toBlob(r,'image/jpeg',.85)))}
+ return {blobs,pages:order};
+}
+function pdfForBrief(){return PDF&&(agentOn()||SAMPLE)&&(!PDF.text.trim()||(S.brief||'').trim()===PDF.text.trim())?PDF:null}
 async function aiJSON(prompt,{pdf}={}){
+ if(SAMPLE){const imgs=pdf?await pdfImages(pdf):null;
+  if(imgs)return SAMPLE.json(`${imgs.pages.length>1?`The ${imgs.pages.length} images are pages ${imgs.pages.join(', ')}`:`The image is page ${imgs.pages[0]}`} of the GTM strategy PDF${imgs.pages.length<pdf.pages?` (of ${pdf.pages})`:''}, rendered as pictures. Read their text, tables and charts as part of the doc.\n\n`+prompt,{modelTier:'default',images:imgs.blobs});
+  return SAMPLE.json(prompt,{modelTier:'default'})}
  if(agentOn())return agentJSON(prompt,pdf);
- if(SAMPLE)return SAMPLE.json(prompt,{modelTier:'default'});
  throw {code:'no_agent'};
 }
 async function agentJSON(prompt,pdf){
@@ -750,13 +764,14 @@ function aiErr(e,what){
 }
 function renderAgent(){
  const on=agentOn();
- $('#agent-chip').textContent=on?'Connected':SAMPLE?'Built-in Claude':'Not connected';
+ $('#agent-chip').textContent=SAMPLE?'Your Claude account':on?'Connected':'Not connected';
  $('#agent-chip').classList.toggle('on',on||!!SAMPLE);
  $('#agent-key').value='';$('#agent-key').placeholder=on?'Key saved (…'+AGENT.key.slice(-4)+')':'sk-ant-…';
  $('#agent-model').innerHTML=AGENT_MODELS.map(([v,l])=>`<option value="${v}"${(AGENT&&AGENT.model||AGENT_MODELS[0][0])===v?' selected':''}>${l}</option>`).join('');
  $('#agent-off').hidden=!on;
+ document.querySelectorAll('#d-agent .agent-body>:not(#agent-msg)').forEach(el=>el.hidden=!!SAMPLE);
  $('#agent-msg').textContent=on?`Connected to ${AGENT_MODELS.find(m=>m[0]===AGENT.model)?.[1]||AGENT.model}. Uploaded PDFs go to the agent whole, so it reads tables, charts and scanned pages.`
-  :SAMPLE?'Claude is built in here and reads the text of your doc. Add an API key to have an agent read PDFs whole, including tables and scans.'
+  :SAMPLE?'Claude is built in here and runs on your Claude account, so no key is needed. Uploaded PDFs are sent as text plus page images, so tables, charts and scanned pages are read too.'
   :'Add an Anthropic API key to let an AI agent read the brief and PDFs. Without one, a keyword scan fills the inputs.';
 }
 async function pdfRead(buf){
@@ -765,7 +780,7 @@ async function pdfRead(buf){
  const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;const out=[];
  for(let i=1;i<=doc.numPages;i++){const c=await(await doc.getPage(i)).getTextContent();
   out.push(c.items.map(it=>it.str+(it.hasEOL?'\n':' ')).join('').replace(/[ \t]+\n/g,'\n'))}
- return {text:out.join('\n\n'),pages:doc.numPages};
+ return {text:out.join('\n\n'),pages:doc.numPages,pageChars:out.map(t=>t.replace(/\s+/g,'').length)};
 }
 function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
 $('#agent-on').onclick=()=>{
@@ -780,7 +795,7 @@ $('#agent-model').onchange=()=>{if(agentOn()){AGENT.model=$('#agent-model').valu
 $('#agent-off').onclick=()=>{AGENT=null;try{localStorage.removeItem(AGENT_LS)}catch(e){}renderAgent();setStatus('#agent-status','Disconnected. Your key was removed from this browser.')};
 
 $('#btn-extract').onclick=async()=>{
- const text=(S.brief||'').trim();const pdf=agentOn()?pdfForBrief():null;if(text.length<40&&!pdf)return setStatus('#extract-status','Paste or upload the GTM doc text first.',true);
+ const text=(S.brief||'').trim();const pdf=pdfForBrief();if(text.length<40&&!pdf)return setStatus('#extract-status','Paste or upload the GTM doc text first.',true);
  const btn=$('#btn-extract');btn.disabled=true;
  const yr=(S.start||'2026').slice(0,4);
  try{
@@ -807,7 +822,7 @@ GTM STRATEGY TEXT:
 """
 ${text.slice(0,60000)}
 """`;
-   x=await aiJSON(prompt,{pdf});how=agentOn()?'AI agent'+(pdf?', full PDF':''):'Claude';
+   x=await aiJSON(prompt,{pdf});how=SAMPLE?'Claude'+(pdf?', with page images':''):'AI agent'+(pdf?', full PDF':'');
   }else{x=localExtract(text);how='keyword scan'}
   const ch=applyExtract(x||{});clearCopyForNewBrief();renderInputs();changed();$('#exampleBadge').hidden=true;
   setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);
