@@ -13,7 +13,7 @@ It's a static site with no build step.
 
 ## Inputs (left rail)
 
-1. **GTM brief:** campaign name, product, and the doc text. You can paste it or upload a `.pdf`/`.docx`/`.txt`, then use "Fill inputs from doc" to set markets and channels. The **AI agent** panel connects your own Anthropic API key so an agent reads the brief, and reads uploaded PDFs whole (tables, charts and scanned pages included).
+1. **GTM brief:** campaign name, product, and the doc text. You can paste it or upload a `.pdf`/`.docx`/`.txt`, then use "Fill inputs from doc" to set markets and channels. The **AI agent** panel connects your own Google Gemini key (free tier available from Google AI Studio) or Anthropic API key so an agent reads the brief, and reads uploaded PDFs whole (tables, charts and scanned pages included).
 2. **Budget & flight:** a budget for each version, plus flight dates.
 3. **Markets:** weight % and language for each market.
 4. **Audiences:** decision-maker, technical influencer and day-to-day user personas.
@@ -42,7 +42,7 @@ Exports: an `.xlsx` for the current version, one `.xlsx` with all versions, a CS
 
 - Rates are 2026 B2B planning benchmarks, not quotes. Override them on the Rates tab.
 - Specs marked "Confirm" vary by platform or publisher. Check the current spec before production.
-- When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use the built-in Claude on your Claude account (no key needed). PDFs are sent as text plus page images, so charts, tables and scanned pages are read too. On the standalone site, connect an AI agent (an Anthropic API key, saved only in your browser and sent only to `api.anthropic.com`) for the same features plus full-PDF reading. With no agent, "Fill inputs from doc" falls back to a keyword scan and you write the copy by hand.
+- When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use the built-in Claude on your Claude account (no key needed). PDFs are sent as text plus page images, so charts, tables and scanned pages are read too. On the standalone site, connect an AI agent (a Gemini or Anthropic API key, saved only in your browser and sent only to that provider). Gemini's free tier has daily limits, and Google may use free-tier prompts to improve its products for the same features plus full-PDF reading. With no agent, "Fill inputs from doc" falls back to a keyword scan and you write the copy by hand.
 - Inputs are saved in your browser's localStorage. Use "Reload Unity example" to reset.
 
 ## Files
