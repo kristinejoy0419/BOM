@@ -1,0 +1,52 @@
+# Paid Media BOM Builder
+
+Turns a GTM strategy doc into a paid media plan: a bill of materials (BOM), a creative spec sheet, a line-by-line agency trafficking and tagging sheet, and monthly flighting. It builds Lean, Standard and Full versions of each, plus a side-by-side comparison.
+
+It opens pre-filled with the *One Unity · Unity Acquire* 2026 GTM strategy as a worked example.
+
+## Run it
+
+It's a static site with no build step.
+
+- **Locally:** open `index.html` in a browser.
+- **GitHub Pages:** go to *Settings → Pages*, set *Source* to "Deploy from a branch", then choose `main` and `/ (root)`. The site will be served at `https://<user>.github.io/<repo>/`.
+
+## Inputs (left rail)
+
+1. **GTM brief:** campaign name, product, and the doc text. You can paste it or upload a `.docx`/`.txt`, then use "Fill inputs from doc" to set markets and channels.
+2. **Budget & flight:** a budget for each version, plus flight dates.
+3. **Markets:** weight % and language for each market.
+4. **Audiences:** decision-maker, technical influencer and day-to-day user personas.
+5. **Initiatives & pillars:** each with a funnel stage and a message pillar.
+6. **Launch moments:** launches, content drops and events, which drive the monthly bursts.
+7. **Channels:** turn each on or off and set its relative weight. L/S/F shows the first version a channel appears in.
+8. **Creative volume:** concepts per placement and refresh cadence for each version.
+9. **Creative formats:** video, static, display, document, search text, messaging, posts, articles, audio and events. Also sets the video cut-down lengths.
+10. **Messaging & ad copy:** voice, headlines and body copy per initiative, CTAs and proof points.
+
+## Outputs (tabs)
+
+| Tab | What it shows |
+| --- | --- |
+| Summary | Totals, budget by channel, market, initiative and funnel stage, and the assumptions used |
+| BOM (MVP) | The minimum creative set. Each master (one per format and aspect ratio) shows its ad copy fitted to character limits, the media lines it covers, platform resizes and file counts |
+| Line items | One row per channel × placement × market, with targeting, buy type, rate, budget, estimated delivery, KPI and BOM items |
+| Spec Sheet for Creative | Sizes, file types, max sizes, copy limits and lead times for each ad unit in the plan |
+| Flighting | Monthly spend per channel, with launch and event bursts |
+| Rates & assumptions | An editable rate card with benchmarks |
+| Spec Sheet & Tagging for Agency | A trafficking row for every line (BOM items, files, ad copy, pixel, ad name, UTMs and tracked URL), plus pixel and conversion setup for each channel |
+
+Exports: an `.xlsx` for the current version, one `.xlsx` with all versions, a CSV of the current tab, or "Copy table" to paste into Sheets.
+
+## Notes
+
+- Rates are 2026 B2B planning benchmarks, not quotes. Override them on the Rates tab.
+- Specs marked "Confirm" vary by platform or publisher. Check the current spec before production.
+- When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use Claude. As a standalone site, "Fill inputs from doc" falls back to a keyword scan, and you write the copy by hand.
+- Inputs are saved in your browser's localStorage. Use "Reload Unity example" to reset.
+
+## Files
+
+- `index.html`: page structure and inputs
+- `styles.css`: theme tokens (light and dark) and layout
+- `app.js`: the channel, placement and spec library, plan engine, rendering and exports
