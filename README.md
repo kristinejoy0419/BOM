@@ -2,7 +2,7 @@
 
 Turns a GTM strategy doc into a paid media plan: a bill of materials (BOM), a creative spec sheet, a line-by-line agency trafficking and tagging sheet, and monthly flighting. It builds Lean, Standard and Full versions of each, plus a side-by-side comparison.
 
-It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with an evergreen hero). It opens pre-filled with the *One Unity · Unity Acquire* 2026 GTM strategy as a worked example.
+It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with a cream hero and a mulberry-to-black small-caps title). It opens pre-filled with the *One Unity · Unity Acquire* 2026 GTM strategy as a worked example.
 
 ## Run it
 
