@@ -655,8 +655,14 @@ $('#x-copy').onclick=()=>{const txt=UI.tier===3?'':toDelim(currentTable(),'\t');
 
 /* ==================== DOC UPLOAD + EXTRACTION ==================== */
 $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatus('#extract-status','Reading '+f.name+'…');
- try{let text;if(/\.docx$/i.test(f.name)){if(!window.mammoth)throw new Error('Word reader did not load');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});text=r.value}else text=await f.text();
-  S.brief=text.replace(/\n{3,}/g,'\n\n').trim();$('#in-brief').value=S.brief;save();setStatus('#extract-status',`Loaded ${f.name} (${S.brief.length.toLocaleString()} characters). Press “Fill inputs from doc”.`)}
+ try{let text;PDF=null;
+  if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){const buf=await f.arrayBuffer();const r=await pdfRead(buf);PDF={name:f.name,b64:b64(buf),text:r.text.replace(/\n{3,}/g,'\n\n').trim(),pages:r.pages};text=PDF.text;
+   if(text.length<40){S.brief='';$('#in-brief').value='';save();
+    return setStatus('#extract-status',agentOn()?`Loaded ${f.name} (${r.pages} pages). It has no selectable text, so the AI agent will read the pages directly. Press “Fill inputs from doc”.`:`${f.name} has no selectable text (it may be scanned). Connect an AI agent below so it can read the pages, or paste the text.`,!agentOn())}}
+  else if(/\.docx$/i.test(f.name)){if(!window.mammoth)throw new Error('Word reader did not load');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});text=r.value}
+  else text=await f.text();
+  S.brief=text.replace(/\n{3,}/g,'\n\n').trim();$('#in-brief').value=S.brief;save();
+  setStatus('#extract-status',`Loaded ${f.name}${PDF?` (${PDF.pages} pages, ${S.brief.length.toLocaleString()} characters)`:` (${S.brief.length.toLocaleString()} characters)`}.${PDF&&agentOn()?' The AI agent will read the PDF itself.':''} Press “Fill inputs from doc”.`)}
  catch(err){setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
@@ -700,14 +706,87 @@ function localExtract(text){
  return x;
 }
 let SAMPLE=null;
+const PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+/* ==================== AI AGENT ====================
+   Two ways to reach Claude: the built-in one when this page runs inside Claude (SAMPLE),
+   or the viewer's own Anthropic API key, which also reads PDFs natively (layout, tables, scans). */
+const AGENT_LS='paid-media-bom-agent';
+let AGENT=null;try{AGENT=JSON.parse(localStorage.getItem(AGENT_LS)||'null')}catch(e){AGENT=null}
+let PDF=null; // {name,b64,text,pages} of the last uploaded PDF, kept in memory only
+const AGENT_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (best)'],['claude-sonnet-5-5','Claude Sonnet 5.5 (faster)'],['claude-haiku-5-5','Claude Haiku 5.5 (cheapest)']];
+const agentOn=()=>!!(AGENT&&AGENT.key);
+const aiReady=()=>agentOn()||!!SAMPLE;
+const aiLabel=()=>agentOn()?'Your AI agent':'Claude';
+function pdfForBrief(){return PDF&&(!PDF.text.trim()||(S.brief||'').trim()===PDF.text.trim())?PDF:null}
+async function aiJSON(prompt,{pdf}={}){
+ if(agentOn())return agentJSON(prompt,pdf);
+ if(SAMPLE)return SAMPLE.json(prompt,{modelTier:'default'});
+ throw {code:'no_agent'};
+}
+async function agentJSON(prompt,pdf){
+ const content=[];
+ if(pdf)content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:pdf.b64},title:pdf.name});
+ content.push({type:'text',text:pdf?'The attached PDF is the GTM strategy doc. Read all of it, including tables and charts.\n\n'+prompt:prompt});
+ const body={model:AGENT.model||AGENT_MODELS[0][0],max_tokens:16000,output_config:{effort:'medium'},messages:[{role:'user',content}]};
+ const fb=/^claude-(opus|sonnet)-5-5$/.test(body.model);if(fb)body.fallbacks='default';
+ let r;
+ try{r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:Object.assign({'content-type':'application/json','x-api-key':AGENT.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},fb?{'anthropic-beta':'server-side-fallback-2026-07-01'}:{}),body:JSON.stringify(body)})}
+ catch(e){throw {code:'agent_network',message:'Could not reach api.anthropic.com from this browser.'}}
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok){const m=(j.error&&j.error.message)||('HTTP '+r.status);
+  throw {code:r.status===401||r.status===403?'agent_key':r.status===429?'rate_limited':r.status===413?'agent_too_big':'agent_error',message:m}}
+ if(j.stop_reason==='refusal')throw {code:'agent_refusal',message:'The model declined this request.'};
+ const t=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+ const m=t.match(/[\[{][\s\S]*[\]}]/);if(!m)throw {code:'agent_bad_reply',message:'The reply was not JSON.'};
+ try{return JSON.parse(m[0])}catch(e){throw {code:'agent_bad_reply',message:'The reply was not valid JSON.'}}
+}
+function aiErr(e,what){
+ const c=e&&e.code;
+ if(c==='agent_key')return 'Your API key was rejected. Check it under “AI agent”.';
+ if(c==='rate_limited')return 'The AI agent is busy (rate limited). Wait a minute and try again.';
+ if(c==='agent_too_big')return 'That PDF is too large for the agent (32 MB / 600 pages max).';
+ if(c==='agent_network'||c==='agent_refusal'||c==='agent_bad_reply'||c==='agent_error')return what+' failed: '+(e.message||c)+'.';
+ return what+' failed'+(c?' ('+c+')':'')+'. Try again, or shorten the text to the key sections.';
+}
+function renderAgent(){
+ const on=agentOn();
+ $('#agent-chip').textContent=on?'Connected':SAMPLE?'Built-in Claude':'Not connected';
+ $('#agent-chip').classList.toggle('on',on||!!SAMPLE);
+ $('#agent-key').value='';$('#agent-key').placeholder=on?'Key saved (…'+AGENT.key.slice(-4)+')':'sk-ant-…';
+ $('#agent-model').innerHTML=AGENT_MODELS.map(([v,l])=>`<option value="${v}"${(AGENT&&AGENT.model||AGENT_MODELS[0][0])===v?' selected':''}>${l}</option>`).join('');
+ $('#agent-off').hidden=!on;
+ $('#agent-msg').textContent=on?`Connected to ${AGENT_MODELS.find(m=>m[0]===AGENT.model)?.[1]||AGENT.model}. Uploaded PDFs go to the agent whole, so it reads tables, charts and scanned pages.`
+  :SAMPLE?'Claude is built in here and reads the text of your doc. Add an API key to have an agent read PDFs whole, including tables and scans.'
+  :'Add an Anthropic API key to let an AI agent read the brief and PDFs. Without one, a keyword scan fills the inputs.';
+}
+async function pdfRead(buf){
+ if(!window.pdfjsLib)throw new Error('PDF reader did not load');
+ pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+ const doc=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;const out=[];
+ for(let i=1;i<=doc.numPages;i++){const c=await(await doc.getPage(i)).getTextContent();
+  out.push(c.items.map(it=>it.str+(it.hasEOL?'\n':' ')).join('').replace(/[ \t]+\n/g,'\n'))}
+ return {text:out.join('\n\n'),pages:doc.numPages};
+}
+function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+$('#agent-on').onclick=()=>{
+ const k=$('#agent-key').value.trim(),model=$('#agent-model').value;
+ if(!k&&!agentOn())return setStatus('#agent-status','Paste an API key first.',true);
+ if(k&&!/^sk-ant-/.test(k))return setStatus('#agent-status','That does not look like an Anthropic API key (it starts with sk-ant-).',true);
+ AGENT={key:k||AGENT.key,model};try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}
+ renderAgent();setStatus('#agent-status','Saved. Testing the connection…');
+ agentJSON('Reply with only this JSON: {"ok":true}').then(()=>setStatus('#agent-status','The AI agent is connected and answering.')).catch(e=>setStatus('#agent-status',aiErr(e,'The test'),true));
+};
+$('#agent-model').onchange=()=>{if(agentOn()){AGENT.model=$('#agent-model').value;try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}renderAgent()}};
+$('#agent-off').onclick=()=>{AGENT=null;try{localStorage.removeItem(AGENT_LS)}catch(e){}renderAgent();setStatus('#agent-status','Disconnected. Your key was removed from this browser.')};
+
 $('#btn-extract').onclick=async()=>{
- const text=(S.brief||'').trim();if(text.length<40)return setStatus('#extract-status','Paste or upload the GTM doc text first.',true);
+ const text=(S.brief||'').trim();const pdf=agentOn()?pdfForBrief():null;if(text.length<40&&!pdf)return setStatus('#extract-status','Paste or upload the GTM doc text first.',true);
  const btn=$('#btn-extract');btn.disabled=true;
  const yr=(S.start||'2026').slice(0,4);
  try{
   let x,how;
-  if(SAMPLE){
-   setStatus('#extract-status','Claude is reading the brief…');
+  if(aiReady()){
+   setStatus('#extract-status',aiLabel()+(pdf?' is reading '+pdf.name+'…':' is reading the brief…'));
    const prompt=`You are a senior paid media planner. Read the GTM strategy text below and extract inputs for a paid media plan.
 Reply with only JSON in exactly this shape:
 {"campaignName":string,"product":string,
@@ -728,22 +807,22 @@ GTM STRATEGY TEXT:
 """
 ${text.slice(0,60000)}
 """`;
-   x=await SAMPLE.json(prompt,{modelTier:'default'});how='Claude';
+   x=await aiJSON(prompt,{pdf});how=agentOn()?'AI agent'+(pdf?', full PDF':''):'Claude';
   }else{x=localExtract(text);how='keyword scan'}
   const ch=applyExtract(x||{});clearCopyForNewBrief();renderInputs();changed();$('#exampleBadge').hidden=true;
   setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);
-  if(SAMPLE)draftCopy();else setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');
+  if(aiReady())draftCopy();else setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');
  }catch(e){
   if(e&&e.code==='not_granted'){const x=localExtract(text);const ch=applyExtract(x);clearCopyForNewBrief();renderInputs();changed();setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');setStatus('#extract-status','Claude access was declined, so a keyword scan filled: '+(ch.join(', ')||'nothing')+'.')}
-  else setStatus('#extract-status','Extraction failed'+(e&&e.code?' ('+e.code+')':'')+'. Try again, or shorten the text to the key sections.',true)
+  else setStatus('#extract-status',aiErr(e,'Extraction'),true)
  }finally{btn.disabled=false}
 };
 
 function clearCopyForNewBrief(){S.copyEdits={};S.copy={src:S.name,voice:'',ctas:'',proof:'',ini:S.initiatives.map(()=>({h:'',b:''}))}}
 $('#btn-copy').onclick=()=>draftCopy();
 async function draftCopy(){
- if(!SAMPLE)return setStatus('#copy-status','Claude is not available in this view. Write the copy for this brief by hand.',true);
- const btn=$('#btn-copy');btn.disabled=true;setStatus('#copy-status','Claude is drafting copy for '+(S.name||'this brief')+'…');
+ if(!aiReady())return setStatus('#copy-status','No AI agent is connected. Connect one in section 1, or write the copy for this brief by hand.',true);
+ const btn=$('#btn-copy');btn.disabled=true;setStatus('#copy-status',aiLabel()+' is drafting copy for '+(S.name||'this brief')+'…');
  try{
   const prompt=`You are a B2B performance copywriter. Write paid media ad copy for this campaign.
 Campaign: ${S.name}
@@ -758,17 +837,17 @@ ${(S.brief||'').slice(0,15000)}
 >>>
 Reply with only JSON: {"voice":string,"ctas":[string],"proof":[string],"initiatives":[{"headlines":[string],"body":[string]}]}
 Rules: one entry in "initiatives" per initiative above, same order. For each: 5 headlines that mix lengths (at least 2 of 30 characters or fewer, 1 of 15 or fewer, others up to 70) and 3 body lines (one of 40 characters or fewer, one of about 90, one of about 150). CTAs: 5, each 25 characters or fewer. Proof points: up to 4, only facts stated in the brief. No exclamation marks, no invented numbers.`;
-  const x=await SAMPLE.json(prompt,{modelTier:'default'});
+  const x=await aiJSON(prompt);
   if(x.voice)S.copy.voice=x.voice;if(Array.isArray(x.ctas))S.copy.ctas=x.ctas.join('\n');if(Array.isArray(x.proof)&&x.proof.length)S.copy.proof=x.proof.join('\n');
   if(Array.isArray(x.initiatives))x.initiatives.forEach((q,i)=>{if(!S.copy.ini[i])S.copy.ini[i]={h:'',b:''};S.copy.ini[i].h=(q.headlines||[]).join('\n');S.copy.ini[i].b=(q.body||[]).join('\n')});
   S.copy.src=S.name;renderCopyInputs();changed();setStatus('#copy-status','Copy drafted for '+(S.name||'this brief')+'. Edit any line; the BOM updates as you type.');
- }catch(e){setStatus('#copy-status',e&&e.code==='not_granted'?'Claude access was declined. Write the copy by hand.':'Drafting failed'+(e&&e.code?' ('+e.code+')':'')+'. Try again.',true)}
+ }catch(e){setStatus('#copy-status',e&&e.code==='not_granted'?'Claude access was declined. Write the copy by hand.':aiErr(e,'Drafting'),true)}
  finally{btn.disabled=false}
 }
 
 /* ==================== BOOT ==================== */
-renderInputs();renderOut();
+renderInputs();renderOut();renderAgent();
 (function hook(n){
- if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s}).catch(()=>{});return}
+ if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;renderAgent()}).catch(()=>{});return}
  if(n<20)setTimeout(()=>hook(n+1),250);
 })(0);
