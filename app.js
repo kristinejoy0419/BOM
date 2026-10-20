@@ -792,7 +792,7 @@ function aiErr(e,what){
  if(c==='agent_network'||c==='agent_refusal'||c==='agent_bad_reply'||c==='agent_error')return what+' failed: '+(e.message||c)+'.';
  return what+' failed'+(c?' ('+c+')':'')+'. Try again, or shorten the text to the key sections.';
 }
-const PROV={gemini:{label:'Google Gemini',key:'Gemini API key',ph:'AIza…',test:/^AIza[\w-]{20,}$/,bad:'That does not look like a Gemini API key (it starts with AIza).',
+const PROV={gemini:{label:'Google Gemini',key:'Gemini API key',ph:'AIza… or AQ.…',test:/^[\w.-]{20,}$/,bad:'That does not look like a Gemini API key. Copy it with the “Copy key” button in AI Studio.',
   note:'Get a free key at aistudio.google.com → Get API key. The free tier has daily limits, and Google may use free-tier prompts to improve its products, so avoid confidential docs there.'},
  anthropic:{label:'Anthropic Claude',key:'Anthropic API key',ph:'sk-ant-…',test:/^sk-ant-/,bad:'That does not look like an Anthropic API key (it starts with sk-ant-).',
   note:'Create a key at console.anthropic.com → API keys. Usage is billed to that account.'}};
