@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fbf8f4">
+<title>Paid Media BOM Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Playfair+Display+SC:wght@400;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">GTM strategy → paid media plan</div>
+      <h1>Paid Media BOM Builder</h1>
+      <div class="sub">Turn a GTM strategy doc into a paid media bill of materials, spec sheet, creative deliverables list and flighting plan, in Lean, Standard and Full versions.</div>
+    </div>
+    <div class="btns"><span class="example" id="exampleBadge">Example loaded: One Unity · Unity Acquire</span></div>
+  </header>
+
+  <div class="layout">
+    <!-- ============ INPUTS ============ -->
+    <aside class="rail" aria-label="Inputs">
+      <details open id="d-brief">
+        <summary>1 · GTM brief <span class="hint">source doc</span></summary>
+        <div class="sec">
+          <label class="f">Campaign name<input type="text" id="in-name"></label>
+          <label class="f">Product / solution<input type="text" id="in-product"></label>
+          <label class="f">GTM doc text (paste, or upload a .docx / .txt)
+            <textarea id="in-brief" rows="9"></textarea></label>
+          <div class="btns">
+            <label class="btn sm" for="in-file" style="display:inline-flex;align-items:center">Upload doc</label>
+            <input type="file" id="in-file" accept=".docx,.txt,.md" hidden>
+            <button class="btn sm primary" id="btn-extract">Fill inputs from doc</button>
+            <button class="btn sm rose" id="btn-reset">Reload Unity example</button>
+          </div>
+          <div class="status" id="extract-status" role="status"></div>
+          <div class="note">“Fill inputs from doc” asks Claude to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>2 · Budget &amp; flight <span class="hint">per version</span></summary>
+        <div class="sec">
+          <div class="row3">
+            <label class="f">Lean $<input type="number" id="b-lean" min="0" step="10000"></label>
+            <label class="f">Standard $<input type="number" id="b-standard" min="0" step="10000"></label>
+            <label class="f">Full $<input type="number" id="b-full" min="0" step="10000"></label>
+          </div>
+          <div class="row2">
+            <label class="f">Flight start<input type="date" id="in-start"></label>
+            <label class="f">Flight end<input type="date" id="in-end"></label>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>3 · Markets <span class="hint">weight % · language</span></summary>
+        <div class="sec">
+          <div class="list" id="mkt-list"></div>
+          <div class="btns"><button class="btn sm" id="add-mkt">Add market</button></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>4 · Audiences <span class="hint">personas</span></summary>
+        <div class="sec"><div class="list" id="per-list"></div>
+          <div class="note">Decision-maker, Technical influencer and Day-to-day user drive targeting on each line. Rename them to match your doc.</div></div>
+      </details>
+
+      <details>
+        <summary>5 · Initiatives &amp; pillars</summary>
+        <div class="sec"><div class="list" id="ini-list"></div>
+          <div class="btns"><button class="btn sm" id="add-ini">Add initiative</button></div></div>
+      </details>
+
+      <details>
+        <summary>6 · Launch moments <span class="hint">drive bursts</span></summary>
+        <div class="sec"><div class="list" id="mom-list"></div>
+          <div class="btns"><button class="btn sm" id="add-mom">Add moment</button></div>
+          <div class="note">Launches and content drops add weight to that month and the next. Events pull event-amplification spend into their months.</div></div>
+      </details>
+
+      <details>
+        <summary>7 · Channels <span class="hint">on · weight</span></summary>
+        <div class="sec"><div class="list" id="ch-list"></div>
+          <div class="note">L / S / F shows the first version a channel appears in. Weight is relative share within each market.</div></div>
+      </details>
+
+      <details>
+        <summary>8 · Creative volume</summary>
+        <div class="sec">
+          <div class="eyebrow">Concepts per placement</div>
+          <div class="row3">
+            <label class="f">Lean<input type="number" id="c-lean" min="1" max="10"></label>
+            <label class="f">Standard<input type="number" id="c-standard" min="1" max="10"></label>
+            <label class="f">Full<input type="number" id="c-full" min="1" max="10"></label>
+          </div>
+          <div class="eyebrow">Refresh every N weeks</div>
+          <div class="row3">
+            <label class="f">Lean<input type="number" id="r-lean" min="1" max="52"></label>
+            <label class="f">Standard<input type="number" id="r-standard" min="1" max="52"></label>
+            <label class="f">Full<input type="number" id="r-full" min="1" max="52"></label>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>9 · Creative formats <span class="hint">what you'll produce</span></summary>
+        <div class="sec">
+          <div class="list" id="fmt-list"></div>
+          <label class="f">Video cut-downs per concept (comma-separated)<input type="text" id="in-vlen" placeholder="6s, 15s, 30s"></label>
+          <div class="note">Turning a format off removes its ad units. Placements left with no units drop out and their budget moves to the remaining placements.</div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>10 · Messaging &amp; ad copy <span class="hint">fills the BOM</span></summary>
+        <div class="sec">
+          <label class="f">Voice &amp; tone<textarea id="cp-voice" rows="2"></textarea></label>
+          <div class="list" id="cp-ini"></div>
+          <label class="f">CTAs (one per line)<textarea id="cp-cta" rows="3"></textarea></label>
+          <label class="f">Proof points (one per line)<textarea id="cp-proof" rows="3"></textarea></label>
+          <div class="btns"><button class="btn sm primary" id="btn-copy">Draft copy with Claude</button></div>
+          <div class="status" id="copy-status" role="status"></div>
+          <div class="note">One line per option. Each BOM master uses the copy for the initiative that carries most of its budget, and picks lines that fit its character limits. Write a mix of short and long lines so search and display have options.</div>
+        </div>
+      </details>
+    </aside>
+
+    <!-- ============ OUTPUT ============ -->
+    <main class="out">
+      <div class="bar">
+        <div class="seg" role="group" aria-label="Version" id="ver-seg"></div>
+        <div class="btns">
+          <button class="btn primary" id="x-xlsx">Download .xlsx</button>
+          <button class="btn" id="x-all">All versions .xlsx</button>
+          <button class="btn" id="x-csv">CSV of this tab</button>
+          <button class="btn ghost" id="x-copy">Copy table</button>
+        </div>
+      </div>
+      <div class="status" id="x-status" role="status"></div>
+      <nav class="tabs" role="tablist" id="tabs"></nav>
+      <section id="view"></section>
+    </main>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
