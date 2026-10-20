@@ -715,8 +715,9 @@ let AGENT=null;try{AGENT=JSON.parse(localStorage.getItem(AGENT_LS)||'null')}catc
 let PDF=null; // {name,b64,text,pages} of the last uploaded PDF, kept in memory only
 const AGENT_MODELS=[['claude-opus-5-5','Claude Opus 5.5 (best)'],['claude-sonnet-5-5','Claude Sonnet 5.5 (faster)'],['claude-haiku-5-5','Claude Haiku 5.5 (cheapest)']];
 const agentOn=()=>!SAMPLE&&!!(AGENT&&AGENT.key);
+if(AGENT&&!AGENT.provider)AGENT.provider='anthropic';
 const aiReady=()=>agentOn()||!!SAMPLE;
-const aiLabel=()=>agentOn()?'Your AI agent':'Claude';
+const aiLabel=()=>agentOn()?(AGENT.provider==='gemini'?'Gemini':'Your AI agent'):'Claude';
 // Page images for the built-in Claude: scanned or chart-heavy pages first, up to the view's image limit.
 async function pdfImages(pdf){
  const lim=await SAMPLE.limits().catch(()=>null);const max=lim&&lim.images&&lim.images.maxCount;if(!max||!window.pdfjsLib)return null;
@@ -738,6 +739,7 @@ async function aiJSON(prompt,{pdf}={}){
  throw {code:'no_agent'};
 }
 async function agentJSON(prompt,pdf){
+ if(AGENT.provider==='gemini')return geminiJSON(prompt,pdf);
  const content=[];
  if(pdf)content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:pdf.b64},title:pdf.name});
  content.push({type:'text',text:pdf?'The attached PDF is the GTM strategy doc. Read all of it, including tables and charts.\n\n'+prompt:prompt});
@@ -750,29 +752,67 @@ async function agentJSON(prompt,pdf){
  if(!r.ok){const m=(j.error&&j.error.message)||('HTTP '+r.status);
   throw {code:r.status===401||r.status===403?'agent_key':r.status===429?'rate_limited':r.status===413?'agent_too_big':'agent_error',message:m}}
  if(j.stop_reason==='refusal')throw {code:'agent_refusal',message:'The model declined this request.'};
- const t=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
- const m=t.match(/[\[{][\s\S]*[\]}]/);if(!m)throw {code:'agent_bad_reply',message:'The reply was not JSON.'};
+ return parseReply((j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''));
+}
+function parseReply(t){
+ const m=String(t||'').match(/[\[{][\s\S]*[\]}]/);if(!m)throw {code:'agent_bad_reply',message:'The reply was not JSON.'};
  try{return JSON.parse(m[0])}catch(e){throw {code:'agent_bad_reply',message:'The reply was not valid JSON.'}}
 }
+/* Gemini (Google AI Studio key, free tier available). PDFs go in whole as inline data. */
+const GEM='https://generativelanguage.googleapis.com/v1beta';
+function gemErr(r,j){const m=(j.error&&j.error.message)||('HTTP '+r.status);const s=j.error&&j.error.status;
+ return {code:r.status===429||s==='RESOURCE_EXHAUSTED'?'rate_limited':/API key|API_KEY/i.test(m)||r.status===401||r.status===403?'agent_key':r.status===413?'agent_too_big':'agent_error',message:m}}
+async function geminiJSON(prompt,pdf){
+ const parts=[];
+ if(pdf)parts.push({inline_data:{mime_type:'application/pdf',data:pdf.b64}});
+ parts.push({text:pdf?'The attached PDF is the GTM strategy doc. Read all of it, including tables and charts.\n\n'+prompt:prompt});
+ let r;
+ try{r=await fetch(`${GEM}/models/${encodeURIComponent(AGENT.model||'gemini-2.5-flash')}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':AGENT.key},
+  body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json',maxOutputTokens:16000}})})}
+ catch(e){throw {code:'agent_network',message:'Could not reach Google’s Gemini API from this browser.'}}
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw gemErr(r,j);
+ const c=(j.candidates||[])[0];
+ if(!c)throw {code:'agent_refusal',message:'Gemini returned no answer'+(j.promptFeedback&&j.promptFeedback.blockReason?' ('+j.promptFeedback.blockReason+')':'')};
+ return parseReply(((c.content&&c.content.parts)||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join(''));
+}
+async function geminiModels(key){
+ const r=await fetch(`${GEM}/models?pageSize=200`,{headers:{'x-goog-api-key':key}});const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw gemErr(r,j);
+ const ms=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')&&/gemini/i.test(m.name)&&!/embed|image|tts|audio|live|vision-only/i.test(m.name))
+  .map(m=>[m.name.replace(/^models\//,''),m.displayName||m.name]);
+ const rank=id=>(/flash/.test(id)&&!/lite/.test(id)?0:/pro/.test(id)?1:/lite/.test(id)?2:3)+(/preview|exp/.test(id)?4:0)+(/latest/.test(id)?0.5:0);
+ return ms.sort((a,b)=>rank(a[0])-rank(b[0])||b[0].localeCompare(a[0],undefined,{numeric:true}));
+}
 function aiErr(e,what){
- const c=e&&e.code;
+ const c=e&&e.code;const who=agentOn()&&AGENT.provider==='gemini'?'Gemini':'The AI agent';
  if(c==='agent_key')return 'Your API key was rejected. Check it under “AI agent”.';
- if(c==='rate_limited')return 'The AI agent is busy (rate limited). Wait a minute and try again.';
- if(c==='agent_too_big')return 'That PDF is too large for the agent (32 MB / 600 pages max).';
+ if(c==='rate_limited')return who+' is busy or over its free quota. Wait a minute and try again.';
+ if(c==='agent_too_big')return 'That PDF is too large for the agent. Try a smaller file.';
  if(c==='agent_network'||c==='agent_refusal'||c==='agent_bad_reply'||c==='agent_error')return what+' failed: '+(e.message||c)+'.';
  return what+' failed'+(c?' ('+c+')':'')+'. Try again, or shorten the text to the key sections.';
 }
+const PROV={gemini:{label:'Google Gemini',key:'Gemini API key',ph:'AIza…',test:/^AIza[\w-]{20,}$/,bad:'That does not look like a Gemini API key (it starts with AIza).',
+  note:'Get a free key at aistudio.google.com → Get API key. The free tier has daily limits, and Google may use free-tier prompts to improve its products, so avoid confidential docs there.'},
+ anthropic:{label:'Anthropic Claude',key:'Anthropic API key',ph:'sk-ant-…',test:/^sk-ant-/,bad:'That does not look like an Anthropic API key (it starts with sk-ant-).',
+  note:'Create a key at console.anthropic.com → API keys. Usage is billed to that account.'}};
+const provNow=()=>agentOn()?AGENT.provider||'anthropic':$('#agent-prov').value||'gemini';
+function modelOpts(p){return p==='gemini'?((agentOn()&&AGENT.provider==='gemini'&&AGENT.models)||[['gemini-2.5-flash','Gemini 2.5 Flash'],['gemini-2.5-pro','Gemini 2.5 Pro']]):AGENT_MODELS}
 function renderAgent(){
- const on=agentOn();
- $('#agent-chip').textContent=SAMPLE?'Your Claude account':on?'Connected':'Not connected';
+ const on=agentOn(),p=provNow(),P=PROV[p];
+ $('#agent-chip').textContent=SAMPLE?'Your Claude account':on?(p==='gemini'?'Gemini connected':'Claude connected'):'Not connected';
  $('#agent-chip').classList.toggle('on',on||!!SAMPLE);
- $('#agent-key').value='';$('#agent-key').placeholder=on?'Key saved (…'+AGENT.key.slice(-4)+')':'sk-ant-…';
- $('#agent-model').innerHTML=AGENT_MODELS.map(([v,l])=>`<option value="${v}"${(AGENT&&AGENT.model||AGENT_MODELS[0][0])===v?' selected':''}>${l}</option>`).join('');
- $('#agent-off').hidden=!on;
+ $('#agent-prov').value=p;$('#agent-prov').disabled=on;
+ $('#agent-key-l').firstChild.textContent=P.key;
+ $('#agent-key').value='';$('#agent-key').placeholder=on?'Key saved (…'+AGENT.key.slice(-4)+')':P.ph;
+ const ms=modelOpts(p),cur=on&&AGENT.model||ms[0][0];
+ $('#agent-model').innerHTML=ms.map(([v,l])=>`<option value="${v}"${cur===v?' selected':''}>${esc(l)}</option>`).join('');
+ $('#agent-off').hidden=!on;$('#agent-note').textContent='The key is saved only in this browser and is sent only to '+(p==='gemini'?'Google (generativelanguage.googleapis.com)':'api.anthropic.com')+'. '+P.note;
  document.querySelectorAll('#d-agent .agent-body>:not(#agent-msg)').forEach(el=>el.hidden=!!SAMPLE);
- $('#agent-msg').textContent=on?`Connected to ${AGENT_MODELS.find(m=>m[0]===AGENT.model)?.[1]||AGENT.model}. Uploaded PDFs go to the agent whole, so it reads tables, charts and scanned pages.`
+ const mn=(ms.find(m=>m[0]===cur)||[cur,cur])[1];
+ $('#agent-msg').textContent=on?`Connected to ${mn}. Uploaded PDFs go to the agent whole, so it reads tables, charts and scanned pages.`
   :SAMPLE?'Claude is built in here and runs on your Claude account, so no key is needed. Uploaded PDFs are sent as text plus page images, so tables, charts and scanned pages are read too.'
-  :'Add an Anthropic API key to let an AI agent read the brief and PDFs. Without one, a keyword scan fills the inputs.';
+  :'Connect an AI agent to read the brief and PDFs and draft the ad copy. Gemini has a free key; Claude needs a paid Anthropic key. Without one, a keyword scan fills the inputs.';
 }
 async function pdfRead(buf){
  if(!window.pdfjsLib)throw new Error('PDF reader did not load');
@@ -783,13 +823,22 @@ async function pdfRead(buf){
  return {text:out.join('\n\n'),pages:doc.numPages,pageChars:out.map(t=>t.replace(/\s+/g,'').length)};
 }
 function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
-$('#agent-on').onclick=()=>{
- const k=$('#agent-key').value.trim(),model=$('#agent-model').value;
+$('#agent-prov').onchange=()=>renderAgent();
+$('#agent-on').onclick=async()=>{
+ const p=provNow(),P=PROV[p],k=$('#agent-key').value.trim();let model=$('#agent-model').value;
  if(!k&&!agentOn())return setStatus('#agent-status','Paste an API key first.',true);
- if(k&&!/^sk-ant-/.test(k))return setStatus('#agent-status','That does not look like an Anthropic API key (it starts with sk-ant-).',true);
- AGENT={key:k||AGENT.key,model};try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}
- renderAgent();setStatus('#agent-status','Saved. Testing the connection…');
- agentJSON('Reply with only this JSON: {"ok":true}').then(()=>setStatus('#agent-status','The AI agent is connected and answering.')).catch(e=>setStatus('#agent-status',aiErr(e,'The test'),true));
+ if(k&&!P.test.test(k))return setStatus('#agent-status',P.bad,true);
+ const key=k||AGENT.key;const btn=$('#agent-on');btn.disabled=true;
+ try{
+  let models=null;
+  if(p==='gemini'){setStatus('#agent-status','Checking the key and loading the models it can use…');
+   models=await geminiModels(key);if(!models.length)throw {code:'agent_error',message:'This key has no Gemini models that can read documents'};
+   if(!models.some(m=>m[0]===model))model=models[0][0]}
+  AGENT={provider:p,key,model,models};try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}
+  renderAgent();setStatus('#agent-status','Saved. Testing the connection…');
+  await agentJSON('Reply with only this JSON: {"ok":true}');setStatus('#agent-status',(p==='gemini'?'Gemini':'Claude')+' is connected and answering.');
+ }catch(e){setStatus('#agent-status',aiErr(e,'The test'),true)}
+ finally{btn.disabled=false}
 };
 $('#agent-model').onchange=()=>{if(agentOn()){AGENT.model=$('#agent-model').value;try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}renderAgent()}};
 $('#agent-off').onclick=()=>{AGENT=null;try{localStorage.removeItem(AGENT_LS)}catch(e){}renderAgent();setStatus('#agent-status','Disconnected. Your key was removed from this browser.')};
@@ -822,7 +871,7 @@ GTM STRATEGY TEXT:
 """
 ${text.slice(0,60000)}
 """`;
-   x=await aiJSON(prompt,{pdf});how=SAMPLE?'Claude'+(pdf?', with page images':''):'AI agent'+(pdf?', full PDF':'');
+   x=await aiJSON(prompt,{pdf});how=SAMPLE?'Claude'+(pdf?', with page images':''):(AGENT.provider==='gemini'?'Gemini':'AI agent')+(pdf?', full PDF':'');
   }else{x=localExtract(text);how='keyword scan'}
   const ch=applyExtract(x||{});clearCopyForNewBrief();renderInputs();changed();$('#exampleBadge').hidden=true;
   setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);

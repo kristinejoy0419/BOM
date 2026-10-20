@@ -45,11 +45,12 @@
             <summary>AI agent <span class="chip" id="agent-chip">Not connected</span></summary>
             <div class="agent-body">
               <div class="note" id="agent-msg"></div>
-              <label class="f">Anthropic API key<input type="password" id="agent-key" autocomplete="off" spellcheck="false"></label>
+              <label class="f">Provider<select id="agent-prov"><option value="gemini">Google Gemini (free key)</option><option value="anthropic">Anthropic Claude</option></select></label>
+              <label class="f" id="agent-key-l">API key<input type="password" id="agent-key" autocomplete="off" spellcheck="false"></label>
               <label class="f">Model<select id="agent-model"></select></label>
               <div class="btns"><button class="btn sm primary" id="agent-on">Connect</button><button class="btn sm" id="agent-off" hidden>Disconnect</button></div>
               <div class="status" id="agent-status" role="status"></div>
-              <div class="note">The key is saved only in this browser and is sent only to api.anthropic.com. Create one at console.anthropic.com → API keys. Usage is billed to that account.</div>
+              <div class="note" id="agent-note"></div>
             </div>
           </details>
         </div>
