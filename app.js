@@ -807,7 +807,7 @@ function renderAgent(){
  $('#agent-key').value='';$('#agent-key').placeholder=on?'Key saved (…'+AGENT.key.slice(-4)+')':P.ph;
  const ms=modelOpts(p),cur=on&&AGENT.model||ms[0][0];
  $('#agent-model').innerHTML=ms.map(([v,l])=>`<option value="${v}"${cur===v?' selected':''}>${esc(l)}</option>`).join('');
- $('#agent-off').hidden=!on;$('#agent-note').textContent='The key is saved only in this browser and is sent only to '+(p==='gemini'?'Google (generativelanguage.googleapis.com)':'api.anthropic.com')+'. '+P.note;
+ $('#agent-off').hidden=!on;$('#agent-share').hidden=!on;$('#agent-note').textContent='The key is saved only in this browser and is sent only to '+(p==='gemini'?'Google (generativelanguage.googleapis.com)':'api.anthropic.com')+'. '+P.note;
  document.querySelectorAll('#d-agent .agent-body>:not(#agent-msg)').forEach(el=>el.hidden=!!SAMPLE);
  const mn=(ms.find(m=>m[0]===cur)||[cur,cur])[1];
  $('#agent-msg').textContent=on?`Connected to ${mn}. Uploaded PDFs go to the agent whole, so it reads tables, charts and scanned pages.`
@@ -841,6 +841,22 @@ $('#agent-on').onclick=async()=>{
  finally{btn.disabled=false}
 };
 $('#agent-model').onchange=()=>{if(agentOn()){AGENT.model=$('#agent-model').value;try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}renderAgent()}};
+/* Share link: the key rides in the URL fragment (never sent to the web server or stored in the repo).
+   Opening the link saves it in that person's browser, then the fragment is wiped from the address bar. */
+$('#agent-share').onclick=()=>{if(!agentOn())return;
+ const link=location.origin+location.pathname+'#agent='+encodeURIComponent(btoa(JSON.stringify({p:AGENT.provider,k:AGENT.key,m:AGENT.model})));
+ const done=()=>setStatus('#agent-status','Share link copied. Send it privately (Slack DM or email), only to people who should use your key: anyone with the link can.');
+ navigator.clipboard.writeText(link).then(done).catch(()=>{window.prompt('Copy this link:',link)})};
+function agentFromLink(){
+ const m=/[#&]agent=([^&]+)/.exec(location.hash);if(!m)return;
+ try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(!o.k||!PROV[o.p])throw 0;
+  AGENT={provider:o.p,key:o.k,model:o.m||null,models:null};try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}
+  if(o.p==='gemini')geminiModels(o.k).then(ms=>{AGENT.models=ms;if(!ms.some(x=>x[0]===AGENT.model)&&ms.length)AGENT.model=ms[0][0];try{localStorage.setItem(AGENT_LS,JSON.stringify(AGENT))}catch(e){}renderAgent()}).catch(()=>{});
+  setTimeout(()=>{$('#d-agent').open=true;setStatus('#agent-status','Connected with the shared key. This browser will remember it; Disconnect removes it.')},0);
+ }catch(e){setTimeout(()=>setStatus('#agent-status','That share link is not valid. Ask for a new one.',true),0)}
+ history.replaceState(null,'',location.pathname+location.search);
+}
+agentFromLink();
 $('#agent-off').onclick=()=>{AGENT=null;try{localStorage.removeItem(AGENT_LS)}catch(e){}renderAgent();setStatus('#agent-status','Disconnected. Your key was removed from this browser.')};
 
 $('#btn-extract').onclick=async()=>{
