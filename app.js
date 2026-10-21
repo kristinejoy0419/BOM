@@ -1318,7 +1318,7 @@ async function newCheer(useAI){
    if(x&&typeof x.line==='string'&&x.line.trim().length>4&&x.line.length<140)return showCheer(x.line.trim())}catch(e){}}
  cheerI=(cheerI+1)%CHEERS.length;showCheer(CHEERS[cheerI])}
 showCheer(CHEERS[cheerI]);
-$('#cheer-new').onclick=()=>newCheer(true);
+$('#cheer-new').onclick=()=>newCheer(true);$('#spider').onclick=()=>newCheer(true);
 /* ==================== AI AGENT ====================
    Two ways to reach Claude: the built-in one when this page runs inside Claude (SAMPLE),
    or the viewer's own Anthropic API key, which also reads PDFs natively (layout, tables, scans). */
