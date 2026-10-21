@@ -917,7 +917,7 @@ function renderSeg(){
   b.ondrop=e=>{e.preventDefault();const from=dragK||e.dataTransfer.getData('text/plain'),to=b.dataset.k;if(!from||from===to)return;
    const ks=tabs.map(t=>t[0]).filter(k=>k!==from);ks.splice(ks.indexOf(to),0,from);UI.tabOrder=ks;save();renderOut()}});
  $('#tabs').hidden=UI.tier===3;
- $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tab=b.dataset.k;save();renderOut()});
+ $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(UI.tab===b.dataset.k||b.isContentEditable)return;UI.tab=b.dataset.k;save();renderOut()});
 }
 function barList(title,entries,total){
  const max=Math.max(1,...entries.map(e=>e[1]));
@@ -1355,7 +1355,28 @@ function renderCompare(){
 }
 const pct=v=>(+(v*100).toFixed(1))+'%';
 const money2=v=>'$'+(v<10?v.toFixed(2):Math.round(v).toLocaleString('en-US'));
-function renderOut(){
+// Double-click to edit any text in the dashboard. Edits are saved per tab, keyed by the original text and its position among identical texts,
+// so an edited number falls back to the live value once the inputs change it.
+const TE_SEL='td,th,h1,h2,h3,h4,li,summary,label,p,.note,.k,.v,.sub2,.chip,.tierchip,.eyebrow,strong,.pv-h,.pv-main,.pv-lg div,#tabs button';
+const teScope=el=>el.closest('#tabs')?'_tabs':UI.tier===3?'_compare':UI.tab;
+const teOk=el=>el&&!el.querySelector('input,select,textarea,button:not(#tabs button),a')&&!el.closest('input,select,textarea,a');
+function teKey(el){const root=el.closest('#tabs')||$('#view'),t=(el.dataset.orig??el.textContent).trim();let n=0;
+ for(const x of root.querySelectorAll(TE_SEL)){if(x===el)break;if((x.dataset.orig??x.textContent).trim()===t)n++}return t+'#'+n}
+function applyTextEdits(){for(const root of [$('#tabs'),$('#view')]){const seen={};
+  root.querySelectorAll(TE_SEL).forEach(el=>{const t=el.textContent.trim();if(!t)return;const n=seen[t]=(seen[t]??-1)+1,E=(S.textEdits||{})[teScope(el)]||{},v=E[t+'#'+n];
+   if(v!=null&&teOk(el)){el.dataset.orig=t;el.textContent=v;el.classList.add('te-edited');el.title='You edited this. Original: '+t}})}
+ const E=(S.textEdits||{})[UI.tier===3?'_compare':UI.tab];$('#te-reset').hidden=!(E&&Object.keys(E).length)}
+function teStart(el){if(el.isContentEditable)return;const key=teKey(el),scope=teScope(el),before=el.textContent;
+ el.contentEditable='true';el.classList.add('te-on');el.focus();const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+ const done=keep=>{el.removeEventListener('blur',onBlur);el.removeEventListener('keydown',onKey);el.contentEditable='false';el.classList.remove('te-on');
+  if(!keep){el.textContent=before;return}const v=el.textContent.trim(),orig=(el.dataset.orig??before).trim();S.textEdits=S.textEdits||{};const E=S.textEdits[scope]=S.textEdits[scope]||{};
+  if(!v||v===orig){delete E[key];el.textContent=orig;el.classList.remove('te-edited');delete el.dataset.orig;el.removeAttribute('title')}else{E[key]=v;el.dataset.orig=orig;el.classList.add('te-edited');el.title='You edited this. Original: '+orig}
+  save();$('#te-reset').hidden=!Object.keys(S.textEdits[UI.tier===3?'_compare':UI.tab]||{}).length};
+ const onBlur=()=>done(true),onKey=e=>{if(e.key===' '&&el.tagName==='BUTTON'){e.preventDefault();document.execCommand('insertText',false,' ')}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();el.blur()}else if(e.key==='Escape'){e.preventDefault();done(false)}};
+ el.addEventListener('blur',onBlur);el.addEventListener('keydown',onKey)}
+document.addEventListener('dblclick',e=>{const el=e.target.closest&&e.target.closest(TE_SEL);if(!el||!el.closest('#view,#tabs')||!teOk(el))return;e.preventDefault();teStart(el)});
+function renderOut(){_renderOut();applyTextEdits()}
+function _renderOut(){
  renderSeg();
  const v=$('#view');
  if(UI.tier===3){v.innerHTML=renderCompare();$('#x-csv').disabled=true;syncBudgetFields();return}
@@ -1433,6 +1454,9 @@ $('#x-xlsx').onclick=()=>{if(!window.XLSX)return setStatus('#x-status','The spre
 $('#x-all').onclick=()=>{if(!window.XLSX)return setStatus('#x-status','The spreadsheet library did not load. Reload the page and try again.',true);
  saveFile(`${slug()}-all-versions-paid-media-bom.xlsx`,XLSX.write(workbookFor([0,1,2]),{type:'array',bookType:'xlsx'}))};
 $('#x-csv').onclick=()=>saveFile(`${slug()}-${TIERS[UI.tier]}-${UI.tab}.csv`,toDelim(currentTable(),','));
+$('#x-refresh').onclick=()=>{save();renderInputs();renderOut();setStatus('#x-status','Refreshed. Every number was recalculated from your inputs at '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'.')};
+$('#te-reset').onclick=()=>{if(S.textEdits)delete S.textEdits[UI.tier===3?'_compare':UI.tab];save();renderOut();setStatus('#x-status','Text edits on this tab were undone.')};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!document.activeElement?.isContentEditable)renderOut()});
 $('#x-copy').onclick=()=>{const txt=UI.tier===3?'':toDelim(currentTable(),'\t');
  navigator.clipboard.writeText(txt).then(()=>setStatus('#x-status','Copied. Paste into Excel or Google Sheets.')).catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');setStatus('#x-status','Copied. Paste into Excel or Google Sheets.')}catch(e){setStatus('#x-status','Copy was blocked here.',true)}ta.remove()})};
 
