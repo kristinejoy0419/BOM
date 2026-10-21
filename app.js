@@ -320,10 +320,18 @@ function compute(tier){
  const has=mkts.map(m=>CH.some(c=>free(c)&&runs(c,m)));
  let room=mkts.map((m,j)=>has[j]?Math.max(0,total*m.weight/wsum-sum((alloc[m.id]||[]).map(x=>x[1]))):0);if(!sum(room))room=mkts.map((m,j)=>has[j]?+m.weight:0);const rs=sum(room);
  mkts.forEach((m,j)=>{if(!rs||!room[j])return;const mb=left*room[j]/rs,el=CH.filter(c=>free(c)&&runs(c,m)),cw=el.map(c=>chW(c.id,tier)*(c.boost?.[m.id]||1)),cws=sum(cw);el.forEach((c,i)=>put(m,c,mb*cw[i]/cws))});
+ // Placement budgets typed in Buy Details: that placement gets exactly its $ inside its channel; the channel's other placements share the rest.
+ const chTot={},plAmt={},remK={};mkts.forEach(m=>(alloc[m.id]||[]).forEach(([c,cb])=>{chTot[c.id]=(chTot[c.id]||0)+cb}));
+ CH.forEach(c=>{const CB=chTot[c.id];if(!CB)return;const ms=mkts.filter(m=>(alloc[m.id]||[]).some(x=>x[0]===c));
+  const pp=c.pl.filter(p=>plPinOf(p.id,tier)!=null&&ms.some(m=>plsInM(c,m).includes(p)));if(!pp.length)return;
+  const P=sum(pp.map(p=>plPinOf(p.id,tier))),s2=P>CB?CB/P:1;
+  pp.forEach(p=>{const mm=ms.filter(m=>plsInM(c,m).includes(p)),w=mm.map(m=>+m.weight),ws=sum(w);mm.forEach((m,i)=>plAmt[m.id+'|'+p.id]=plPinOf(p.id,tier)*s2*w[i]/ws)});
+  let rr=0;ms.forEach(m=>{const pl=plsInM(c,m),cb=alloc[m.id].find(x=>x[0]===c)[1];if(pl.some(p=>plAmt[m.id+'|'+p.id]==null))rr+=Math.max(0,cb-sum(pl.map(p=>plAmt[m.id+'|'+p.id]||0)))});
+  remK[c.id]=rr?(CB-P*s2)/rr:0});
  for(const m of mkts){
   const plsIn=c=>plsInM(c,m);
-  (alloc[m.id]||[]).sort((a,b)=>CH.indexOf(a[0])-CH.indexOf(b[0])).forEach(([c,cb])=>{const pls=plsIn(c),ps=sum(pls.map(p=>p.share));
-   pls.forEach(p=>{const b=cb*p.share/ps,rate=rateOf(p),units=unitsFor(p,m);
+  (alloc[m.id]||[]).sort((a,b)=>CH.indexOf(a[0])-CH.indexOf(b[0])).forEach(([c,cb])=>{const pls=plsIn(c),pk=p=>plAmt[m.id+'|'+p.id],un=pls.filter(p=>pk(p)==null),ups=sum(un.map(p=>p.share)),rem=c.id in remK?Math.max(0,cb-sum(pls.map(p=>pk(p)||0)))*remK[c.id]:cb;
+   pls.forEach(p=>{const b=pk(p)!=null?pk(p):ups?rem*p.share/ups:0;if(!(b>0))return;const rate=rateOf(p),units=unitsFor(p,m);
     let qty,qu;if(p.buy==='Flat'){qty=Math.floor(b/rate);qu=p.unit||'units'}else{qty=p.buy==='CPM'?b/rate*1000:b/rate;qu=BUYUNIT[p.buy]}
     const variants=sum(units.map(u=>variantsOf(u).length));
     const lead=Math.max(...units.map(u=>UNITS[u].lead));
@@ -743,6 +751,7 @@ function setMarketBudget(i,x){
  setStatus('#ch-status','');
 }
 // Channel $ typed in section 7 are pinned per version. Pinned channels hold their dollars; the rest share what's left.
+const plPinOf=(pid,t)=>{const v=S.plPin?.[TIERS[t]]?.[pid];return v==null||v===''?null:+v};
 const pinOf=(id,t)=>{const v=S.channels[id]?.pin?.[TIERS[t]];return v==null||v===''?null:+v};
 const chByCh=R=>{const o={};R.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o};
 function solveAllPins(){}
@@ -1127,10 +1136,10 @@ function renderFlight(R){
 }
 function renderAssump(R){
  const tb=assumptionTable(R);
- return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions. Projections use each buy's own delivery plus the benchmark funnel (CTR, landing page rate, lead rate) shown on the Compare view.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
+ return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Click a budget to type your own: that placement gets exactly that amount, its channel's total moves with it and the rest of the plan rebalances to stay on the ${money(+S.budgets[TIERS[R.tier]]||0)} total. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions. Projections use each buy's own delivery plus the benchmark funnel (CTR, landing page rate, lead rate) shown on the Compare view.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="rates-reset">Reset to benchmarks</button><button class="btn sm" id="pb-reset" ${Object.keys(S.plPin?.[TIERS[R.tier]]||{}).length?'':'disabled'}>Clear typed budgets</button></div></div>
  <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
  ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
-  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
+  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
  <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(tb.rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(tb.rows.map(r=>r.leads));return L?money2(sum(tb.rows.map(r=>r.budget))/L):'—'})()}</td><td></td><td></td><td></td></tr>
  </tbody></table></div>`;
 }
@@ -1172,7 +1181,13 @@ function renderOut(){
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
  if(UI.tab==='assump'){CH.forEach(c=>c.pl.forEach(p=>{const el=$('#rt-'+p.id);if(el)el.onchange=()=>{S.rates[p.id]=el.value===''?null:+el.value;changed()}}));
-  $('#rates-reset').onclick=()=>{S.rates={};save();renderOut()}}
+  $('#rates-reset').onclick=()=>{S.rates={};save();renderOut()};
+  const R0=compute(UI.tier===3?1:UI.tier),T0=TIERS[R0.tier];
+  CH.forEach(c=>c.pl.forEach(p=>{const el=$('#pb-'+p.id);if(!el)return;el.onchange=()=>{
+   S.plPin=S.plPin||{};const pp=(S.plPin[T0]=S.plPin[T0]||{});const old=sum(R0.lines.filter(l=>l.p.id===p.id).map(l=>l.budget)),ct=sum(R0.lines.filter(l=>l.c.id===c.id).map(l=>l.budget));
+   if(el.value===''){delete pp[p.id]}else{const x=Math.max(0,+el.value||0);pp[p.id]=x;const ch=S.channels[c.id];(ch.pin=ch.pin||{})[T0]=Math.round(ct-old+x);((S.plPinCh=S.plPinCh||{})[T0]=S.plPinCh[T0]||{})[c.id]=1}
+   changed()}}));
+  const pr=$('#pb-reset');if(pr)pr.onclick=()=>{if(S.plPin)delete S.plPin[T0];Object.keys(S.plPinCh?.[T0]||{}).forEach(id=>{if(S.channels[id]?.pin)delete S.channels[id].pin[T0]});if(S.plPinCh)delete S.plPinCh[T0];changed()}}
 }
 
 /* ==================== EXPORTS ==================== */
