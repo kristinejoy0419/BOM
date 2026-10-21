@@ -134,68 +134,76 @@ const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 
-/* ==================== EXAMPLE STATE (sample GTM, fictional "Example Co.") ==================== */
-const EX_NAME='Example Co. · Growth Platform 2027';
-const EXAMPLE_BRIEF=`GTM Strategy: Example Co. · Growth Platform 2027 (sample brief used to pre-fill this example)
+/* ==================== EXAMPLE STATE (PROXY: lead-gen plan modeled on a data security vendor such as Rubrik or Cohesity) ==================== */
+// Proxy data only: "Proxy Co." stands in for an enterprise data security / cyber resilience vendor. Built from public category
+// info (buyers, events, offers). No company's real budgets, KPIs or roadmap; every number here is illustrative.
+const EX_NAME='Proxy Co. · Cyber Resilience Lead Gen FY27 (proxy for a Rubrik / Cohesity-style plan)';
+const EXAMPLE_BRIEF=`PROXY DATA. GTM Strategy: Proxy Co. · Cyber Resilience Lead Gen FY27
+"Proxy Co." is a stand-in for an enterprise data security / cyber resilience vendor in the category of Rubrik or Cohesity. This brief is modeled from public category information only. Budgets, KPIs, launches and proof points are illustrative, not any company's real plan.
 
-Solution: Growth Platform, an AI-powered campaign tool that plans, buys and optimizes ads from one dashboard.
+Solution: a data security platform that backs up, secures and recovers enterprise data across data center, cloud and SaaS, with immutable backups, threat detection and fast clean recovery after ransomware.
 
-2027 initiatives
-1. AI Engine Perception Reset + Brand Equity: reposition the platform as an AI engine with unique first-party data. KPI: 30% YoY net revenue growth.
-2. Platform Adoption & Cross-Sell: make multi-format campaigns the default. KPIs: 11% YoY add-on revenue; +25% of advertisers activating a second format.
-3. Data Activation & Measurement Confidence: analytics integrations and first-party data. KPIs: 100% of advertisers sharing first-party data; % linking Google Analytics.
+Program goal: pipeline. Paid media is measured on qualified meetings and sourced pipeline, not clicks.
 
-ICP: current advertisers (enterprise >$10K/day, mid-market $1–10K, SMB $200–1K) and new prospects (top 200 globally) on competing platforms.
-Personas & where they learn:
-- Decision-maker (CEO, CMO, VP Growth): LinkedIn; industry trades; major industry conferences; exec podcasts.
-- Technical influencer (Head of Growth, Ad Ops, Data Science): LinkedIn + groups, Slack communities, X, industry newsletters.
-- Day-to-day user (Marketing Manager, Media Buyer): LinkedIn, X, Reddit, forums, search / LLM search.
-Markets: US and APAC emphasized (China, Japan, Korea).
+FY27 initiatives
+1. Ransomware Recovery Category Leadership: own "recover clean data fast" with security and IT leaders. KPIs: +15 pts aided awareness in target accounts; 60% of tier-1 accounts engaged.
+2. Pipeline Acceleration (Demo & Assessment): turn engaged accounts into meetings. KPIs: 1,800 MQLs; 25% MQL→SQL; $40M sourced pipeline; cost per SQL ≤ $1,200.
+3. Cloud & SaaS Data Security Expansion: cross-sell cloud, SaaS (Microsoft 365, Salesforce) and data security posture to existing backup customers. KPIs: 20% of customers adding a cloud or SaaS workload; 300 expansion opportunities.
 
-Launch calendar: Q1-Mar ROAS Campaigns + New Campaign Flow; Q2-Apr Unified Dashboard Ph1 + Multi-Country Budget; Q2-Jun Retention Campaigns; Q3 2027 Industry Benchmark Report; Q3 Unified onboarding; Q3 Unified SDK; Q4 Insights Agent; Q4 Executive Summit [China]. Ongoing: customer video testimonials, proof points, co-marketing, LinkedIn newsletter, technical webinars.`;
+ICP: enterprise (5,000+ employees) and upper mid-market (1,000–5,000) in financial services, healthcare, public sector, retail and manufacturing; 1,500 named target accounts in tiers 1–3, often replacing legacy backup.
+Buying committee & where they learn:
+- Decision-maker (CISO, CIO, VP Infrastructure): LinkedIn; security and IT trade press; RSAC, Gartner Security & Risk; analyst reports; exec podcasts.
+- Technical influencer (Security Architect, Backup / Storage Architect, Cloud Architect): LinkedIn groups, Reddit (r/sysadmin, r/cybersecurity), technical webinars, peer review sites.
+- Day-to-day user (Backup Admin, IT Ops Manager, SecOps Analyst): LinkedIn, Reddit, forums, YouTube how-tos, search / LLM search.
+Markets: North America leads; EMEA (UK, DACH, France) and Japan.
+
+Offers by stage: annual ransomware / state of data security report (gated); ransomware readiness assessment; recovery demo and hands-on lab; cyber recovery workshop for SecOps and IT teams; ROI and cost-of-downtime calculator.
+
+Moments: Feb FY kickoff; Mar ransomware readiness assessment launch; Apr/May RSAC; Jun Gartner Security & Risk and AWS re:Inforce; Jul annual data security report; Aug Black Hat; Sep identity recovery release; Oct Cybersecurity Awareness Month; Nov Microsoft Ignite; Dec AWS re:Invent. Ongoing: customer recovery stories, analyst recognition, partner co-marketing with cloud providers and SIs, technical webinars.`;
 
 function exampleState(){return{
- name:EX_NAME,product:'Growth Platform (AI-powered campaign planning, buying and optimization)',brief:EXAMPLE_BRIEF,
- budgets:{lean:400000,standard:900000,full:1600000},start:'2027-03-01',end:'2027-12-31',
+ name:EX_NAME,product:'Proxy data security platform (backup, threat detection and clean recovery across data center, cloud and SaaS)',brief:EXAMPLE_BRIEF,
+ budgets:{lean:600000,standard:1500000,full:3000000},start:'2027-02-01',end:'2028-01-31',
  markets:[
-  {id:'NA',name:'North America',lang:'EN',on:true,weight:40},
-  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:20},
-  {id:'CN',name:'China',lang:'ZH',on:true,weight:15},
-  {id:'JP',name:'Japan',lang:'JA',on:true,weight:13},
-  {id:'KR',name:'Korea',lang:'KO',on:true,weight:12},
+  {id:'NA',name:'North America',lang:'EN',on:true,weight:60},
+  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:28},
+  {id:'CN',name:'China',lang:'ZH',on:false,weight:0},
+  {id:'JP',name:'Japan',lang:'JA',on:true,weight:12},
+  {id:'KR',name:'Korea',lang:'KO',on:false,weight:0},
   {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:5},
   {id:'LATAM',name:'LATAM',lang:'ES',on:false,weight:5}],
- personas:{dm:{label:'Decision-maker (CEO, CMO, VP Growth)',on:true},tech:{label:'Technical influencer (Head of Growth, Ad Ops)',on:true},user:{label:'Day-to-day user (Marketing Manager, Media Buyer)',on:true}},
+ personas:{dm:{label:'Decision-maker (CISO, CIO, VP Infrastructure)',on:true},tech:{label:'Technical influencer (Security / Backup / Cloud Architect)',on:true},user:{label:'Day-to-day user (Backup Admin, IT Ops, SecOps)',on:true}},
  initiatives:[
-  {name:'AI Engine Perception Reset + Brand Equity',stage:'Awareness',pillar:'An AI campaign engine built on unique first-party data'},
-  {name:'Platform Adoption & Cross-Sell',stage:'Conversion',pillar:'Run every format from one dashboard; multi-format by default'},
-  {name:'Data Activation & Measurement Confidence',stage:'Consideration',pillar:'Measurement you can trust: analytics and first-party data, less guesswork'}],
+  {name:'Ransomware Recovery Category Leadership',stage:'Awareness',pillar:'When ransomware hits, recover clean data in hours, not weeks'},
+  {name:'Pipeline Acceleration (Demo & Assessment)',stage:'Conversion',pillar:'Find out how fast you could recover: get a readiness assessment'},
+  {name:'Cloud & SaaS Data Security Expansion',stage:'Consideration',pillar:'One platform to secure data across data center, cloud and SaaS'}],
  moments:[
-  {name:'ROAS Campaigns + New Campaign Flow',month:'2027-03',type:'launch',ini:0},
-  {name:'Spring industry conference',month:'2027-03',type:'event',ini:0},
-  {name:'Unified Dashboard Ph1 + Multi-Country Budget',month:'2027-04',type:'launch',ini:1},
-  {name:'Retention Campaigns',month:'2027-06',type:'launch',ini:0},
-  {name:'2027 Industry Benchmark Report',month:'2027-07',type:'content',ini:0},
-  {name:'Unified onboarding',month:'2027-08',type:'launch',ini:1},
-  {name:'Unified SDK',month:'2027-09',type:'launch',ini:1},
-  {name:'Executive Summit (China)',month:'2027-11',type:'event',ini:0},
-  {name:'Insights Agent',month:'2027-12',type:'launch',ini:2}],
+  {name:'Ransomware readiness assessment launch',month:'2027-03',type:'launch',ini:1},
+  {name:'RSAC',month:'2027-04',type:'event',ini:0},
+  {name:'Gartner Security & Risk Summit',month:'2027-06',type:'event',ini:0},
+  {name:'AWS re:Inforce',month:'2027-06',type:'event',ini:2},
+  {name:'Annual State of Data Security report',month:'2027-07',type:'content',ini:0},
+  {name:'Black Hat USA',month:'2027-08',type:'event',ini:0},
+  {name:'Identity recovery release',month:'2027-09',type:'launch',ini:2},
+  {name:'Cybersecurity Awareness Month content series',month:'2027-10',type:'content',ini:1},
+  {name:'Microsoft Ignite',month:'2027-11',type:'event',ini:2},
+  {name:'AWS re:Invent',month:'2027-12',type:'event',ini:2}],
  channels:Object.fromEntries(CH.map(c=>[c.id,{on:true,weight:c.weight}])),
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
  formats:defaultFormats(),landing:'https://example.com/',copy:exampleCopy()
 };}
-function exampleCopy(){return{src:EX_NAME,
- voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
- eyebrow:'New: AI campaign engine\nThe 2027 UA report\nBuilt on real data',
- ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
- proof:'A retail app scaled ROAS campaigns 4x on iOS and Android with flat CPI\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles\nA top publisher improved campaign results at scale with high-quality users',
+function exampleCopy(){return{src:EX_NAME+' (proxy data, illustrative copy)',
+ voice:'Calm, credible and specific. Speak to security and IT leaders who expect an attack: lead with recovery time and proof, name the risk plainly, never use fear for its own sake.',
+ eyebrow:'Proxy plan · illustrative\nThe 2027 data security report\nRansomware readiness assessment',
+ ctas:'Get your readiness assessment\nBook a recovery demo\nGet the report\nTry the hands-on lab\nRegister now',
+ proof:'Illustrative: a regional bank restored critical systems in 4 hours during a ransomware drill\nIllustrative: a hospital network cut backup admin time 60% after replacing legacy backup\nIllustrative: a retailer protected Microsoft 365 and cloud workloads from one console in 30 days',
  ini:[
-  {h:'Grow on D28 ROAS\nAI built for ROAS\nUA that understands your users\nSet the goal. AI finds the buyers.\nThe campaign engine built on real data',
-   b:'Tell the AI your goal. It handles bids and pacing.\nOur engine uses first-party and in-app signals to find users who stay and pay. Launch ROAS campaigns in minutes.\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles.'},
-  {h:'One login for all your ads\nEvery format. One dashboard.\nVideo + rewarded. One place.\nRun all your formats together',
-   b:'Every format in one place.\nAdd new formats to your campaigns in a few clicks and reach more users at scale.\nLaunch video, display and rewarded campaigns from one dashboard, with one login and shared reporting.'},
-  {h:'Less attribution guesswork\nLink GA4. Get sharper ROAS.\nMeasurement you can trust',
-   b:'Link GA4 for sharper ROAS.\nReconcile results with your own analytics, right in the dashboard.\nConnect GA4 and first-party data so the AI optimizes on signals you already trust, not delayed postbacks.'}]};}
+  {h:'Recover in hours, not weeks\nAssume breach. Recover fast.\nRansomware will hit. Be ready.\nClean recovery, proven\nYour last line of defense',
+   b:'Backups attackers cannot touch.\nImmutable backups, threat detection and clean recovery in one platform, so ransomware does not mean weeks of downtime.\nIllustrative: a regional bank restored critical systems in 4 hours during a ransomware drill.'},
+  {h:'How fast could you recover?\nGet a free readiness review\nSee a live recovery demo\nTest your ransomware plan',
+   b:'Find your recovery gaps.\nOur free ransomware readiness assessment shows how long recovery would really take, and what to fix first.\nBook a 30-minute recovery demo and watch a full restore from a simulated attack.'},
+  {h:'Secure cloud and SaaS data\nProtect Microsoft 365 too\nOne platform, every workload\nData security beyond backup',
+   b:'Cover cloud and SaaS in one place.\nExtend protection to cloud, Microsoft 365 and Salesforce from the console you already use.\nSee where sensitive data lives, who can reach it, and recover it if it is hit.'}]};}
 function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
 function blankState(){const yr=new Date().getFullYear()+1;return{
  name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
