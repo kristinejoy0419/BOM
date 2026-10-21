@@ -88,6 +88,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .li.mom .full{grid-column:1/-1}
 .li.ini{grid-template-columns:1fr 130px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .li.ini .full{grid-column:1/-1}
+.li.unit .spec{font-size:11px;color:var(--ink);opacity:.78}
 .chgroup{font-family:var(--f-body);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-top:6px}
 .tierchip{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--rose-soft);color:var(--rose);white-space:nowrap}
 .x{border:0;background:transparent;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
