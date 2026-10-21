@@ -28,6 +28,17 @@
   <div class="layout">
     <!-- ============ INPUTS ============ -->
     <aside class="rail" aria-label="Inputs">
+      <details open id="d-proj">
+        <summary>Projects <span class="hint" id="pj-hint">saved in this browser</span></summary>
+        <div class="sec">
+          <label class="f">Open project<select id="pj-sel"></select></label>
+          <label class="f">Project name<input type="text" id="pj-name" placeholder="Name this plan"></label>
+          <div class="btns" style="flex-wrap:wrap"><button class="btn sm" id="pj-new">New blank project</button><button class="btn sm" id="pj-copy">Save as a copy</button><button class="btn sm ghost" id="pj-del">Delete</button></div>
+          <div class="btns" style="flex-wrap:wrap"><button class="btn sm" id="pj-export">Download backup</button><label class="btn sm" for="pj-file" tabindex="0" role="button">Open backup file</label><input type="file" id="pj-file" accept=".json,application/json" hidden></div>
+          <div class="status" id="pj-status" role="status"></div>
+          <div class="note">Every change saves to the open project on its own. Download a backup now and then: it holds all your projects in one file you can open on another computer or browser.</div>
+        </div>
+      </details>
       <details open id="d-brief">
         <summary>1 · GTM brief <span class="hint">source doc</span></summary>
         <div class="sec">
