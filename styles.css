@@ -76,6 +76,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .btn:hover{background:var(--sunk)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .btn.primary:hover{background:var(--accent);filter:brightness(.9)}
+.bar .btns .btn:not(:disabled):hover,.bar .btns .btn:not(:disabled):active,.bar .btns .btn:focus-visible{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.rose{background:var(--rose-soft);border-color:var(--rose-line);color:var(--rose);font-weight:700}
 .btn.ghost{background:transparent}
 .btn:disabled{opacity:.5;cursor:not-allowed}
