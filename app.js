@@ -97,7 +97,7 @@ const CH=[
  {id:'x',name:'X (Twitter)',group:'Paid social',weight:7,markets:{exclude:['CN']},boost:{JP:2.5},personas:['tech','user'],pl:[
   {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of UA / AdTech thought leaders; keywords',kpi:'Engagement ≥ 1%'},
   {id:'x_vid',name:'Promoted video · proof-point clips',units:['x_video'],min:1,share:50,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as image + conference hashtags',kpi:'VTR ≥ 20%'}]},
- {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{only:['NA','EMEA']},personas:['user'],pl:[
+ {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{exclude:['CN']},boost:{JP:0.5,KR:0.3,SEA:0.6,LATAM:0.6},personas:['user'],pl:[
   {id:'rd_img',name:'Promoted posts · UA & ad-ops communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/gamedev, r/mobilemarketing, r/adops, r/PPC',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
  {id:'youtube',name:'YouTube',group:'Online video',weight:9,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
   {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.06,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
@@ -287,7 +287,7 @@ function compute(tier){
  const lines=[];
  // Budget split: channels with a typed $ (section 7) get exactly that, spread over the markets they run in by market weight.
  // The rest of the budget goes market by market to the other checked channels, by channel weight.
- const plsInM=(c,m)=>activePl(c,tier).filter(p=>unitsFor(p,m).length),runs=(c,m)=>S.channels[c.id]?.on&&eligible(c,m)&&plsInM(c,m).length>0;
+ const plsInM=(c,m)=>{const a=activePl(c,tier).filter(p=>unitsFor(p,m).length);if(a.length)return a;const b=c.pl.filter(p=>unitsFor(p,m).length);const mn=Math.min(...b.map(p=>p.min));return b.filter(p=>p.min===mn)},runs=(c,m)=>S.channels[c.id]?.on&&eligible(c,m)&&plsInM(c,m).length>0;
  const pinned=CH.filter(c=>S.channels[c.id]?.on&&pinOf(c.id,tier)!=null&&mkts.some(m=>runs(c,m))),ps=sum(pinned.map(c=>pinOf(c.id,tier))),sc=ps>total&&ps>0?total/ps:1;
  const alloc={};const put=(m,c,b)=>{if(b>0)(alloc[m.id]=alloc[m.id]||[]).push([c,b])};
  pinned.forEach(c=>{const ms=mkts.filter(m=>runs(c,m)),w=ms.map(m=>m.weight*(c.boost?.[m.id]||1)),ws=sum(w);ms.forEach((m,i)=>put(m,c,pinOf(c.id,tier)*sc*w[i]/ws))});
@@ -618,7 +618,10 @@ function renderInputs(){
   <input type="number" id="mk-b-${i}" min="0" step="1000" aria-label="Market budget" ${m.on?'':'disabled'}>
   <input type="text" id="mk-l-${i}" value="${esc(m.lang)}" aria-label="Language" maxlength="5">
   <button class="x" data-i="${i}" aria-label="Remove market">×</button></div>`).join('')+`<div class="li mkt sumrow"><span></span><span>Total</span><span class="n" id="mk-tot-w"></span><span class="n" id="mk-tot-b"></span><span></span><span></span></div>`;
- S.markets.forEach((m,i)=>{$(`#mk-on-${i}`).onchange=e=>{m.on=e.target.checked;$(`#mk-b-${i}`).disabled=!m.on;changed()};$(`#mk-n-${i}`).oninput=e=>{m.name=e.target.value;changed()};$(`#mk-w-${i}`).oninput=e=>{m.weight=+e.target.value;changed()};
+ S.markets.forEach((m,i)=>{$(`#mk-on-${i}`).onchange=e=>{m.on=e.target.checked;$(`#mk-b-${i}`).disabled=!m.on;
+  // a market checked at 0% gets an equal share so it isn't silently left out
+  if(m.on&&!(+m.weight>0)){const o=S.markets.filter(q=>q!==m&&q.on&&+q.weight>0),os=sum(o.map(q=>+q.weight));m.weight=+(100/(o.length+1)).toFixed(1);o.forEach(q=>q.weight=+(q.weight/os*(100-m.weight)).toFixed(1))}
+  changed()};$(`#mk-n-${i}`).oninput=e=>{m.name=e.target.value;changed()};$(`#mk-w-${i}`).oninput=e=>{m.weight=+e.target.value;changed()};
   $(`#mk-b-${i}`).onchange=e=>{setMarketBudget(i,+e.target.value);changed()};$(`#mk-l-${i}`).oninput=e=>{m.lang=e.target.value.toUpperCase();changed()}});
  $('#mkt-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.markets.splice(+b.dataset.i,1);renderInputs();changed()});
  // personas
@@ -684,9 +687,17 @@ function setMarketBudget(i,x){
 const pinOf=(id,t)=>{const v=S.channels[id]?.pin?.[TIERS[t]];return v==null||v===''?null:+v};
 const chByCh=R=>{const o={};R.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o};
 function solveAllPins(){}
+// Plain-language reason a checked channel gets no budget in a version
+function chanWhy(c,t){const on=S.markets.filter(m=>m.on&&+m.weight>0),zero=S.markets.filter(m=>m.on&&!(+m.weight>0)),nm=ms=>ms.map(m=>m.name).join(', ');
+ const z=zero.length?` ${nm(zero)} ${zero.length>1?'are':'is'} checked but at 0%, so ${zero.length>1?'they get':'it gets'} no budget; give ${zero.length>1?'them':'it'} a share in section 3.`:'';
+ if(!on.length)return `No market has a budget share yet, so nothing is placed.${z||' Turn on a market and give it a share in section 3.'}`;
+ const fit=on.filter(m=>eligible(c,m));
+ if(!fit.length){const k=c.markets||{},where=k.only?'only runs in '+k.only.map(id=>(S.markets.find(m=>m.id===id)||{}).name||id).join(' and '):k.exclude?'runs everywhere except '+k.exclude.map(id=>(S.markets.find(m=>m.id===id)||{}).name||id).join(', '):'';
+  return `${c.name} ${where}, and the only market${on.length>1?'s':''} with budget ${on.length>1?'are':'is'} ${nm(on)}, so its ${TIERNAME[t]} amount isn’t placed.${z}`}
+ return `${c.name} has no creative units switched on for ${nm(fit)}, so its ${TIERNAME[t]} amount isn’t placed. Turn its units back on in section 9.`}
 function pinNote(t){const tot=+S.budgets[TIERS[t]]||0,ids=Object.keys(S.channels).filter(k=>S.channels[k].on&&pinOf(k,t)!=null);if(!ids.length)return '';
  const ps=sum(ids.map(k=>pinOf(k,t))),cur=chByCh(compute(t)),none=ids.filter(k=>!cur[k]);
- if(none.length)return `${none.map(k=>CHMAP[k].name).join(', ')} ${none.length>1?'don’t':'doesn’t'} run in any market that’s on, so ${none.length>1?'their':'its'} ${TIERNAME[t]} budget isn’t placed. Turn on a market for ${none.length>1?'them':'it'} in section 3.`;
+ if(none.length)return none.map(k=>chanWhy(CHMAP[k],t)).join(' ');
  if(ps>tot+1)return `The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, more than its ${money(tot)} budget, so they were scaled down to fit. Raise the ${TIERNAME[t]} budget in section 1 or lower a channel.`;
  return ''}
 function setChannelBudget(id,x,t){
