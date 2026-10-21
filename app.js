@@ -366,7 +366,7 @@ function compute(tier){
     const flight=c.burst==='events'&&evMonths.length?evMonths.map(e=>`${e.name} (${monthLabel(e.month)})`).join('; '):`${fmtD(parseD(S.start))} – ${fmtD(parseD(S.end))}`;
     lines.push({tier,c,p,m,budget:b,rate,qty,qu,units,variants,concepts,rounds,lead,ini,flight,
      group:c.group,channel:c.name,placement:p.name,publisher:c.pub?c.pub(m):c.name,market:m.name,lang:m.lang,
-     audience:personaText(c),aud:personaShort(c),targeting:p.tgt,stage:p.stage,kpi:p.kpi,
+     audience:audKeyOf(p)?audLabel(c,p):personaText(c),aud:audLabel(c,p),targeting:p.tgt,tmethod:tgtOf(c,p),stage:p.stage,kpi:p.kpi,
      due:isoD(new Date(parseD(S.start)-lead*864e5)),under:p.buy==='Flat'&&qty<1});
    });});
  }
@@ -477,7 +477,7 @@ function trafficRow(R,l,TR,days,yymm,cu,ad){
  const adnames=l.units.flatMap(u=>variantsOf(u).map(v=>[TR.content==='g'?'g':'ug',TR.ctype,'s-'+(FMTC[UNITS[u].fmt]||UNITS[u].fmt),'nm:'+slugU(l.bomIds[0]||l.id)+'-01','sz:'+szCode(v),audCode(l.aud),'a',slugU(l.m.id)].join('_')));
  const cta=(ad.rows[0]?.parts||[]).find(p=>/cta/i.test(p.k))?.t||(l.stage==='Awareness'?'Learn more':l.stage==='Conversion'?'Sign up':'Download');
  return {cname,cgroup:slugU(S.name)+'_'+(STG[l.stage]||'aw'),obj:ob[0],opt:ob[1],budget:Math.round(l.budget),daily:Math.round(l.budget/days),budgetTxt:money(l.budget),dailyTxt:money(l.budget/days)+'/day',
-  adset:(l.aud||'')+(l.targeting?' · '+l.targeting:''),excl:DEF_EXCL,devices:l.c.group==='Search'?DEVICES.search:/video/i.test(U.fmt||'')?DEVICES.video:DEVICES.social,
+  adset:(l.aud||'')+' · '+l.tmethod+(l.targeting?' · '+l.targeting:''),excl:DEF_EXCL,devices:l.c.group==='Search'?DEVICES.search:/video/i.test(U.fmt||'')?DEVICES.video:DEVICES.social,
   conv:String(t.events||'').split(',')[0].trim()||'—',lgf:lg?'Yes: '+UNITS[lg].name+' (sync to CRM, hidden field = line ID)':'No (landing page)',cta,nads:adnames.length*Math.max(1,l.concepts),adnames:adnames.join('\n'),
   build:TR.build,cc:TR.cc||'(add in Tagging settings)',crm:TR.crm?TR.crm+(TR.crmName?' · '+TR.crmName:''):'(add in Tagging settings)',ctype:(TR.content==='g'?'Gated':'Ungated')+' · '+TR.ctype,x1:'',x2:'',x3:'',x4:''}}
 function specTable(R){
@@ -523,10 +523,10 @@ function flightTable(R){
  return {name:'Flighting',cols,rows};
 }
 function assumptionTable(R){
- const cols=[['Channel','channel'],['Placement','placement'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Proj. impressions','imp'],['Proj. clicks','clk'],['Proj. landing page visits','lpv'],['Proj. video views','views'],['Proj. leads','leads'],['Cost per lead','cpl'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
+ const cols=[['Channel','channel'],['Placement','placement'],['Audience','aud'],['Targeting','tmethod'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Proj. impressions','imp'],['Proj. clicks','clk'],['Proj. landing page visits','lpv'],['Proj. video views','views'],['Proj. leads','leads'],['Cost per lead','cpl'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
  const rows=[];CH.forEach(c=>c.pl.forEach(p=>{const ls=R.lines.filter(l=>l.p.id===p.id);if(!ls.length)return;
   const F_={imp:0,clk:0,lpv:0,views:0,leads:0};ls.forEach(l=>{const f=lineFun(l);if(f)for(const k in F_)F_[k]+=f[k]});for(const k in F_)F_[k]=Math.round(F_[k]);
-  rows.push({...F_,cpl:F_.leads?+(sum(ls.map(l=>l.budget))/F_.leads).toFixed(2):'',channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
+  rows.push({...F_,cpl:F_.leads?+(sum(ls.map(l=>l.budget))/F_.leads).toFixed(2):'',channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id,aud:audLabel(c,p),tmethod:tgtOf(c,p)})}));
  const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Buy Details',cols,rows};
 }
@@ -655,6 +655,50 @@ function renderGrowth(R){const G=gr(),o=funnel(R),E=econ(R,o),mo=outcomes(R),cap
 function growthAOA(R){const o=funnel(R),E=econ(R,o),G=E.G;return [['GROWTH PLAN · '+TIERNAME[R.tier]],[],['Deal size (ACV)',G.acv],['Gross margin %',G.gm],['Customer lifetime (yrs)',G.life],['Agency fee % of media',G.agency],['Creative production',G.creative],['Tools & data',G.tools],[],
  ['Media spend',Math.round(E.media)],['All-in cost',Math.round(E.total)],['Leads',Math.round(o.leads)],['SQLs',Math.round(o.sql)],['Customers',+o.cust.toFixed(1)],['Pipeline (SQLs × ACV)',Math.round(E.pipeline)],['First-year revenue',Math.round(E.rev)],
  ['CAC (media only)',Math.round(E.cacM)],['CAC (fully loaded)',Math.round(E.cacF)],['LTV : CAC',+E.ltvCac.toFixed(2)],['Payback (months)',Math.round(E.payback)],['First-year ROI on gross profit',+(E.roi*100).toFixed(0)+'%']]}
+
+/* ==================== AUDIENCE, TARGETING & ASSETS ==================== */
+// Per-placement audience (from the personas in section 4) and targeting method, editable on Buy Details; flows to the agency sheet
+const TGT_METHODS=['Job titles & seniority','Company lists (TAL / ABM)','Skills & member groups','Company industries & size','Predictive / lookalike','Interests & behaviors','Keywords (search intent)','Retargeting (site visitors, engagers)','Contextual / publisher placement','Event attendees & geo-fence'];
+function tgtDefault(c,p){const id=p.id;if(c.id==='google'||c.id==='baidu'||(c.id==='naver'&&/_s$/.test(id)))return 'Keywords (search intent)';
+ if(/_rt$/.test(id))return 'Retargeting (site visitors, engagers)';if(c.id==='abm')return 'Company lists (TAL / ABM)';if(c.id==='events')return 'Event attendees & geo-fence';
+ if(c.id==='linkedin')return 'Job titles & seniority';if(['trade','creators'].includes(c.id))return 'Contextual / publisher placement';return 'Interests & behaviors'}
+const tgtOf=(c,p)=>(S.plTgt||{})[p.id]||tgtDefault(c,p);
+const audKeyOf=p=>(S.plAud||{})[p.id]||'';
+function audLabel(c,p){const k=audKeyOf(p);if(k==='_all')return Object.keys(S.personas).filter(x=>S.personas[x]?.on&&S.personas[x].label).map(x=>S.personas[x].label.split('(')[0].trim()).join(', ')||'—';
+ if(k&&S.personas[k]?.label)return S.personas[k].label.split('(')[0].trim();return personaShort(c)}
+function audSelect(c,p){const k=audKeyOf(p),ps=Object.keys(S.personas).filter(x=>S.personas[x]?.on&&S.personas[x].label);
+ return `<select class="aud-in" data-pid="${p.id}" aria-label="Audience for ${esc(p.name)}" style="width:100%"><option value="" ${!k?'selected':''}>Default: ${esc(personaShort(c))}</option>${ps.map(x=>`<option value="${x}" ${k===x?'selected':''}>${esc(S.personas[x].label)}</option>`).join('')}<option value="_all" ${k==='_all'?'selected':''}>All personas</option></select>`}
+function tgtSelect(c,p){const v=tgtOf(c,p);return `<select class="tgt-in" data-pid="${p.id}" aria-label="Targeting for ${esc(p.name)}" style="width:100%">${TGT_METHODS.map(m=>`<option ${m===v?'selected':''}>${esc(m)}</option>`).join('')}</select>${p.tgt?`<div class="sub2" style="margin-top:3px;max-width:220px">${esc(p.tgt)}</div>`:''}`}
+
+// Assets: the content each campaign promotes (ebooks, webinars, videos…), with links, dates and Salesforce IDs
+const ASSET_TYPES=['eBook','Report / guide','Webinar','Video','Case study','Demo / trial','Event','Blog / article','Tool / calculator','Other'];
+const ASSET_KEEP=1.5e6;
+function assetTypeFromFile(f){const n=f.name.toLowerCase();if(/\.(mp4|mov|webm|m4v)$/.test(n))return 'Video';if(/\.(pdf|epub)$/.test(n))return 'eBook';if(/\.(pptx?|key)$/.test(n))return 'Report / guide';if(/\.(png|jpe?g|gif|webp|svg)$/.test(n))return 'Other';return 'Other'}
+const prettyName=n=>n.replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim().replace(/^./,c=>c.toUpperCase());
+const fmtSize=b=>b>=1e6?(b/1e6).toFixed(1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
+function renderAssets(R){const A=S.assets||[];const live=S.start||'';
+ const row=(a,i)=>`<tr><td style="min-width:200px"><input class="as-in" data-i="${i}" data-k="name" value="${esc(a.name||'')}" placeholder="Content name"></td>
+  <td style="min-width:240px"><textarea class="as-in" data-i="${i}" data-k="desc" rows="2" placeholder="What it is and who it's for">${esc(a.desc||'')}</textarea></td>
+  <td style="min-width:200px"><input class="as-in" data-i="${i}" data-k="link" type="url" value="${esc(a.link||'')}" placeholder="https://">${a.link&&/^https?:\/\//.test(a.link)?`<div class="sub2"><a href="${esc(a.link)}" target="_blank" rel="noopener">Open link</a></div>`:''}</td>
+  <td><select class="as-in" data-i="${i}" data-k="ctype">${ASSET_TYPES.map(t=>`<option ${t===(a.ctype||'eBook')?'selected':''}>${t}</option>`).join('')}</select></td>
+  <td><input class="as-in" data-i="${i}" data-k="due" type="date" value="${esc(a.due||'')}" aria-label="Delivery date"></td>
+  <td><input class="as-in" data-i="${i}" data-k="live" type="date" value="${esc(a.live||live)}" aria-label="Live date"></td>
+  <td style="min-width:170px"><input class="as-in m" data-i="${i}" data-k="sfid" value="${esc(a.sfid||'')}" placeholder="701…" aria-label="Salesforce ID"></td>
+  <td class="sub2" style="min-width:150px">${a.file?(a.file.data?`<a href="${a.file.data}" download="${esc(a.file.name)}">${esc(a.file.name)}</a>`:esc(a.file.name))+`<div>${fmtSize(a.file.size)}${a.file.data?'':' · too large to keep here; add a link'}</div>`:'—'}</td>
+  <td><button class="btn sm ghost as-del" data-i="${i}" aria-label="Remove ${esc(a.name||'asset')}">×</button></td></tr>`;
+ const late=A.filter(a=>a.due&&(a.live||live)&&a.due>(a.live||live)).length;
+ return `<div class="toolbar"><span class="note">The content this plan promotes. Upload a file (we fill the name and type for you) or add a row, then fill in the link, dates and Salesforce campaign ID the agency needs. Files up to ${fmtSize(ASSET_KEEP)} are kept with the project; for bigger ones, paste a link to where they live.</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="btn sm" for="as-file" tabindex="0" role="button">Upload content</label><input type="file" id="as-file" multiple hidden><button class="btn sm" id="as-add">Add a row</button>${late?`<span class="chip flag">${late} delivered after live date</span>`:A.length?`<span class="chip aw">${A.length} asset${A.length>1?'s':''}</span>`:''}</div></div>
+ <div class="tscroll"><table class="as-table"><thead><tr><th>Content name</th><th>Description</th><th>Link</th><th>Content type</th><th>Delivery date</th><th>Live date</th><th>SFID</th><th>File</th><th></th></tr></thead><tbody>
+ ${A.length?A.map(row).join(''):`<tr><td colspan="9" class="sub2" style="padding:18px">No assets yet. Upload your ebook, webinar or video, or add a row.</td></tr>`}</tbody></table></div>`}
+function wireAssets(){const A=()=>S.assets=S.assets||[];
+ $('#view').querySelectorAll('.as-in').forEach(el=>{const up=()=>{const a=A()[+el.dataset.i];if(!a)return;a[el.dataset.k]=el.value;save()};el.oninput=up;el.onchange=()=>{up();if(['due','live','link','ctype'].includes(el.dataset.k))renderOut()}});
+ $('#view').querySelectorAll('.as-del').forEach(b=>b.onclick=()=>{const a=A()[+b.dataset.i];if(a&&(a.name||a.link||a.file)&&!confirm('Remove “'+(a.name||'this asset')+'”?'))return;A().splice(+b.dataset.i,1);save();renderOut()});
+ const add=$('#as-add');if(add)add.onclick=()=>{A().push({name:'',desc:'',link:'',ctype:'eBook',due:'',live:S.start||'',sfid:''});save();renderOut()};
+ const fi=$('#as-file');if(fi)fi.onchange=async e=>{for(const f of [...e.target.files]){const a={name:prettyName(f.name),desc:'',link:'',ctype:assetTypeFromFile(f),due:'',live:S.start||'',sfid:'',file:{name:f.name,size:f.size,type:f.type}};
+   if(f.size<=ASSET_KEEP)a.file.data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=()=>r(null);fr.readAsDataURL(f)});A().push(a)}
+  save();renderOut();setStatus('#x-status',e.target.files.length+' file'+(e.target.files.length>1?'s':'')+' added to Assets.');e.target.value=''}}
+function assetsAOA(){return [['Content name','Description','Link','Content type','Delivery date','Live date','SFID','File'],...(S.assets||[]).map(a=>[a.name||'',a.desc||'',a.link||'',a.ctype||'',a.due||'',a.live||S.start||'',a.sfid||'',a.file?a.file.name:''])]}
 
 /* ==================== TEST PLAN ==================== */
 // Tests are generated from the plan's own lines. Sample per cell = 16·p(1−p)/(p·lift)² (95% confidence, 80% power).
@@ -928,7 +972,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -1336,13 +1380,13 @@ function renderAssump(R){
  const groups=grp==='none'?[['',rows]]:Object.entries(rows.reduce((o,r)=>{(o[r._g[grp]]=o[r._g[grp]]||[]).push(r);return o},{})).sort((a,b)=>a[0]==='Uncategorized'?1:b[0]==='Uncategorized'?-1:sum(b[1].map(r=>r.budget))-sum(a[1].map(r=>r.budget)));
  const catCell=pid=>`<td><input class="cat-in" list="cat-list" data-pid="${pid}" value="${esc(catOf(pid))}" placeholder="Add category" aria-label="Category"></td>`;
  const rateCell=r=>`<td class="n"><input class="rate" type="number" step="any" min="0" data-rt="${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td>`;
- const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
+ const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th>Audience</th><th>Targeting</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
  const lnHead=`<th>Line</th><th>Channel</th><th>Placement</th><th>Category</th><th>Market</th><th>Lang</th><th>Audience</th><th>Stage</th><th>Buy</th><th class="n">Rate</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Flight</th><th>Initiative</th><th>KPI</th><th>BOM items</th>`;
- const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+ const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}${(()=>{const p=PLMAP[r._id],c=CH.find(x=>x.pl.some(q=>q.id===r._id)),pp=c.pl.find(q=>q.id===r._id);return `<td style="min-width:200px">${audSelect(c,pp)}</td><td style="min-width:230px">${tgtSelect(c,pp)}</td>`})()}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
   ${rateCell(r)}<td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`;
  const lnRow=r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="white-space:nowrap">${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.publisher)}</div></td>${catCell(r._id)}<td>${esc(r.market)}</td><td class="m">${esc(r.lang)}</td><td class="sub2" style="min-width:160px">${esc(r.aud||'')}</td><td>${stageChip(r.stage)}</td><td class="m">${esc(r.buy)}</td>
   ${rateCell(r)}<td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.flight)}</td><td class="sub2">${esc(r.ini)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td><td class="m">${esc(r.bomIds)}</td></tr>`;
- const subtotal=(name,rs)=>view==='pl'?`<tr class="grp"><td colspan="6">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} placements</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rs.map(r=>r[k]||0)))}</td>`).join('')}<td colspan="4"></td></tr>`
+ const subtotal=(name,rs)=>view==='pl'?`<tr class="grp"><td colspan="8">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} placements</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rs.map(r=>r[k]||0)))}</td>`).join('')}<td colspan="4"></td></tr>`
   :`<tr class="grp"><td colspan="10">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} lines</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td colspan="5"></td></tr>`;
  const total=sum(rows.map(r=>r.budget)),ok=Math.abs(total-plan)<1;
  const opt=(v,n,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${n}</option>`;
@@ -1355,7 +1399,7 @@ function renderAssump(R){
  <datalist id="cat-list">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  <div class="tscroll"><table><thead><tr>${view==='pl'?plHead:lnHead}</tr></thead><tbody>
  ${groups.map(([g,rs])=>(g?subtotal(g,rs):'')+rs.map(view==='pl'?plRow:lnRow).join('')).join('')}
- ${view==='pl'?`<tr class="tot"><td>Total</td><td>${rows.length} placements</td><td></td><td></td><td></td><td></td><td class="n">${money(total)}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(rows.map(r=>r.leads));return L?money2(total/L):'—'})()}</td><td></td><td></td><td></td></tr>`
+ ${view==='pl'?`<tr class="tot"><td>Total</td><td>${rows.length} placements</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="n">${money(total)}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(rows.map(r=>r.leads));return L?money2(total/L):'—'})()}</td><td></td><td></td><td></td></tr>`
   :`<tr class="tot"><td>Total</td><td colspan="9">${rows.length} lines</td><td class="n">${money(total)}</td><td colspan="5"></td></tr>`}
  </tbody></table></div>`;
 }
@@ -1407,7 +1451,7 @@ function _renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={assets:renderAssets,growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
@@ -1420,7 +1464,9 @@ function _renderOut(){
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
- if(UI.tab==='assump'){v.querySelectorAll('input[data-rt]').forEach(el=>el.onchange=()=>{S.rates[el.dataset.rt]=el.value===''?null:+el.value;changed()});
+ if(UI.tab==='assets')wireAssets();
+ if(UI.tab==='assump'){v.querySelectorAll('.aud-in').forEach(el=>el.onchange=()=>{S.plAud=S.plAud||{};if(el.value)S.plAud[el.dataset.pid]=el.value;else delete S.plAud[el.dataset.pid];changed()});
+  v.querySelectorAll('.tgt-in').forEach(el=>el.onchange=()=>{S.plTgt=S.plTgt||{};S.plTgt[el.dataset.pid]=el.value;changed()});v.querySelectorAll('input[data-rt]').forEach(el=>el.onchange=()=>{S.rates[el.dataset.rt]=el.value===''?null:+el.value;changed()});
   v.querySelectorAll('[data-bdview]').forEach(b=>b.onclick=()=>{UI.bdView=b.dataset.bdview;save();renderOut()});
   const bg=$('#bd-grp');if(bg)bg.onchange=()=>{UI.bdGroup=bg.value;save();renderOut()};
   v.querySelectorAll('.cat-in').forEach(el=>el.onchange=()=>{S.cats=S.cats||{};const x=el.value.trim();if(x)S.cats[el.dataset.pid]=x;else delete S.cats[el.dataset.pid];save();setTimeout(renderOut,0)});
@@ -1449,7 +1495,7 @@ function workbookFor(tiers){
   addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
-  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);addSheet(wb,p+'Growth Plan',growthAOA(R),[34,16]);
+  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);addSheet(wb,p+'Growth Plan',growthAOA(R),[34,16]);if((S.assets||[]).length)addSheet(wb,p+'Assets',assetsAOA(),[30,40,40,16,14,14,20,24]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
   addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
@@ -1461,7 +1507,7 @@ function workbookFor(tiers){
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),assets:()=>{const a=assetsAOA(),w=a[0].length;return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
