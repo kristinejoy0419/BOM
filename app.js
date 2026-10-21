@@ -259,6 +259,9 @@ function adCopy({fmt,logo,lim,ini,concepts,langs}){
 }
 
 /* ==================== ENGINE ==================== */
+// Channel split per version: a version's own weights once its budgets are edited, else the shared default split
+const chW=(id,t)=>{const c=S.channels[id];return c?+(c.tw?.[TIERS[t]]??c.weight):0};
+const setChW=(id,t,v)=>{const c=S.channels[id];(c.tw=c.tw||{})[TIERS[t]]=v};
 function compute(tier){
  const T=TIERS[tier],total=+S.budgets[T]||0;
  const mkts=S.markets.filter(m=>m.on&&+m.weight>0),wsum=sum(mkts.map(m=>m.weight));
@@ -268,8 +271,8 @@ function compute(tier){
  for(const m of mkts){
   const mb=total*m.weight/wsum;
   const plsIn=c=>activePl(c,tier).filter(p=>unitsFor(p,m).length);
-  const elig=CH.filter(c=>S.channels[c.id]?.on&&+S.channels[c.id].weight>0&&eligible(c,m)&&plsIn(c).length);
-  const cw=elig.map(c=>(+S.channels[c.id].weight)*(c.boost?.[m.id]||1)),cws=sum(cw);
+  const elig=CH.filter(c=>S.channels[c.id]?.on&&chW(c.id,tier)>0&&eligible(c,m)&&plsIn(c).length);
+  const cw=elig.map(c=>chW(c.id,tier)*(c.boost?.[m.id]||1)),cws=sum(cw);
   elig.forEach((c,i)=>{const cb=mb*cw[i]/cws,pls=plsIn(c),ps=sum(pls.map(p=>p.share));
    pls.forEach(p=>{const b=cb*p.share/ps,rate=rateOf(p),units=unitsFor(p,m);
     let qty,qu;if(p.buy==='Flat'){qty=Math.floor(b/rate);qu=p.unit||'units'}else{qty=p.buy==='CPM'?b/rate*1000:b/rate;qu=BUYUNIT[p.buy]}
@@ -351,16 +354,16 @@ function pixelTable(R){
 }
 function utmTable(R){
  const base=(S.landing||'https://example.com/').trim(),camp=slugU(S.name)+'_'+TIERS[R.tier];
- const cols=[['Line','id'],['Channel','channel'],['Placement','placement'],['Market','market'],['Lang','lang'],['BOM items','bom'],['Files to traffic','files'],['Ad copy','copy'],['Ad / placement name','adname'],['Pixel / tag','pixel'],['utm_source','src'],['utm_medium','med'],['utm_campaign','camp'],['utm_content','cont'],['utm_term','term'],['Tracked URL','url'],['Flight','flight'],['Creative due','due']];
- const idByKey=Object.fromEntries(R.masters.map(m=>[m.key,m]));
- const rows=R.lines.map(l=>{const src=UTM_SRC[l.c.id]||slugU(l.channel),med=UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
+ const cols=[['Line','id'],['Channel','channel'],['Placement','placement'],['Market','market'],['Lang','lang'],['BOM items','bom'],['Files to traffic','files'],['Ad copy','copy'],['Ad / placement name','adname'],['Test cells','test'],['Pixel / tag','pixel'],['utm_source','src'],['utm_medium','med'],['utm_campaign','camp'],['utm_content','cont'],['utm_term','term'],['Tracked URL','url'],['Flight','flight'],['Creative due','due']];
+ const idByKey=Object.fromEntries(R.masters.map(m=>[m.key,m])),TP=testPlan(R);
+ const rows=R.lines.map(l=>{const tt=testOfLine(TP,l.id);const src=UTM_SRC[l.c.id]||slugU(l.channel),med=UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
   const q=`utm_source=${encodeURIComponent(src)}&utm_medium=${encodeURIComponent(med)}&utm_campaign=${encodeURIComponent(camp)}&utm_content=${encodeURIComponent(cont)}&utm_term=${encodeURIComponent(term)}`;
   const lim={};l.units.forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
   const f0=UNITS[l.units[0]].fmt,lm=l.bomIds.map(id=>R.masters.find(m=>m.id===id)).filter(m=>m&&m.ad.rows.length),same=lm.filter(m=>m.fmt===f0);
   let ad=adCopy({fmt:f0,lim,ini:Math.max(0,iniIdx(l.p)),concepts:l.concepts,langs:[l.lang]});(same.length?same:lm.slice(0,1)).slice().reverse().forEach(m=>{ad=mvpOverlay(ad,m.ad)});
   ad=applyEdits(ad,editKey(R.tier,l));
   const files=[...l.bom].map(k=>{const m=idByKey[k];return m?m.id+' '+m.name:''}).filter(Boolean).join('; ')+' → '+l.units.flatMap(u=>variantsOf(u).map(v=>UNITS[u].name+' '+v)).join(', ')+` (${l.concepts} concepts × ${l.rounds} rounds)`;
-  return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,pixel:(TAGS[l.c.id]||{}).tag||'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
+  return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,pixel:(TAGS[l.c.id]||{}).tag||'',_test:tt,test:tt?tt.id+' · '+tt.cells.map(c=>tt.id+'-'+c[0]+' '+c.slice(2)).join(' / ')+` (one ad per cell: add _${tt.id}-A, _${tt.id}-B… to the ad name and utm_content; readout ${tt.readoutISO})`:'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
    src,med,camp,cont,term,url:base+(base.includes('?')?'&':'?')+q}});
  return {name:'Agency trafficking sheet',cols,rows};
 }
@@ -413,14 +416,116 @@ function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(
 // Full-funnel estimate across every buy: each line's bought unit plus benchmark ratios for the rest (flat-fee buys not estimated)
 const FUN={ctr:0.005,ctrCpc:0.02,viewRate:0.3,leadForm:0.12,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
 const FUNNEL=[['imp','Impressions'],['reach','Est. reach (unique people)'],['clk','Clicks'],['lpv','Landing page visits'],['eng','Engagements (clicks, likes, shares, comments)'],['views','Video views'],['sends','Messages sent'],['leads','Leads']];
+function lineFun(l){const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
+ switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
+  case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
+  case'CPS':sends=q;imp=q*FUN.openRate;clk=q*FUN.sendCtr;break;default:return null}
+ const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;return {imp,clk,lpv,eng:clk+imp*FUN.eng,views,sends,leads,opens:l.p.buy==='CPL'?clk:0}}
 function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,leads:0,spend:0};
- R.lines.forEach(l=>{const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
-  switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
-   case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
-   case'CPS':sends=q;imp=q*FUN.openRate;clk=q*FUN.sendCtr;break;default:return}
-  const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;
-  o.imp+=imp;o.clk+=clk;o.lpv+=lpv;o.eng+=clk+imp*FUN.eng;o.views+=views;o.sends+=sends;o.leads+=leads;o.spend+=l.budget});
+ R.lines.forEach(l=>{const f=lineFun(l);if(!f)return;for(const k in o)if(k in f)o[k]+=f[k];o.spend+=l.budget});
  o.reach=o.imp/3.5;o.cpm=o.imp?o.spend/o.imp*1000:0;o.cpc=o.clk?o.spend/o.clk:0;o.cpl=o.leads?o.spend/o.leads:0;return o}
+
+/* ==================== TEST PLAN ==================== */
+// Tests are generated from the plan's own lines. Sample per cell = 16·p(1−p)/(p·lift)² (95% confidence, 80% power).
+const TEST_SHARE=[10,12,15],SQL_RATE=0.25;
+const needN=(p,lift)=>Math.ceil(16*p*(1-p)/Math.pow(p*lift,2));
+const UNITNAME={imp:'impressions',clk:'clicks',lpv:'visits',opens:'form opens',leads:'leads'};
+function testPlan(R){
+ const T=TIERS[R.tier],lift=(+S.testLift||20)/100,fw=flightWeeks(),rw=Math.max(2,+S.refresh[T]||8),W=Math.max(2,Math.min(rw-1,Math.floor(fw)));
+ const t0=parseD(S.start),wk=6048e5,end=parseD(S.end);
+ const byP={};R.lines.forEach(l=>{(byP[l.p.id]=byP[l.p.id]||{p:l.p,c:l.c,lines:[],budget:0}).lines.push(l);byP[l.p.id].budget+=l.budget});
+ const P=Object.values(byP).sort((a,b)=>b.budget-a.budget);
+ const used=new Set();
+ const pick=f=>{const x=P.find(a=>!used.has(a.p.id)&&f(a))||P.find(f);if(x)used.add(x.p.id);return x};
+ const social=a=>['Paid social'].includes(a.c.group);
+ const ini=S.initiatives.filter(x=>x.name),short=s=>s.length>30?s.slice(0,30).replace(/\s+\S*$/,'').replace(/[\s+&,–-]+$/,'')+'…':s;
+ const money_=v=>money(v),rate=a=>rateOf(a.p);
+ const defs=[];
+ const msg=pick(a=>social(a)&&a.p.buy==='CPM')||pick(a=>a.p.buy==='CPM');
+ if(msg)defs.push({a:msg,round:0,type:'Message',variable:'Headline lead',cells:['A product claim','B customer proof point'],
+  hyp:'If we lead with a customer result instead of a product claim, CTR improves because buyers trust peer proof over promises.',
+  kpi:['CTR','imp',FUN.ctr],guard:'CPM ≤ '+rateFmt(rate(msg)*1.1,'CPM'),rule:'Winner gets 70% of this line’s spend next round; retest in 6 weeks.'});
+ const srch=pick(a=>a.p.buy==='CPC'&&/search/i.test(a.c.group+a.c.name));
+ if(srch)defs.push({a:srch,round:0,type:ini.length>1?'Pillar':'Message',variable:ini.length>1?'Headline pillar':'Headline angle',
+  cells:ini.length>1?['A '+short(ini[0].name),'B '+short(ini[1].name)]:['A benefit-led','B feature-led'],
+  hyp:ini.length>1?`If search ads lead with “${short(ini[0].name)}” instead of “${short(ini[1].name)}”, more visitors sign up because it matches what they searched for.`:'If search ads lead with the outcome instead of the feature, more visitors sign up because it answers why before how.',
+  kpi:['Sign-up CVR','lpv',FUN.cvr],proxy:['CTR','imp',FUN.ctrCpc],guard:'CPC ≤ '+rateFmt(rate(srch),'CPC'),rule:'Winner leads every search ad next round.'});
+ if(R.tier===0){const vis=pick(a=>a.p.buy==='CPM');
+  if(vis)defs.push({a:vis,round:1,type:'Creative',variable:'Visual',cells:['A product UI','B customer photo'],
+   hyp:'If the image shows a real customer instead of the product UI, CTR improves because people stop for faces.',
+   kpi:['CTR','imp',FUN.ctr],guard:'CPM ≤ '+rateFmt(rate(vis)*1.1,'CPM'),rule:'Winning visual style carries into the next round’s masters.'})}
+ if(R.tier>=1){
+  const vid=pick(a=>a.p.buy==='CPV');
+  if(vid)defs.push({a:vid,round:1,type:'Creative',variable:'Opening hook (first 5s)',cells:['A product UI','B customer face','C headline stat'],
+   hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',
+   kpi:['View rate','imp',FUN.viewRate],guard:'CPV ≤ '+rateFmt(rate(vid),'CPV'),rule:'Winning hook opens every video cut next round.'});
+  const off=pick(a=>a.p.buy==='CPL');
+  if(off)defs.push({a:off,round:1,type:'Offer',variable:'Offer',cells:['A demo request','B gated report'],
+   hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',
+   kpi:['Form completion','opens',FUN.leadForm],proxy:['CTR','imp',FUN.ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'});
+  used.delete(msg&&msg.p.id);
+  const aud=pick(a=>a.c.id==='linkedin'&&a.p.buy==='CPM')||pick(a=>social(a)&&a.p.buy==='CPM');
+  if(aud)defs.push({a:aud,round:2,type:'Audience',variable:'Targeting',cells:['A ABM account list','B job-title targeting'],
+   hyp:'If we target the ABM account list instead of job titles, more clicks turn into landing page visits because every impression reaches a target account.',
+   kpi:['Click → visit rate','imp',FUN.ctr*FUN.lpv],guard:'Target-account match ≥ 60%',rule:'Winner gets 70% of prospecting spend; retest in 6 weeks.'});
+ }
+ // run each line-based test
+ const tests=[],total=+S.budgets[T]||0,held=(S.testShare?.[T]??TEST_SHARE[R.tier])/100;
+ const topOf=a=>{const mk={};a.lines.forEach(l=>mk[l.m.id]=(mk[l.m.id]||0)+l.budget);return Object.keys(mk).sort((x,y)=>mk[y]-mk[x])};
+ const base=d=>sum(d.a.lines.filter(l=>l.m.id===topOf(d.a)[0]).map(l=>l.budget))*W/fw,bs=sum(defs.map(base)),k=bs?Math.max(1,held*total/bs):1;
+ const deliver=(a,scope,weeks,unit)=>{const ls=a.lines.filter(l=>scope.includes(l.m.id)),cap=sum(ls.map(l=>l.budget))*0.5,raw=sum(ls.map(l=>l.budget))*weeks/fw,kk=raw?Math.min(k,Math.max(1,cap/raw)):1;
+  let v=0;ls.forEach(l=>{const f=lineFun(l);if(f)v+=f[unit]*weeks/fw*kk});return {v,b:raw*kk}};
+ defs.forEach(d=>{const a=d.a,n=d.cells.length,mk={};a.lines.forEach(l=>mk[l.m.id]=(mk[l.m.id]||0)+l.budget);
+  const mids=Object.keys(mk).sort((x,y)=>mk[y]-mk[x]),top=[mids[0]],all=mids,maxW=Math.min(Math.floor(fw),2*rw-1);
+  const need=k=>needN(k[2],lift),mkName=ids=>ids.length===all.length&&ids.length>1?'all '+ids.length+' markets':ids.map(id=>(S.markets.find(m=>m.id===id)||{}).name||id).join(', ');
+  const tryIt=(k,scope,weeks)=>{const x=deliver(a,scope,weeks,k[1]);return {k,scope,weeks,have:x.v/n,b:x.b,need:need(k)}};
+  let r=tryIt(d.kpi,top,W),status='ok',fix='';
+  if(r.have<r.need){const opts=[];
+   if(all.length>1)opts.push([tryIt(d.kpi,all,W),'Pool '+mkName(all)+' (same KPI, same run).']);
+   const wk1=Math.ceil(W*r.need/Math.max(1,r.have));if(wk1<=maxW)opts.push([tryIt(d.kpi,top,wk1),`Run ${wk1} weeks instead of ${W}.`]);
+   const pa=tryIt(d.kpi,all,W),wk2=Math.ceil(W*pa.need/Math.max(1,pa.have));if(all.length>1&&wk2<=maxW&&wk2>W)opts.push([tryIt(d.kpi,all,wk2),`Pool ${mkName(all)} and run ${wk2} weeks.`]);
+   if(d.proxy){const px=tryIt(d.proxy,top,W);opts.push([px,`Use ${d.proxy[0]} as the primary KPI (needs ${compact(px.need)} ${UNITNAME[d.proxy[1]]} per cell, plan has ${compact(px.have)}); keep ${d.kpi[0]} as a directional read.`]);
+    const pxa=tryIt(d.proxy,all,W);if(all.length>1)opts.push([pxa,`Use ${d.proxy[0]} as the primary KPI and pool ${mkName(all)}; keep ${d.kpi[0]} as a directional read.`])}
+   const ok=opts.find(o=>o[0].have>=o[0].need);
+   if(ok){status='fix';fix=ok[1]+(/primary KPI \(/.test(ok[1])?'':` That gives ${compact(ok[0].have)} ${UNITNAME[ok[0].k[1]]} per cell against ${compact(ok[0].need)} needed.`);r={...ok[0],orig:r}}else{status='no';fix=`Even pooled for ${maxW} weeks${d.proxy?' or on '+d.proxy[0]:''}, this can’t reach 95%. Run it as a directional read with a confidence range, or raise the budget on this line.`}}
+  const orig=r.orig||r;
+  tests.push({...d,ch:a.c.name,placement:a.p.name,lineIds:a.lines.filter(l=>r.scope.includes(l.m.id)).map(l=>l.id),scopeName:mkName(r.scope),
+   kpiName:orig.k[0],kpiFinal:r.k[0]!==orig.k[0]?r.k[0]:null,status,fix,need:orig.need,have:orig.have,unit:UNITNAME[orig.k[1]],run:r.weeks,budget:r.b,cellBudget:r.b/n,
+   haveFinal:r.have,needFinal:r.need,unitFinal:UNITNAME[r.k[1]]})});
+ // pillar → pipeline (directional read across the program)
+ if(R.tier>=1&&ini.length>1){const leads=funnel(R).leads,per=leads/ini.length,nd=needN(SQL_RATE,lift);
+  tests.push({type:'Pillar → pipeline',ch:'All channels',placement:'Leads tagged by pillar',lineIds:[],scopeName:'all markets',variable:'Message pillar',cells:ini.map((x,i)=>String.fromCharCode(65+i)+' '+short(x.name)),
+   hyp:'If a pillar wins on clicks, it also wins on pipeline, because the same message carries through to sales.',kpiName:'SQL rate per lead',guard:'Lead volume per pillar',
+   rule:'Shift 10 to 15% of budget toward the pillar with the most pipeline.',round:'final',need:nd,have:per,unit:'leads per pillar',run:null,budget:0,cellBudget:0,
+   status:per>=nd?'ok':'no',fix:per>=nd?'':`About ${compact(per)} leads per pillar against ${compact(nd)} needed. Report it as directional with a confidence range${R.tier<2?', or move to High, which adds a lift study':''}.`})}
+ // incrementality (High)
+ if(R.tier===2){const li=P.filter(a=>a.c.id==='linkedin'),geo=!li.length,ls=(li.length?li:P).flatMap(a=>a.lines),wks=Math.min(Math.floor(fw),2*rw);
+  const conv=sum(ls.map(l=>(lineFun(l)||{}).leads||0))*wks/fw,visits=sum(ls.map(l=>(lineFun(l)||{}).lpv||0))*wks/fw,hold=geo?0.2:0.1;
+  const nd=Math.ceil(7.84*(1/(1-hold)+1/hold)/Math.pow(Math.log(1+lift),2)),okL=conv>=nd,okV=visits>=nd;
+  tests.push({type:'Incrementality',ch:geo?'All channels':'LinkedIn',placement:geo?'Geo holdout':'Conversion Lift study',lineIds:ls.map(l=>l.id),scopeName:'all markets',variable:'Exposure',cells:geo?['A exposed markets','B holdout markets']:['A exposed','B '+(hold*100)+'% holdout'],
+   hyp:`If ${geo?'paid media':'LinkedIn'} is incremental, exposed ${geo?'markets':'accounts'} convert more than the holdout, so the spend creates leads rather than catching ones that would come anyway.`,
+   kpiName:'Lead lift vs holdout',guard:'Holdout stays dark',rule:'Sets next year’s budget for the channel: cut it if lift is under 10%.',round:2,need:nd,have:conv,unit:'leads (total)',run:wks,budget:0,cellBudget:0,
+   status:okL?'ok':okV?'fix':'no',kpiFinal:okL?null:'Landing page visit lift',fix:okL?'':okV?`Not enough leads for a lead-level read (${compact(conv)} of ${compact(nd)}). Measure lift on landing page visits instead (${compact(visits)} in the window).`:'Too small to read even on visits. Run it as a directional geo comparison.'})}
+ // dates and ids
+ const roundStart=k=>new Date(+t0+k*rw*wk);
+ tests.forEach((t,i)=>{t.id='T'+String(i+1).padStart(2,'0');
+  if(t.round==='final'){t.readout=new Date(+end-21*864e5);t.start=t0;t.runTxt='Whole flight'}
+  else{let k=Math.min(t.round,Math.max(0,R.rounds-1));let s=roundStart(k);if(s>=end){k=0;s=t0}t.start=s;
+   const r=new Date(+s+(t.run||W)*wk);t.readout=r>end?end:r;t.runTxt=(t.run||W)+' weeks'}
+  t.readoutISO=isoD(t.readout);t.month=t.readoutISO.slice(0,7)});
+ const budget=sum(tests.map(t=>t.budget));
+ return {tests,lift,W,rw,budget,share:total?budget/total:0,target:held,total,cellsN:sum(tests.filter(t=>t.budget).map(t=>t.cells.length)),
+  agenda:testAgenda(tests)};
+}
+function testAgenda(tests){const q=d=>'Q'+(Math.floor(d.getUTCMonth()/3)+1)+' '+d.getUTCFullYear();
+ const G=[[['Pillar','Message'],t=>t.type==='Pillar'?'Which message pillar earns attention?':'Which message earns attention?'],[['Creative'],()=>'Which creative style holds attention?'],[['Offer'],()=>'Does a demo or a gated report turn attention into leads?'],
+  [['Audience'],()=>'Do target-account lists beat job-title targeting?'],[['Pillar → pipeline'],()=>'Which pillar drives pipeline, not just clicks?'],[['Incrementality'],()=>'Is paid media incremental, or would those leads come anyway?']];
+ let out=[];G.forEach(([types,ask])=>{const ts=tests.filter(t=>types.includes(t.type));if(!ts.length)return;const last=ts.reduce((a,b)=>b.readout>a.readout?b:a);
+  out.push({k:types[0],when:q(last.readout),at:+last.readout,q:ask(ts.find(t=>t.type==='Pillar')||ts[0]),ids:ts.map(t=>t.id)})});
+ const mergeQ=(a,b,q)=>{const i=out.findIndex(x=>x.k===a),j=out.findIndex(x=>x.k===b);if(i<0||j<0)return;out[i].ids.push(...out[j].ids);out[i].at=Math.max(out[i].at,out[j].at);out[i].when=out[out[i].at===out[j].at?j:i].when;if(q)out[i].q=q;out.splice(j,1)};
+ if(out.length>4)mergeQ('Pillar','Creative');if(out.length>4)mergeQ('Offer','Audience','Which offer and which audience turn attention into leads?');
+ return out.sort((a,b)=>a.at-b.at)}
+function testOfLine(TP,id){return TP.tests.find(t=>t.lineIds&&t.lineIds.includes(id)&&t.type!=='Incrementality')}
 
 /* ==================== INPUT RENDERING ==================== */
 function bindSimple(){
@@ -480,12 +585,12 @@ function renderInputs(){
  S.moments.forEach((x,i)=>{$(`#mo-n-${i}`).oninput=e=>{x.name=e.target.value;changed()};$(`#mo-t-${i}`).onchange=e=>{x.type=e.target.value;changed()};$(`#mo-m-${i}`).onchange=e=>{x.month=e.target.value;changed()}});
  $('#mom-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.moments.splice(+b.dataset.i,1);renderInputs();changed()});
  // channels
- let html=`<div class="li ch note"><span></span><span>Channel</span><span>Weight</span><span class="bud-h">Budget $</span></div>`,g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
+ let html=`<div class="li ch note"><span></span><span>Channel</span>${TIERNAME.map(n=>`<span class="n">${n} $</span>`).join('')}</div>`,g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
   const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight};const mn=Math.min(...c.pl.map(p=>p.min));
-  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label><input type="number" id="ch-w-${c.id}" value="${st.weight}" min="0" step="any" aria-label="Weight"><input type="number" id="ch-b-${c.id}" min="0" step="1000" aria-label="${esc(c.name)} budget"></div>`});
- $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span><span class="n" id="ch-tot-w"></span><span class="n" id="ch-tot-b"></span></div>`;
- CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};$(`#ch-w-${c.id}`).oninput=e=>{S.channels[c.id].weight=+e.target.value;changed()};
-  $(`#ch-b-${c.id}`).onchange=e=>{setChannelBudget(c.id,+e.target.value);changed()}});
+  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label>${[0,1,2].map(t=>`<input type="number" id="ch-b-${c.id}-${t}" min="0" step="1000" aria-label="${esc(c.name)} ${TIERNAME[t]} budget">`).join('')}</div>`});
+ $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span>${[0,1,2].map(t=>`<span class="n" id="ch-tot-b-${t}"></span>`).join('')}</div>`;
+ CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};
+  [0,1,2].forEach(t=>{$(`#ch-b-${c.id}-${t}`).onchange=e=>{setChannelBudget(c.id,+e.target.value,t);changed()}})});
  syncBudgetFields();
 }
 /* budget fields: show $ for the version picked on the right; typing $ rewrites the weights */
@@ -500,12 +605,11 @@ function syncBudgetFields(R){
  const mb=sum(S.markets.map(m=>m.on&&ws?Math.round(total*(+m.weight||0)/ws):0)),mw=$('#mk-tot-w'),mbe=$('#mk-tot-b');
  if(mw){mw.textContent=(+ws.toFixed(1))+'%';mw.className='n'+(Math.abs(ws-100)>0.5?' bad':'');mw.title=Math.abs(ws-100)>0.5?'Weights don\'t add to 100%, so they are treated as shares':''}
  if(mbe){mbe.textContent=money(mb);mbe.className='n'+(Math.abs(mb-total)>on.length?' bad':'');mbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
- const cb={};R.lines.forEach(l=>cb[l.c.id]=(cb[l.c.id]||0)+l.budget);
- CH.forEach(c=>{const el=$('#ch-b-'+c.id);if(!el)return;const v=cb[c.id];el.disabled=!v;el.title=v?'':(S.channels[c.id].on?'Not in the '+TIERNAME[t]+' version or its markets':'Channel is off');
-  if(el!==document.activeElement)el.value=v?Math.round(v):'';const w=$('#ch-w-'+c.id);if(w&&w!==document.activeElement)w.value=+(+S.channels[c.id].weight).toFixed(1)});
- const cw=$('#ch-tot-w'),cbe=$('#ch-tot-b'),cs=sum(Object.values(cb));
- if(cbe){cbe.textContent=money(cs);cbe.className='n'+(Math.abs(cs-total)>1?' bad':'');cbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
- const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>${Object.keys(cb).length} channels running in ${esc(TIERNAME[t])}</span><span>Should match ${money(total)}</span>`;
+ const Rs=[0,1,2].map(i=>R&&R.tier===i?R:compute(i)),tots=[0,1,2].map(i=>+S.budgets[TIERS[i]]||0),cbs=Rs.map(Ri=>{const o={};Ri.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o});
+ CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id];el.disabled=!v;
+  el.title=v?'':(S.channels[c.id].on?'Not in the '+TIERNAME[i]+' version or its markets':'Channel is off');if(el!==document.activeElement)el.value=v?Math.round(v):''}));
+ [0,1,2].forEach(i=>{const e=$('#ch-tot-b-'+i);if(!e)return;const cs=sum(Object.values(cbs[i]));e.textContent=compact(cs).replace(/^/,'$');e.className='n'+(Math.abs(cs-tots[i])>1?' bad':'');e.title=money(cs)+' · should equal the '+TIERNAME[i]+' budget: '+money(tots[i])});
+ const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`;
 }
 function setMarketBudget(i,x){
  const t=bTier(),total=+S.budgets[TIERS[t]]||0,m=S.markets[i];if(!total||!m.on)return;
@@ -514,18 +618,21 @@ function setMarketBudget(i,x){
  if(others.length&&os>0)others.forEach(q=>q.weight=+(q.weight/os*(100-share*100)).toFixed(2));
  setStatus('#ch-status','');
 }
-function setChannelBudget(id,x){
- const t=bTier();let got=0;
+function setChannelBudget(id,x,t){
+ if(t==null)t=bTier();
  // the most this channel can take: its share when it dominates every market it runs in
- const w0=S.channels[id].weight;S.channels[id].weight=w0*1e4;const cap=sum(compute(t).lines.filter(l=>l.c.id===id).map(l=>l.budget))*0.97;S.channels[id].weight=w0;x=Math.min(x,cap);
+ const w0=chW(id,t);setChW(id,t,Math.max(w0,1)*1e4);const cap=sum(compute(t).lines.filter(l=>l.c.id===id).map(l=>l.budget))*0.97;setChW(id,t,w0);x=Math.min(x,cap);
  for(let it=0;it<10;it++){const R=compute(t);const cur={};R.lines.forEach(l=>cur[l.c.id]=(cur[l.c.id]||0)+l.budget);const tot=sum(Object.values(cur));
-  if(!cur[id]||!tot)return;const want=Math.max(0,Math.min(x,tot)),rest=tot-cur[id];got=cur[id];if(Math.abs(got-want)<Math.max(1,want*0.002))break;
-  for(const k in cur){const tg=k===id?want:(rest>0?cur[k]/rest*(tot-want):0);S.channels[k].weight=Math.max(1e-4,S.channels[k].weight*(tg||1e-4)/cur[k])}}
- const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&S.channels[k].weight>0),s=sum(on.map(k=>S.channels[k].weight));if(s>0)on.forEach(k=>S.channels[k].weight=Math.max(0.1,+(S.channels[k].weight/s*100).toFixed(1)));
+  if(!cur[id]||!tot)return;const want=Math.max(0,Math.min(x,tot)),rest=tot-cur[id];if(Math.abs(cur[id]-want)<Math.max(1,want*0.002))break;
+  for(const k in cur){const tg=k===id?want:(rest>0?cur[k]/rest*(tot-want):0);setChW(k,t,Math.max(1e-4,chW(k,t)*(tg||1e-4)/cur[k]))}}
+ const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&chW(k,t)>0),s=sum(on.map(k=>chW(k,t)));if(s>0)on.forEach(k=>setChW(k,t,Math.max(0.1,+(chW(k,t)/s*100).toFixed(2))));
  const R=compute(t),now=sum(R.lines.filter(l=>l.c.id===id).map(l=>l.budget));
- const asked=+(document.getElementById('ch-b-'+id)||{}).value||x;const capped=asked>x+1;
- setStatus('#ch-status',capped?`${CHMAP[id].name} is capped at about ${money(now)}: it only runs in ${[...new Set(R.lines.filter(l=>l.c.id===id).map(l=>l.market))].join(', ')||'some markets'}, so it can't take more than those markets' budget. Raise their share in section 3 to give it more.`:'',capped);
+ const asked=+(document.getElementById(`ch-b-${id}-${t}`)||{}).value||x;const capped=asked>x+1;
+ setStatus('#ch-status',capped?`${CHMAP[id].name} is capped at about ${money(now)} in ${TIERNAME[t]}: it only runs in ${[...new Set(R.lines.filter(l=>l.c.id===id).map(l=>l.market))].join(', ')||'some markets'}, so it can't take more than those markets' budget. Raise their share in section 3 to give it more.`:'',capped);
 }
+function autoChannels(){Object.values(S.channels).forEach(c=>delete c.tw)}
+
+$('#ch-auto').onclick=()=>{autoChannels();setStatus('#ch-status','Channel budgets refilled from each version\'s total.');renderInputs();changed()};
 $('#add-mkt').onclick=()=>{S.markets.push({id:'M'+Date.now(),name:'New market',lang:'EN',on:true,weight:5});renderInputs();changed()};
 $('#add-ini').onclick=()=>{S.initiatives.push({name:'',stage:'Consideration',pillar:''});renderInputs();changed();setTimeout(()=>$('#in-n-'+(S.initiatives.length-1))?.focus(),0)};
 $('#add-mom').onclick=()=>{S.moments.push({name:'',month:S.start.slice(0,7),type:'launch',ini:0});renderInputs();changed();setTimeout(()=>$('#mo-n-'+(S.moments.length-1))?.focus(),0)};
@@ -534,7 +641,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(renderOut,120)}
-const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -631,10 +738,11 @@ function renderTagging(R){
  const px=pixelTable(R),ut=utmTable(R);
  return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits (it follows your BOM edits; edit a line here to override it just for that placement; counters turn red when over), the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
    <label class="f" style="min-width:260px">Landing page URL<input type="text" id="in-landing" value="${esc(S.landing)}"></label></div>
-  <div class="tscroll"><table><thead><tr><th>Line</th><th>Placement · market</th><th>BOM items</th><th>Files to traffic</th><th>Ad copy</th><th>Ad name</th><th>UTMs</th><th>Tracked URL</th><th>Due</th></tr></thead><tbody>
+  <div class="tscroll"><table><thead><tr><th>Line</th><th>Placement · market</th><th>BOM items</th><th>Files to traffic</th><th>Ad copy</th><th>Ad name</th><th>Test cells</th><th>UTMs</th><th>Tracked URL</th><th>Due</th></tr></thead><tbody>
   ${ut.rows.map(r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.channel)} · ${esc(r.market)} · ${esc(r.lang)}</div></td>
    <td class="m" style="white-space:nowrap">${esc(r.bom)}</td><td class="sub2" style="min-width:240px">${esc(r.files)}</td><td style="min-width:420px">${adCellEdit(r._ad)}</td>
    <td class="m" style="min-width:200px;word-break:break-all">${esc(r.adname)}</td>
+   <td style="min-width:180px">${r._test?`<span class="chip cv">${r._test.id}</span> ${esc(r._test.type)}<div class="m sub2" style="word-break:break-all;margin-top:4px">${r._test.cells.map(c=>esc(r.adname+'_'+r._test.id+'-'+c[0])).join('<br>')}</div><div class="sub2">utm_content + _${r._test.id.toLowerCase()}-a, -b…</div>`:'<span class="sub2">—</span>'}</td>
    <td class="m" style="min-width:200px">source=${esc(r.src)}<br>medium=${esc(r.med)}<br>campaign=${esc(r.camp)}<br>content=${esc(r.cont)}<br>term=${esc(r.term)}</td>
    <td class="m" style="min-width:260px;word-break:break-all">${esc(r.url)}</td><td class="m">${esc(r.due)}</td></tr>`).join('')}
   </tbody></table></div>
@@ -668,12 +776,61 @@ function renderCreative(R){
  return `<div class="toolbar"><span class="note">Files = concepts × sizes × refresh rounds, counted once per language. First round is due before the flight starts, using each unit's production lead time.</span></div>
  ${renderTable(tb,{group:'lang',numeric:['concepts','variants','rounds','files'],wrapCols:['placement','markets'],totalCols:['files']})}`;
 }
+function testStatusChip(t){return t.status==='ok'?'<span class="chip aw">Reads out</span>':t.status==='fix'?'<span class="chip flag">Needs fallback</span>':'<span class="chip over">Can’t reach significance</span>'}
+function renderTests(R){
+ const TP=testPlan(R),T=TIERS[R.tier],ts=TP.tests,cnt=s=>ts.filter(t=>t.status===s).length,o=funnel(R),fw=flightWeeks();
+ const winLeads=o.leads*TP.W/fw,ndV=needN(FUN.cvr,TP.lift);
+ const rs=[];for(let k=0;k<R.rounds;k++){const d=new Date(+parseD(S.start)+k*TP.rw*6048e5);if(d<=parseD(S.end))rs.push(isoD(d).slice(0,7))}
+ const ro={};ts.forEach(t=>(ro[t.month]=ro[t.month]||[]).push(t.id));
+ const U=utmTable(R),ex=ts.find(t=>t.lineIds.length&&t.type!=='Incrementality'),exRow=ex&&U.rows.find(r=>r.id===ex.lineIds[0]);
+ const prev=['Low','Medium','High'].slice(0,R.tier);
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:16px">
+ <div class="toolbar" style="margin:0;align-items:flex-end"><div><div class="eyebrow">${esc(TIERNAME[R.tier])} version · test plan</div>
+  <h2 style="font-size:20px;margin-top:2px">How we’ll run the ${money(TP.total)}: ${ts.length} tests, ${money(TP.budget)} through test cells</h2>
+  <div class="note">Every test comes from a line in this plan. Sample sizes use the plan’s own estimated impressions, clicks and leads, so a test that can’t reach significance is flagged with a fallback before money moves. ${R.tier===0?'Low runs creative and message tests.':R.tier===1?'Medium adds audience and offer tests.':'High adds an incrementality read.'}</div></div>
+  <div class="btns"><label class="f">Test budget %<input type="number" id="tp-share" min="0" max="40" step="1" value="${Math.round(TP.target*100)}" style="width:80px"></label>
+  <label class="f">Lift to detect<select id="tp-lift">${[10,15,20,25,30].map(v=>`<option value="${v}" ${v===Math.round(TP.lift*100)?'selected':''}>${v}% relative</option>`).join('')}</select></label></div></div>
+ <div class="tiles" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+  <div class="tile"><span class="v">${ts.length}</span><span class="k">Tests in ${esc(TIERNAME[R.tier])}</span></div>
+  <div class="tile"><span class="v">${compact(TP.budget).replace(/^/,'$')}</span><span class="k">In test cells · ${(TP.share*100).toFixed(0)}% of budget</span></div>
+  <div class="tile"><span class="v" style="color:var(--green)">${cnt('ok')}</span><span class="k">Read out as planned</span></div>
+  <div class="tile"><span class="v" style="color:var(--flag)">${cnt('fix')}</span><span class="k">Read out with a fallback</span></div>
+  <div class="tile"><span class="v" style="color:var(--over)">${cnt('no')}</span><span class="k">Can’t reach significance</span></div></div>
+ <div class="note" style="background:var(--flag-soft);border-radius:12px;padding:10px 12px;color:var(--ink)">${esc(TIERNAME[R.tier])} projects about <strong>${compact(o.leads)} leads</strong> over the flight, about ${compact(winLeads)} in a ${TP.W}-week test window across every line. A lead-rate A/B test needs about ${compact(ndV)} visits per cell (around ${compact(ndV*FUN.cvr)} leads per cell) to see a ${Math.round(TP.lift*100)}% lift, so lead-level tests here use a proxy KPI, pool markets or run longer. The fix is shown on each row.</div>
+ <div class="tscroll"><table><thead><tr><th>Test</th><th>Hypothesis</th><th>Channel · line</th><th>Variable · cells</th><th class="n">Budget / cell</th><th>Primary KPI · guardrail</th><th>Sample needed vs plan</th><th>Run · readout</th></tr></thead><tbody>
+ ${ts.map(t=>`<tr><td class="m"><strong>${t.id}</strong><div class="sub2">${esc(t.type)}</div></td><td style="min-width:190px">${esc(t.hyp)}</td>
+  <td style="min-width:110px"><strong>${esc(t.ch)}</strong><div class="sub2">${esc(t.placement)} · ${esc(t.scopeName)}</div></td>
+  <td style="min-width:110px">${esc(t.variable)}<div class="sub2">${t.cells.map(esc).join('<br>')}</div></td>
+  <td class="n">${t.cellBudget?money(t.cellBudget):'<span class="sub2">uses test spend</span>'}</td>
+  <td style="min-width:110px"><strong>${esc(t.kpiName)}</strong>${t.kpiFinal?`<div class="sub2">→ ${esc(t.kpiFinal)}</div>`:''}<div class="sub2">Guardrail: ${esc(t.guard)}</div></td>
+  <td style="min-width:110px">${compact(t.need)} ${esc(t.unit)}${/per pillar|total/.test(t.unit)?'':' / cell'}<div class="sub2">Plan: ${compact(t.have)}</div><div style="margin-top:4px">${testStatusChip(t)}</div></td>
+  <td style="white-space:nowrap">${esc(t.runTxt)}<div class="sub2">Readout ${fmtD(t.readout)}</div></td></tr>
+  <tr><td style="border-top:0"></td><td colspan="7" style="padding-top:0;border-top:0"><strong>Decision rule:</strong> ${esc(t.rule)}${t.fix?`<br><span style="color:${t.status==='no'?'var(--over)':'var(--flag)'}"><strong>Fallback:</strong></span> ${esc(t.fix)}`:''}</td></tr>`).join('')}
+ <tr class="tot"><td>Total</td><td>${ts.length} tests · ${TP.cellsN} cells</td><td></td><td></td><td class="n">${money(TP.budget)}</td><td colspan="3">${(TP.share*100).toFixed(1)}% of the ${money(TP.total)} ${esc(TIERNAME[R.tier])} budget (target ${Math.round(TP.target*100)}%${TP.share+0.005<TP.target?'; the rest stays in the regular lines, since a test cell never takes more than half its line’s budget':''})</td></tr>
+ </tbody></table></div>
+ <div class="note">Sample per cell = 16 × p(1 − p) ÷ (p × lift)², at 95% confidence and 80% power. Baselines: ${pct(FUN.ctr)} CTR on social and display, ${pct(FUN.ctrCpc)} on search, ${pct(FUN.viewRate)} video view rate, ${pct(FUN.leadForm)} lead-form completion, ${pct(FUN.cvr)} visit-to-lead, ${pct(SQL_RATE)} lead-to-SQL. Test cells take the held test budget, spread over the tests in proportion to each line’s spend in its test window.</div>
+ <div class="cols">
+  <div><h3 style="font-size:14px;margin-bottom:6px">On the flighting calendar</h3><div class="note" style="margin-bottom:8px">Readouts land before each creative refresh (every ${TP.rw} weeks), so results feed the next round of creative.</div>
+   <div class="tscroll"><table><thead><tr>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}</tr></thead><tbody>
+   <tr>${R.months.map(m=>`<td class="n sub2">${rs.includes(m)?'Refresh R'+(rs.indexOf(m)+1):''}</td>`).join('')}</tr>
+   <tr>${R.months.map(m=>`<td class="n">${(ro[m]||[]).map(id=>`<span class="chip cv">${id}</span>`).join(' ')}</td>`).join('')}</tr></tbody></table></div></div>
+  <div><h3 style="font-size:14px;margin-bottom:6px">In the tagging sheet</h3><div class="note" style="margin-bottom:8px">Each test cell becomes its own ad, so results split cleanly in the platform and in GA4. The Spec Sheet &amp; Tagging tab lists the cells on every line in a test.</div>
+   ${exRow?`<div class="m" style="background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.6;word-break:break-all"><span class="sub2">Ad name</span> ${esc(exRow.adname)}_<strong style="color:var(--rose)">${ex.id}-B</strong><br><span class="sub2">utm_content</span> ${esc(exRow.cont)}_<strong style="color:var(--rose)">${ex.id.toLowerCase()}-b</strong></div>`:''}</div></div>
+ <div><h3 style="font-size:14px;margin-bottom:8px">Learning agenda</h3><div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+  ${TP.agenda.map(a=>`<div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px"><span class="eyebrow">${esc(a.when)} · ${a.ids.join(', ')}</span><span style="font-family:var(--f-display);font-size:16px;font-weight:600">${esc(a.q)}</span></div>`).join('')}
+ </div></div></div>`;
+}
+function testAOA(R){const TP=testPlan(R);const a=[['Test','Type','Hypothesis','Channel','Line / placement','Scope','Variable','Cells','Budget per cell','Primary KPI','KPI after fallback','Guardrail','Sample needed','Sample in plan','Unit','Status','Fallback','Run','Readout','Decision rule','Media lines']];
+ TP.tests.forEach(t=>a.push([t.id,t.type,t.hyp,t.ch,t.placement,t.scopeName,t.variable,t.cells.join(' | '),Math.round(t.cellBudget),t.kpiName,t.kpiFinal||'',t.guard,Math.round(t.need),Math.round(t.have),t.unit,{ok:'Reads out',fix:'Needs fallback',no:'Can’t reach significance'}[t.status],t.fix,t.runTxt,t.readoutISO,t.rule,t.lineIds.join(', ')]));
+ a.push(['Total','',TP.tests.length+' tests','','','','',TP.cellsN+' cells',Math.round(TP.budget)]);
+ a.push([],['LEARNING AGENDA'],...TP.agenda.map(x=>[x.when,x.ids.join(', '),x.q]));return a}
 function renderFlight(R){
  const tb=flightTable(R);const max=Math.max(1,...R.flightRows.flatMap(f=>f.months));
  const mm={};S.moments.forEach(x=>{(mm[x.month]=mm[x.month]||[]).push(x)});
  return `<div class="toolbar"><span class="note">Monthly spend by channel. Darker cells carry more budget. Moments are listed under each month. Projected outcomes and KPIs follow below.</span></div>
  <div class="tscroll"><table class="heat"><thead><tr><th>Channel</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr>
- <tr><td class="sub2">Moments</td>${R.months.map(m=>`<td class="sub2" style="min-width:92px;font-size:10.5px">${(mm[m]||[]).map(x=>esc(x.name)).join('<br>')}</td>`).join('')}<td></td></tr></thead><tbody>
+ <tr><td class="sub2">Moments</td>${R.months.map(m=>`<td class="sub2" style="min-width:92px;font-size:10.5px">${(mm[m]||[]).map(x=>esc(x.name)).join('<br>')}</td>`).join('')}<td></td></tr>
+ ${(()=>{const ro={};testPlan(R).tests.forEach(t=>(ro[t.month]=ro[t.month]||[]).push(t.id));return `<tr><td class="sub2">Test readouts</td>${R.months.map(m=>`<td>${(ro[m]||[]).map(id=>`<span class="chip cv">${id}</span>`).join(' ')}</td>`).join('')}<td></td></tr>`})()}</thead><tbody>
  ${R.flightRows.map(f=>`<tr><td style="white-space:nowrap">${esc(f.c.name)}</td>${f.months.map(v=>`<td class="h" style="background:color-mix(in srgb,var(--heat1) ${(v/max*70).toFixed(0)}%,var(--heat0));color:${v/max>.55?'var(--accent-ink)':'var(--ink)'}">${v>0?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${money(f.total)}</td></tr>`).join('')}
  <tr class="tot"><td>Total</td>${R.months.map((m,i)=>`<td class="n">${compact(sum(R.flightRows.map(f=>f.months[i])))}</td>`).join('')}<td class="n">${money(sum(R.flightRows.map(f=>f.total)))}</td></tr>
  </tbody></table></div>
@@ -729,7 +886,9 @@ function renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
+ const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
  v.querySelectorAll('.cp-edit').forEach(el=>{const lim=+el.dataset.lim||0;const mark=()=>{const n=el.value.length,c=el.parentElement.querySelector('.cp-count');c.textContent=lim?n+'/'+lim:n+' chars';const o=lim&&n>lim;c.classList.toggle('over',!!o);el.classList.toggle('over',!!o)};mark();
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
@@ -755,15 +914,16 @@ function workbookFor(tiers){
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[16,24,50,24,16,24,60,40,50,24,12,10,10]);
   addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
+  addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
   addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
-  addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,40,12,16,30,22,14,90,30,11]);
+  addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,60,40,12,16,30,22,14,90,30,11]);
  });
  return wb;
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R)}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
