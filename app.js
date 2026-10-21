@@ -6,7 +6,7 @@ const BUYUNIT={CPM:'impressions',CPC:'clicks',CPV:'views',CPL:'leads',CPS:'sends
 const UNITS={
  li_image:{platform:'LinkedIn',name:'Single Image Ad',variants:['1.91:1 · 1200×627','1:1 · 1080×1080'],files:'JPG, PNG, GIF (static)',max:'5 MB',length:'—',copy:['Intro text ≤150 chars recommended (600 max)','Headline ≤70 chars recommended (200 max)','CTA button from LinkedIn list'],notes:'Keep logo and key claim inside the center 80%.',lead:10},
  li_video:{platform:'LinkedIn',name:'Video Ad',variants:['16:9 · 1920×1080','1:1 · 1080×1080','9:16 · 1080×1920'],files:'MP4',max:'200 MB',length:'15–30s recommended (3s–30min)',copy:['Intro text ≤150 chars recommended','Headline ≤70 chars','Burned-in captions or .srt file'],notes:'Brand and proof point in the first 3 seconds; most views are muted.',lead:21},
- li_tla:{platform:'LinkedIn',name:'Thought Leader Ad',variants:['Organic member post (image, video or text)'],files:'As posted by the member',max:'—',length:'—',copy:['Post up to 3,000 chars','Sponsorship approval from the member'],notes:'Post cannot be edited once promoted. Use exec and Mobile Insiders creator posts.',lead:7},
+ li_tla:{platform:'LinkedIn',name:'Thought Leader Ad',variants:['Organic member post (image, video or text)'],files:'As posted by the member',max:'—',length:'—',copy:['Post up to 3,000 chars','Sponsorship approval from the member'],notes:'Post cannot be edited once promoted. Use exec and security-practitioner creator posts.',lead:7},
  li_doc:{platform:'LinkedIn',name:'Document Ad',variants:['PDF, 1:1 or 4:5 pages'],files:'PDF, PPT, DOCX',max:'100 MB · 300 pages',length:'≤10 pages recommended',copy:['Intro text ≤150 chars recommended','Headline ≤70 chars'],notes:'Gate after 3–5 preview pages with a Lead Gen Form.',lead:15},
  li_lgf:{platform:'LinkedIn',name:'Lead Gen Form',variants:['Form'],files:'—',max:'—',length:'—',copy:['Headline ≤60 chars','Details ≤160 chars','3–4 questions recommended (12 max)','Privacy policy URL, thank-you message ≤300 chars'],notes:'Sync to CRM / MAP before launch.',lead:5},
  li_conv:{platform:'LinkedIn',name:'Conversation Ad',variants:['Message flow','Banner 300×250 (desktop, optional)'],files:'JPG, PNG',max:'2 MB banner',length:'—',copy:['Opening message ≤500 chars recommended (8,000 max)','Up to 5 CTA buttons ≤25 chars each','Sender: real person with profile photo'],notes:'Map each button to a branch before trafficking.',lead:10},
@@ -74,57 +74,57 @@ const TAGS={
  naver:{tag:'Naver Premium Log Analysis (wcs script) + Naver Ads conversion tracking',events:'Page view, sign-up start, form submit',click:'Naver auto parameters + UTMs',extra:'PIPA consent on Korean landing page'},
 };
 const UTM_SRC={linkedin:'linkedin',google:'google',meta:'meta',x:'x',reddit:'reddit',youtube:'youtube',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
-const TRADE_PUB={NA:'PocketGamer.biz, GamesIndustry.biz, AdExchanger, Mobile Dev Memo',EMEA:'PocketGamer.biz, GamesIndustry.biz, Mobile Dev Memo',CN:'GameLook, Youxituoluo (游戏陀螺)',JP:'Social Game Info, Gamebiz',KR:'ThisIsGame, GameMeca',SEA:'PocketGamer.biz Asia, Tech in Asia',LATAM:'PocketGamer.biz, local gaming trades'};
+const TRADE_PUB={NA:'Dark Reading, CSO Online, SecurityWeek, TechTarget (SearchSecurity, SearchDataBackup), CIO Dive',EMEA:'Infosecurity Magazine, The Register, ComputerWeekly, SC Media UK',CN:'FreeBuf, InfoQ China',JP:'ITmedia Enterprise, Nikkei xTECH, @IT',KR:'Boannews, ZDNet Korea',SEA:'Tech in Asia, CIO & CISO Asia',LATAM:'IT Forum, CISO Advisor'};
 
 // ini = index of initiative (0 brand / 1 cross-sell / 2 data), min = first tier (0 lean, 1 standard, 2 full)
 const CH=[
  {id:'linkedin',name:'LinkedIn',group:'Paid social',weight:34,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (VP Growth, Head of UA, UA Manager, Media Buyer); industry: Computer Games, Mobile Gaming; company list: Top 200 studios + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
+  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (CISO, CIO, VP Infrastructure, Security Architect, Backup Admin); industries: financial services, healthcare, public sector, retail, manufacturing; company list: named target accounts + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
   {id:'li_vid',name:'Sponsored Content · Video (proof-point testimonials)',units:['li_video'],min:0,share:25,buy:'CPM',rate:60,stage:'Awareness',ini:0,tgt:'Same as single image + video viewer retargeting',kpi:'VTR ≥ 25%; cost per 3s view'},
   {id:'li_tla',name:'Thought Leader Ads (execs + creators)',units:['li_tla'],min:0,share:15,buy:'CPM',rate:40,stage:'Awareness',ini:0,tgt:'Followers of competitor and industry pages; job titles above',kpi:'Engagement ≥ 2%; social share of voice'},
-  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:120,stage:'Consideration',ini:0,tgt:'Head of UA, UA Manager, Growth Data Science at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
-  {id:'li_rt',name:'Retargeting · existing advertisers (cross-sell)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: current advertiser contact lists (single-format users); site visitors',kpi:'CTR ≥ 0.8%; second-format activation'},
-  {id:'li_tech',name:'Sponsored Content · technical webinars & docs (GA4, developer data)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Head of UA, Ad Ops, Growth Data Science; current advertisers not yet sharing developer data',kpi:'Webinar registrations; GA4 / data-sharing opt-ins'},
-  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'HOM / Torso account lists; UA and Ad Ops leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
+  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:120,stage:'Consideration',ini:0,tgt:'CISO, Security Architect, Backup / Storage Architect at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
+  {id:'li_rt',name:'Retargeting · existing customers (cross-sell)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: current customer contact lists (data-center-only users); site visitors',kpi:'CTR ≥ 0.8%; cloud / SaaS expansion opportunities'},
+  {id:'li_tech',name:'Sponsored Content · technical webinars & labs (cloud, SaaS, identity)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Cloud Architect, Security Architect, SecOps; current customers not yet protecting cloud or SaaS data',kpi:'Webinar and lab registrations; expansion opportunities'},
+  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'Tier 1–2 account lists; security and infrastructure leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
  {id:'google',name:'Google Search',group:'Paid search',weight:12,markets:{exclude:['CN']},personas:['tech','user'],pl:[
   {id:'gs_brand',name:'Brand + product terms',units:['gs_rsa','gs_ext'],min:0,share:35,buy:'CPC',rate:4,stage:'Conversion',ini:1,tgt:'Exact / phrase: brand, product and feature names',kpi:'Impression share ≥ 90%; sign-up CVR'},
-  {id:'gs_cat',name:'Category terms (UA platform, ROAS campaigns)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “user acquisition platform”, “ROAS campaign”, “mobile game UA”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
+  {id:'gs_cat',name:'Category terms (ransomware recovery, data security)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “ransomware recovery”, “immutable backup”, “cyber recovery”, “data security posture management”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
   {id:'gs_comp',name:'Competitor conquest',units:['gs_rsa'],min:2,share:20,buy:'CPC',rate:12,stage:'Consideration',ini:0,tgt:'Competitor brand + “alternative” terms (no trademark in ad copy)',kpi:'CTR ≥ 3%; assisted sign-ups'}]},
  {id:'meta',name:'Meta (Facebook + Instagram)',group:'Paid social',weight:8,markets:{exclude:['CN']},personas:['user','tech'],pl:[
   {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (marketing, advertising, growth); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
   {id:'mt_vid',name:'Reels, Stories & feed video',units:['meta_reels','meta_feed_vid'],min:1,share:35,buy:'CPM',rate:10,stage:'Awareness',ini:0,tgt:'Same as feed + video viewer retargeting',kpi:'ThruPlay rate ≥ 20%; cost per ThruPlay'},
   {id:'mt_lead',name:'Lead ads · Instant Form (gated report)',units:['meta_feed_img','meta_lgf'],min:2,share:20,buy:'CPL',rate:60,stage:'Consideration',ini:0,tgt:'Lookalikes of SQLs; site and video retargeting',kpi:'CPL ≤ $60; SQL rate'}]},
  {id:'x',name:'X (Twitter)',group:'Paid social',weight:7,markets:{exclude:['CN']},boost:{JP:2.5},personas:['tech','user'],pl:[
-  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of UA / AdTech thought leaders; keywords',kpi:'Engagement ≥ 1%'},
+  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of security and infrastructure thought leaders; keywords',kpi:'Engagement ≥ 1%'},
   {id:'x_vid',name:'Promoted video · proof-point clips',units:['x_video'],min:1,share:50,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as image + conference hashtags',kpi:'VTR ≥ 20%'}]},
  {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{exclude:['CN']},boost:{JP:0.5,KR:0.3,SEA:0.6,LATAM:0.6},personas:['user'],pl:[
-  {id:'rd_img',name:'Promoted posts · UA & ad-ops communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/gamedev, r/mobilemarketing, r/adops, r/PPC',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
+  {id:'rd_img',name:'Promoted posts · security & sysadmin communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/sysadmin, r/cybersecurity, r/netsec, r/ITManagers',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
  {id:'youtube',name:'YouTube',group:'Online video',weight:9,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.06,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
+  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.06,stage:'Awareness',ini:0,tgt:'Custom segments: ransomware and backup search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
   {id:'yt_sh',name:'Shorts · 15s cut-downs',units:['yt_shorts'],min:2,share:30,buy:'CPM',rate:8,stage:'Awareness',ini:0,tgt:'Same custom segments',kpi:'View rate; earned subs'}]},
- {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local gaming / ad-tech trades',pl:[
-  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (studio execs, UA leads)',kpi:'CTR ≥ 1.5%'},
-  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, ad-tech and UA sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
+ {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local security / IT trades',pl:[
+  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (CISOs, IT and security leaders)',kpi:'CTR ≥ 1.5%'},
+  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, security and data protection sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
   {id:'tr_nat',name:'Sponsored article · customer proof point',units:['native_article'],min:2,share:25,buy:'Flat',rate:15000,unit:'articles',stage:'Consideration',ini:0,tgt:'Publisher audience + social amplification',kpi:'Time on page; referral sign-ups'}]},
- {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'Deconstructor of Fun, GameMakers, industry creators',pl:[
+ {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'Security newsletters, podcasts and practitioner creators',pl:[
   {id:'cr_nl',name:'Specialist newsletter sponsorship',units:['nl_sponsor'],min:1,share:50,buy:'Flat',rate:3500,unit:'sends',stage:'Consideration',ini:0,tgt:'Subscriber base',kpi:'CTR ≥ 2%'},
   {id:'cr_inf',name:'Paid creator posts (LinkedIn / X)',units:['creator_post'],min:1,share:20,buy:'Flat',rate:2500,unit:'posts',stage:'Awareness',ini:0,tgt:'Creator follower base',kpi:'Mentions, shares, comments; social SOV'},
-  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (studio execs, growth leads)',kpi:'Vanity URL visits'}]},
+  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (CISOs, security and IT leaders)',kpi:'Vanity URL visits'}]},
  {id:'abm',name:'ABM programmatic',group:'Programmatic',weight:8,markets:{exclude:['CN']},personas:['dm','tech'],pub:()=>'ABM DSP (e.g., Demandbase, 6sense)',pl:[
-  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Top 200 studios + HOM / Torso target accounts; buying-committee roles',kpi:'Account reach ≥ 60%; engaged accounts'},
+  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Tier 1–3 named target accounts; buying-committee roles (security + infrastructure)',kpi:'Account reach ≥ 60%; engaged accounts'},
   {id:'abm_rt',name:'Site retargeting · product, pricing & docs visitors',units:['iab_display'],min:1,share:30,buy:'CPM',rate:12,stage:'Conversion',ini:1,tgt:'Site visitors (30-day), excluding active customers of that format',kpi:'Return-visit rate; sign-ups'}]},
  {id:'events',name:'Event amplification',group:'Events',weight:6,markets:'all',personas:['dm'],burst:'events',pub:()=>'Event organizers (per moment)',pl:[
   {id:'ev_pkg',name:'Sponsor digital package (app, attendee email)',units:['event_pkg'],min:1,share:60,buy:'Flat',rate:12000,unit:'events',stage:'Consideration',ini:0,tgt:'Registered attendees',kpi:'Meetings booked; booth scans'},
   {id:'ev_soc',name:'Geo-targeted paid social · meeting booking',units:m=>m.id==='CN'?['wc_moments']:['li_image'],min:1,share:40,buy:'CPM',rate:45,stage:'Consideration',ini:0,tgt:'Venue geo-fence + attendee job titles, 2 weeks pre-show',kpi:'Meetings booked; CTR ≥ 0.6%'}]},
  {id:'wechat',name:'WeChat',group:'Regional platforms',weight:14,markets:{only:['CN']},personas:['dm','tech','user'],pub:()=>'Tencent Ads',pl:[
-  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: game developers, publishers, ad-tech; lookalikes of studio list',kpi:'CTR ≥ 0.8%; follows'},
-  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Gaming / ad-tech official accounts',kpi:'CPC; account follows'},
+  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: enterprise IT, cybersecurity, cloud; lookalikes of target account list',kpi:'CTR ≥ 0.8%; follows'},
+  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Security / enterprise IT official accounts',kpi:'CPC; account follows'},
   {id:'wc_c',name:'Channels video',units:['wc_channels'],min:2,share:15,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as Moments',kpi:'Completion rate'}]},
  {id:'baidu',name:'Baidu Search',group:'Regional platforms',weight:8,markets:{only:['CN']},personas:['tech','user'],pub:()=>'Baidu',pl:[
-  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
+  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and category terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
  {id:'naver',name:'Naver',group:'Regional platforms',weight:8,markets:{only:['KR']},personas:['tech','user'],pub:()=>'Naver',pl:[
-  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Korean',kpi:'CTR ≥ 3%'},
-  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: games, marketing, IT',kpi:'CTR ≥ 0.5%'}]},
+  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and category terms in Korean',kpi:'CTR ≥ 3%'},
+  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: IT, security, business software',kpi:'CTR ≥ 0.5%'}]},
 ];
 for(const u in UNITS){UNITS[u].fmt=UNIT_META[u][0];UNITS[u].medium=UNIT_META[u][1]}
 // copy limits used to fit the ad copy column (h = headline, b = body / primary text, cta = button)
@@ -134,35 +134,35 @@ const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 
-/* ==================== EXAMPLE STATE (PROXY: lead-gen plan modeled on a data security vendor such as Rubrik or Cohesity) ==================== */
-// Proxy data only: "Proxy Co." stands in for an enterprise data security / cyber resilience vendor. Built from public category
-// info (buyers, events, offers). No company's real budgets, KPIs or roadmap; every number here is illustrative.
-const EX_NAME='Proxy Co. · Cyber Resilience Lead Gen FY27 (proxy for a Rubrik / Cohesity-style plan)';
-const EXAMPLE_BRIEF=`PROXY DATA. GTM Strategy: Proxy Co. · Cyber Resilience Lead Gen FY27
-"Proxy Co." is a stand-in for an enterprise data security / cyber resilience vendor in the category of Rubrik or Cohesity. This brief is modeled from public category information only. Budgets, KPIs, launches and proof points are illustrative, not any company's real plan.
+/* ==================== EXAMPLE STATE (PROXY: illustrative Rubrik lead-gen plan) ==================== */
+// Proxy data only: an outside-in model of what a Rubrik paid media lead-gen plan could look like, built from public
+// information (products, buyers, events, offers). Not Rubrik's real budgets, KPIs, roadmap or results; every number is illustrative.
+const EX_NAME='PROXY · Rubrik Cyber Resilience Lead Gen FY28 (illustrative)';
+const EXAMPLE_BRIEF=`PROXY DATA. GTM Strategy: Rubrik · Cyber Resilience Lead Gen FY28 (illustrative)
+This is an outside-in proxy plan, modeled from public information about Rubrik and the data security category. Budgets, KPIs, timing and proof points are illustrative assumptions, not Rubrik's real plan or results.
 
-Solution: a data security platform that backs up, secures and recovers enterprise data across data center, cloud and SaaS, with immutable backups, threat detection and fast clean recovery after ransomware.
+Solution: Rubrik Security Cloud. Back up, secure and recover data across data center, cloud, SaaS and identity: immutable backups, threat monitoring, data security posture (DSPM), identity recovery and clean, fast recovery after ransomware.
 
 Program goal: pipeline. Paid media is measured on qualified meetings and sourced pipeline, not clicks.
 
-FY27 initiatives
-1. Ransomware Recovery Category Leadership: own "recover clean data fast" with security and IT leaders. KPIs: +15 pts aided awareness in target accounts; 60% of tier-1 accounts engaged.
-2. Pipeline Acceleration (Demo & Assessment): turn engaged accounts into meetings. KPIs: 1,800 MQLs; 25% MQL→SQL; $40M sourced pipeline; cost per SQL ≤ $1,200.
-3. Cloud & SaaS Data Security Expansion: cross-sell cloud, SaaS (Microsoft 365, Salesforce) and data security posture to existing backup customers. KPIs: 20% of customers adding a cloud or SaaS workload; 300 expansion opportunities.
+FY28 initiatives (Feb 2027 – Jan 2028)
+1. Ransomware Recovery Category Leadership: own "recover clean data fast" with security and IT leaders. KPIs (illustrative): +15 pts aided awareness in target accounts; 60% of tier-1 accounts engaged.
+2. Pipeline Acceleration (Assessment & Demo): turn engaged accounts into meetings. KPIs (illustrative): 1,800 MQLs; 25% MQL→SQL; $40M sourced pipeline; cost per SQL ≤ $1,200.
+3. Cloud, SaaS & Identity Expansion: grow existing data center customers into cloud, Microsoft 365, identity recovery and DSPM. KPIs (illustrative): 20% of customers adding a cloud, SaaS or identity workload; 300 expansion opportunities.
 
-ICP: enterprise (5,000+ employees) and upper mid-market (1,000–5,000) in financial services, healthcare, public sector, retail and manufacturing; 1,500 named target accounts in tiers 1–3, often replacing legacy backup.
+ICP: enterprise (5,000+ employees) and upper mid-market (1,000–5,000) in financial services, healthcare, public sector, retail and manufacturing; ~1,500 named target accounts in tiers 1–3, many replacing legacy backup (conquest: Veeam, Commvault, Cohesity, Dell).
 Buying committee & where they learn:
 - Decision-maker (CISO, CIO, VP Infrastructure): LinkedIn; security and IT trade press; RSAC, Gartner Security & Risk; analyst reports; exec podcasts.
 - Technical influencer (Security Architect, Backup / Storage Architect, Cloud Architect): LinkedIn groups, Reddit (r/sysadmin, r/cybersecurity), technical webinars, peer review sites.
 - Day-to-day user (Backup Admin, IT Ops Manager, SecOps Analyst): LinkedIn, Reddit, forums, YouTube how-tos, search / LLM search.
 Markets: North America leads; EMEA (UK, DACH, France) and Japan.
 
-Offers by stage: annual ransomware / state of data security report (gated); ransomware readiness assessment; recovery demo and hands-on lab; cyber recovery workshop for SecOps and IT teams; ROI and cost-of-downtime calculator.
+Offers by stage: Rubrik Zero Labs data security report (gated); ransomware readiness assessment; live recovery demo and hands-on lab; cyber recovery workshop for SecOps and IT teams; cost-of-downtime calculator.
 
-Moments: Feb FY kickoff; Mar ransomware readiness assessment launch; Apr/May RSAC; Jun Gartner Security & Risk and AWS re:Inforce; Jul annual data security report; Aug Black Hat; Sep identity recovery release; Oct Cybersecurity Awareness Month; Nov Microsoft Ignite; Dec AWS re:Invent. Ongoing: customer recovery stories, analyst recognition, partner co-marketing with cloud providers and SIs, technical webinars.`;
+Moments (illustrative timing): Mar ransomware readiness assessment push; Apr/May RSAC; Jun Gartner Security & Risk Summit and AWS re:Inforce; Jul Rubrik Zero Labs report; Aug Black Hat; Sep identity resilience campaign; Oct Rubrik FORWARD and Cybersecurity Awareness Month; Nov Microsoft Ignite; Dec AWS re:Invent. Ongoing: customer recovery stories, analyst recognition, partner co-marketing (Microsoft, AWS, Google Cloud, SIs), technical webinars.`;
 
 function exampleState(){return{
- name:EX_NAME,product:'Proxy data security platform (backup, threat detection and clean recovery across data center, cloud and SaaS)',brief:EXAMPLE_BRIEF,
+ name:EX_NAME,product:'Rubrik Security Cloud (backup, threat monitoring, DSPM, identity recovery and clean recovery across data center, cloud and SaaS)',brief:EXAMPLE_BRIEF,
  budgets:{lean:600000,standard:1500000,full:3000000},start:'2027-02-01',end:'2028-01-31',
  markets:[
   {id:'NA',name:'North America',lang:'EN',on:true,weight:60},
@@ -175,35 +175,35 @@ function exampleState(){return{
  personas:{dm:{label:'Decision-maker (CISO, CIO, VP Infrastructure)',on:true},tech:{label:'Technical influencer (Security / Backup / Cloud Architect)',on:true},user:{label:'Day-to-day user (Backup Admin, IT Ops, SecOps)',on:true}},
  initiatives:[
   {name:'Ransomware Recovery Category Leadership',stage:'Awareness',pillar:'When ransomware hits, recover clean data in hours, not weeks'},
-  {name:'Pipeline Acceleration (Demo & Assessment)',stage:'Conversion',pillar:'Find out how fast you could recover: get a readiness assessment'},
-  {name:'Cloud & SaaS Data Security Expansion',stage:'Consideration',pillar:'One platform to secure data across data center, cloud and SaaS'}],
+  {name:'Pipeline Acceleration (Assessment & Demo)',stage:'Conversion',pillar:'Find out how fast you could recover: get a ransomware readiness assessment'},
+  {name:'Cloud, SaaS & Identity Expansion',stage:'Consideration',pillar:'Secure and recover data across data center, cloud, SaaS and identity'}],
  moments:[
-  {name:'Ransomware readiness assessment launch',month:'2027-03',type:'launch',ini:1},
+  {name:'Ransomware readiness assessment push',month:'2027-03',type:'launch',ini:1},
   {name:'RSAC',month:'2027-04',type:'event',ini:0},
   {name:'Gartner Security & Risk Summit',month:'2027-06',type:'event',ini:0},
   {name:'AWS re:Inforce',month:'2027-06',type:'event',ini:2},
-  {name:'Annual State of Data Security report',month:'2027-07',type:'content',ini:0},
+  {name:'Rubrik Zero Labs data security report',month:'2027-07',type:'content',ini:0},
   {name:'Black Hat USA',month:'2027-08',type:'event',ini:0},
-  {name:'Identity recovery release',month:'2027-09',type:'launch',ini:2},
-  {name:'Cybersecurity Awareness Month content series',month:'2027-10',type:'content',ini:1},
+  {name:'Identity resilience campaign',month:'2027-09',type:'launch',ini:2},
+  {name:'Rubrik FORWARD',month:'2027-10',type:'event',ini:1},
   {name:'Microsoft Ignite',month:'2027-11',type:'event',ini:2},
   {name:'AWS re:Invent',month:'2027-12',type:'event',ini:2}],
  channels:Object.fromEntries(CH.map(c=>[c.id,{on:true,weight:c.weight}])),
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
- formats:defaultFormats(),landing:'https://example.com/',copy:exampleCopy()
+ formats:defaultFormats(),landing:'https://www.rubrik.com/',copy:exampleCopy()
 };}
-function exampleCopy(){return{src:EX_NAME+' (proxy data, illustrative copy)',
+function exampleCopy(){return{src:EX_NAME+' · proxy copy, illustrative proof points',
  voice:'Calm, credible and specific. Speak to security and IT leaders who expect an attack: lead with recovery time and proof, name the risk plainly, never use fear for its own sake.',
- eyebrow:'Proxy plan · illustrative\nThe 2027 data security report\nRansomware readiness assessment',
+ eyebrow:'Proxy plan · illustrative\nRubrik Zero Labs report\nRansomware readiness assessment',
  ctas:'Get your readiness assessment\nBook a recovery demo\nGet the report\nTry the hands-on lab\nRegister now',
- proof:'Illustrative: a regional bank restored critical systems in 4 hours during a ransomware drill\nIllustrative: a hospital network cut backup admin time 60% after replacing legacy backup\nIllustrative: a retailer protected Microsoft 365 and cloud workloads from one console in 30 days',
+ proof:'Illustrative: a regional bank restored critical systems in 4 hours during a ransomware drill\nIllustrative: a hospital network cut backup admin time 60% after replacing legacy backup\nIllustrative: a retailer protected Microsoft 365, cloud and identity from one console in 30 days',
  ini:[
   {h:'Recover in hours, not weeks\nAssume breach. Recover fast.\nRansomware will hit. Be ready.\nClean recovery, proven\nYour last line of defense',
-   b:'Backups attackers cannot touch.\nImmutable backups, threat detection and clean recovery in one platform, so ransomware does not mean weeks of downtime.\nIllustrative: a regional bank restored critical systems in 4 hours during a ransomware drill.'},
+   b:'Backups attackers cannot touch.\nRubrik combines immutable backups, threat monitoring and clean recovery, so ransomware does not mean weeks of downtime.\nIllustrative: a regional bank restored critical systems in 4 hours during a ransomware drill.'},
   {h:'How fast could you recover?\nGet a free readiness review\nSee a live recovery demo\nTest your ransomware plan',
-   b:'Find your recovery gaps.\nOur free ransomware readiness assessment shows how long recovery would really take, and what to fix first.\nBook a 30-minute recovery demo and watch a full restore from a simulated attack.'},
-  {h:'Secure cloud and SaaS data\nProtect Microsoft 365 too\nOne platform, every workload\nData security beyond backup',
-   b:'Cover cloud and SaaS in one place.\nExtend protection to cloud, Microsoft 365 and Salesforce from the console you already use.\nSee where sensitive data lives, who can reach it, and recover it if it is hit.'}]};}
+   b:'Find your recovery gaps.\nA free ransomware readiness assessment shows how long recovery would really take, and what to fix first.\nBook a 30-minute Rubrik demo and watch a full restore from a simulated attack.'},
+  {h:'Secure cloud and SaaS data\nRecover identity, too\nOne platform, every workload\nData security beyond backup',
+   b:'Cover cloud, SaaS and identity in one place.\nExtend Rubrik to cloud, Microsoft 365 and identity from the console you already use.\nSee where sensitive data lives, who can reach it, and recover it if it is hit.'}]};}
 function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
 function blankState(){const yr=new Date().getFullYear()+1;return{
  name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
@@ -535,7 +535,7 @@ const TEST_LIB={
   hyp:'If the image shows a real customer instead of the product UI, CTR improves because people stop for faces.',kpi:ctrK(a),guard:guardOf(a),rule:'Winning visual style carries into the next round’s masters.'})},
  hook:{name:'Video hook (first 5s)',fitsTxt:'Video lines',fits:isVid,make:a=>({type:'Creative',variable:'Opening hook (first 5s)',cells:['A product UI','B customer face','C headline stat'],
   hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',kpi:['View rate','imp',FUN.viewRate],guard:guardOf(a),rule:'Winning hook opens every video cut next round.'})},
- lp:{name:'Landing page',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'Landing page',variable:'Landing page',cells:['A product page','B ROAS calculator'],
+ lp:{name:'Landing page',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'Landing page',variable:'Landing page',cells:['A product page','B cost-of-downtime calculator'],
   hyp:'If clicks land on an interactive calculator instead of the product page, more visitors sign up because they see their own numbers.',kpi:['Visit → sign-up rate','lpv',FUN.cvr],guard:guardOf(a),rule:'Winning page becomes the default destination for this line.'})},
  offer:{name:'Offer (demo vs report)',fitsTxt:'Lead gen lines',fits:a=>a.p.buy==='CPL',make:a=>({type:'Offer',variable:'Offer',cells:['A demo request','B gated report'],
   hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',kpi:['Form completion','opens',FUN.leadForm],proxy:['CTR','imp',FUN.ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'})},
@@ -1251,7 +1251,7 @@ $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatu
  catch(err){runBusy(false);setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
-const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
+const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/dark reading|cso online|securityweek|techtarget|trade press|industry press/i,creators:/podcast|newsletter|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\brsac\b|black hat|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
 function applyExtract(x){
  const changes=[];
  if(x.campaignName){S.name=x.campaignName;changes.push('name')}
@@ -1302,7 +1302,7 @@ function scanMoments(text,yr){const out=[];
    const mi=mm?['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(mm[1].toLowerCase().slice(0,3)):(+q[1]-1)*3;
    seg=seg.split(/\.\s+(?=[A-Z])/)[0];const name=seg.replace(/\b(Q[1-4](\s*\/\s*Q[1-4])?|H[12])\b[\s\/-]*/gi,'').replace(new RegExp(MONTHS_RE.source+'(\\s*\\/\\s*'+MONTHS_RE.source.slice(2,-2)+'[a-z]*)?','gi'),'').replace(/\b20\d\d\b/g,'').replace(/^[\s:,–—-]+|[\s:,–—-]+$/g,'').replace(/\s{2,}/g,' ').trim();
    if(name.length<3)return;
-   out.push({name:name.slice(0,90),month:`${y}-${String(mi+1).padStart(2,'0')}`,type:/summit|conference|expo|gdc|event|meetup|webinar|show\b/i.test(name)?'event':/report|video|newsletter|series|guide|ebook|whitepaper|content/i.test(name)?'content':'launch',initiative:0})})});
+   out.push({name:name.slice(0,90),month:`${y}-${String(mi+1).padStart(2,'0')}`,type:/summit|conference|expo|rsac|event|meetup|webinar|show\b/i.test(name)?'event':/report|video|newsletter|series|guide|ebook|whitepaper|content/i.test(name)?'content':'launch',initiative:0})})});
  return out.slice(0,24)}
 function localExtract(text){
  const x={markets:[],channels:[]};
