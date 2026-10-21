@@ -82,7 +82,7 @@ const CH=[
   {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (VP Growth, Head of UA, UA Manager, Media Buyer); industry: Computer Games, Mobile Gaming; company list: Top 200 studios + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
   {id:'li_vid',name:'Sponsored Content · Video (proof-point testimonials)',units:['li_video'],min:0,share:25,buy:'CPM',rate:60,stage:'Awareness',ini:0,tgt:'Same as single image + video viewer retargeting',kpi:'VTR ≥ 25%; cost per 3s view'},
   {id:'li_tla',name:'Thought Leader Ads (execs + creators)',units:['li_tla'],min:0,share:15,buy:'CPM',rate:40,stage:'Awareness',ini:0,tgt:'Followers of competitor and industry pages; job titles above',kpi:'Engagement ≥ 2%; social share of voice'},
-  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:120,stage:'Consideration',ini:0,tgt:'Head of UA, UA Manager, Growth Data Science at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
+  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:150,stage:'Consideration',ini:0,tgt:'Head of UA, UA Manager, Growth Data Science at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
   {id:'li_rt',name:'Retargeting · existing advertisers (cross-sell)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: current advertiser contact lists (single-format users); site visitors',kpi:'CTR ≥ 0.8%; second-format activation'},
   {id:'li_tech',name:'Sponsored Content · technical webinars & docs (GA4, developer data)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Head of UA, Ad Ops, Growth Data Science; current advertisers not yet sharing developer data',kpi:'Webinar registrations; GA4 / data-sharing opt-ins'},
   {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'HOM / Torso account lists; UA and Ad Ops leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
@@ -100,7 +100,7 @@ const CH=[
  {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{exclude:['CN']},boost:{JP:0.5,KR:0.3,SEA:0.6,LATAM:0.6},personas:['user'],pl:[
   {id:'rd_img',name:'Promoted posts · UA & ad-ops communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/gamedev, r/mobilemarketing, r/adops, r/PPC',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
  {id:'youtube',name:'YouTube',group:'Online video',weight:9,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.06,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
+  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.05,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
   {id:'yt_sh',name:'Shorts · 15s cut-downs',units:['yt_shorts'],min:2,share:30,buy:'CPM',rate:8,stage:'Awareness',ini:0,tgt:'Same custom segments',kpi:'View rate; earned subs'}]},
  {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local gaming / ad-tech trades',pl:[
   {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (studio execs, UA leads)',kpi:'CTR ≥ 1.5%'},
@@ -378,8 +378,8 @@ function compute(tier){
   const masterFiles=concepts*rounds*M.langs.size*nL;
   const LOCAL=/^(wc_|bd_|nv_)/,us=[...M.units],usE=us.filter(u=>!LOCAL.test(u));const lim={};(usE.length?usE:us).forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
   const ini=+Object.entries(M.iniB).sort((a,b)=>b[1]-a[1])[0]?.[0]||0;
-  const ad=VISUAL(M.fmt)?applyEdits(onImageCopy({fmt:M.fmt,logo:M.logo,ini,concepts,langs:[...M.langs]}),'OI|'+M.key):{rows:[],note:'Typed into the platform: see the Ad Copy tab.',text:'See Ad Copy tab',flags:0,lk:''};
-  // platform copy typed in each platform this master runs on (same edits as the Ad Copy tab)
+  const ad=VISUAL(M.fmt)?applyEdits(onImageCopy({fmt:M.fmt,logo:M.logo,ini,concepts,langs:[...M.langs]}),'OI|'+M.key):{rows:[],note:'Typed into the platform: see the Platform copy column.',text:'See Platform copy',flags:0,lk:''};
+  // platform copy typed in each platform this master runs on (also exported as the Ad Copy sheet)
   const pads=[];{const seen=new Set();[...M.units].forEach(u=>{const P=UNITS[u].platform,L=LIMS[u]||{};if(seen.has(P)||!(L.b||L.h))return;seen.add(P);const pa=platformAd(u,{ini,concepts,langs:[...M.langs]});if(pa.rows.length)pads.push({platform:P,unit:u,ad:pa})})}
   return {...M,id,name,nL,adapt,masterFiles,ad,iniName:S.initiatives[ini]?.name||'—',units:[...M.units],totalFiles:masterFiles*adapt,pads,lines:[...M.lines],langs:[...M.langs],pls:[...M.pls],chs:[...M.chs],mk:[...M.mk],due:isoD(new Date(parseD(S.start)-M.lead*864e5)),
    master:M.best.size||'—'}});
@@ -405,7 +405,7 @@ function mvpTable(R){
  const cols=[['BOM item','id'],['Format','fmtName'],['Creative master','name'],['On-image copy','adTxt'],['Platform copy','padTxt'],['Lead initiative','iniName'],['Media lines covered','linesTxt'],['# lines','nLines'],['Master size','master'],['Languages','langsTxt'],['Concepts','concepts'],['Refresh rounds','rounds'],['Video cuts','cuts'],['Master files','masterFiles'],['Platform resizes','adapt'],['Total files incl. resizes','totalFiles'],['Platform adaptations','adaptTxt'],['Channels','chsTxt'],['Markets','mkTxt'],['Media budget on these lines','budget'],['First due','due']];
  const rows=R.masters.map(m=>({id:m.id,fmtName:FMTNAME[m.fmt]||m.fmt,name:m.name,adTxt:m.ad.text,padTxt:(m.pads||[]).map(x=>x.platform+'\n'+x.ad.text).join('\n\n')||'—',iniName:m.iniName,master:m.master,langsTxt:m.langs.join(', '),concepts:R.concepts,rounds:R.rounds,cuts:m.fmt==='video'?R.lens.join(', '):'—',masterFiles:m.masterFiles,adapt:m.adapt,totalFiles:m.totalFiles,
   adaptTxt:Object.keys(m.sizes).join('; '),chsTxt:m.chs.join(', '),mkTxt:m.mk.join(', '),linesTxt:m.lines.join(', '),nLines:m.lines.length,budget:Math.round(m.budget),due:m.due}));
- return {name:'BOM (MVP)',cols,rows};
+ return {name:'BOM',cols,rows};
 }
 const slugU=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 const code=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,'').slice(0,6)||'X';
@@ -458,7 +458,8 @@ function trafficRow(R,l,TR,days,yymm,cu,ad){
 function specTable(R){
  const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pl:new Set(),mk:new Set(),lg:new Set()});used[u].pl.add(l.channel+' · '+l.placement);used[u].mk.add(l.market);used[u].lg.add(l.lang)}));
  const cols=[['Platform','group'],['Ad unit','name'],['Runs on','covers'],['Sizes / aspect ratios','sizes'],['File types','files'],['Max file size','max'],['Length / duration','length'],['Copy limits','copy'],['Notes','notes'],['Used in','usedIn'],['Markets','mk'],['Languages','lg'],['Production lead (days)','lead'],['Confirm with platform','verify']];
- const rows=[];UNIT_GROUPS.forEach(([g,us])=>{const by={};us.filter(u=>variantsOf(u).length).forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
+ const mk=S.markets.filter(m=>m.on),inCh=new Set(CH.filter(c=>S.channels[c.id]?.on).flatMap(c=>{const cm=mk.filter(m=>eligible(c,m));return cm.length?c.pl.flatMap(p=>typeof p.units==='function'?cm.flatMap(m=>p.units(m)):p.units):[]}));
+ const rows=[];UNIT_GROUPS.forEach(([g,us])=>{const by={};us.filter(u=>inCh.has(u)&&variantsOf(u).length).forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
   Object.values(by).forEach(grp=>{const s=UNITS[grp[0]],U=k=>[...new Set(grp.flatMap(u=>used[u]?[...used[u][k]]:[]))];const pl=U('pl');
    rows.push({group:g,units:grp,name:grp.map(u=>UNITS[u].name).join(' + '),covers:grp.map(u=>UNITS[u].covers).filter(Boolean).join('; '),sizes:variantsOf(grp[0]).join(' | '),files:s.files,max:s.max,length:s.length,
     copy:[...new Set(grp.flatMap(u=>UNITS[u].copy))].join(' | '),notes:[...new Set(grp.map(u=>UNITS[u].notes).filter(Boolean))].join(' '),usedIn:pl.length?pl.join('; '):'Selected · not bought in '+TIERNAME[R.tier],bought:pl.length>0,
@@ -512,11 +513,29 @@ function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(
  t.files=sum(R.masters.map(m=>m.masterFiles));t.masters=R.masters.length;t.channels=new Set(R.lines.map(l=>l.c.id)).size;t.placements=new Set(R.lines.map(l=>l.p.id)).size;t.markets=new Set(R.lines.map(l=>l.market)).size;t.lines=R.lines.length;t.budget=sum(R.lines.map(l=>l.budget));return t}
 
 // Full-funnel estimate across every buy: each line's bought unit plus benchmark ratios for the rest (flat-fee buys not estimated)
-const FUN={ctr:0.005,ctrCpc:0.02,viewRate:0.3,leadForm:0.12,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
+const FUN={ctr:0.005,ctrCpc:0.05,viewRate:0.3,leadForm:0.10,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
+// Channel benchmarks (B2B, 2025 industry data): override FUN per channel. Sources are listed on the Flighting tab.
+const CHFUN={linkedin:{ctr:0.005,leadForm:0.10,cvr:0.025,lpv:0.75},google:{ctrCpc:0.06,cvr:0.03,lpv:0.85},meta:{ctr:0.008,leadForm:0.12,cvr:0.015},x:{ctr:0.004,cvr:0.01},reddit:{ctr:0.005,cvr:0.01},youtube:{ctr:0.004,viewRate:0.3,cvr:0.01},
+ trade:{ctr:0.001,cvr:0.015},abm:{ctr:0.002,cvr:0.015},events:{ctr:0.005,cvr:0.02},wechat:{ctr:0.008,cvr:0.01},baidu:{ctrCpc:0.04,cvr:0.02},naver:{ctrCpc:0.04,ctr:0.003,cvr:0.02}};
+const funOf=id=>({...FUN,...(CHFUN[id]||{})});
+const BENCH_SRC=[['LinkedIn','CPM $30–90 · CTR 0.44–0.65% · CPC $6–10 ($10+ for software) · lead form completion 6–18% · CPL $75–250','https://www.clickminded.com/linkedin-ads-benchmarks/'],
+ ['Google Search','B2B search CTR ~6.3% · click-to-lead 1.9% (Metadata) to 3–5% (B2B, Search Engine Land) · median search CPC $5.26, higher for software','https://metadata.io/b2b-advertising-benchmarks'],
+ ['Google (trend)','CPC up ~7% in 2025; average CPL $70 all industries (B2B runs higher)','https://searchengineland.com/google-ads-costs-keep-rising-but-conversion-rates-improved-in-2025-477927'],
+ ['Meta','B2B link CTR ~0.8% · lead ads CPL up ~21% in 2025 · B2B SaaS CPL ~$60','https://wordstream.com/blog/facebook-ads-benchmarks-2025'],
+ ['Reddit','CPM $3–12 · promoted post CTR 0.3–1.0% · B2B CPC $0.50–4','https://benly.ai/learn/reddit-ads/reddit-ads-cost-benchmarks'],
+ ['YouTube','CPM ~$9 (standard video) · in-stream CPV ~$0.05','https://storegrowers.com/youtube-ads-benchmarks'],
+ ['Pipeline','Lead→MQL 31–41% · MQL→SQL 13% median (Salesforce) to 26% for paid search · SQL→opp 30–50% × opp→won 20–35% ≈ 10–15% SQL→customer','https://thedigitalbloom.com/learn/pipeline-performance-benchmarks-2025/'],
+ ['Pipeline (trend)','SQL→closed-won fell 5–6 points in 2025 (ICONIQ)','https://www.saastr.com/the-age-of-ai-the-top-10-gtm-learnings-from-iconiqs-2025-b2b-saas-report']];
+function benchHTML(){const ids=CH.filter(c=>S.channels[c.id]?.on).map(c=>c);
+ return `<details class="bench" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">Benchmarks behind these projections (B2B, 2025 industry data)</summary>
+ <div class="tscroll" style="margin-top:8px"><table><thead><tr><th>Channel</th><th class="n">CTR</th><th class="n">Search CTR</th><th class="n">Click → visit</th><th class="n">Visit → lead</th><th class="n">Lead form completion</th><th class="n">Video view rate</th></tr></thead><tbody>
+ ${ids.map(c=>{const f=funOf(c.id),bs=c.pl.map(p=>p.buy),na='<span class="sub2">—</span>',srch=['google','baidu','naver'].includes(c.id);return `<tr><td>${esc(c.name)}</td><td class="n">${srch&&!bs.includes('CPM')?na:pct(f.ctr)}</td><td class="n">${srch?pct(f.ctrCpc):na}</td><td class="n">${pct(f.lpv)}</td><td class="n">${pct(f.cvr)}</td><td class="n">${bs.includes('CPL')?pct(f.leadForm):na}</td><td class="n">${bs.includes('CPV')?pct(f.viewRate):na}</td></tr>`}).join('')}</tbody></table></div>
+ <div class="note" style="margin-top:8px">Rates per buy (CPM, CPC, CPL, CPV) are on the Buy Details tab, where you can replace any of them with your rate card. Where sources disagree we used the middle of the B2B range. Swap in your own CRM history as soon as you have it.</div>
+ <ul class="note" style="margin:6px 0 0 18px">${BENCH_SRC.map(([n,t,u])=>`<li><strong>${n}:</strong> ${esc(t)} · <a href="${u}" target="_blank" rel="noopener">source</a></li>`).join('')}</ul></details>`}
 // Pipeline rates (editable on the Flighting tab): lead → MQL → SQL → closed-won customer
-const PIPE_DEF={mql:0.35,sql:0.30,win:0.20};const pipe=()=>({...PIPE_DEF,...(S.pipe||{})});
+const PIPE_DEF={mql:0.35,sql:0.20,win:0.15};const pipe=()=>({...PIPE_DEF,...(S.pipe||{})});
 const FUNNEL=[['imp','Impressions'],['reach','Est. reach (unique people)'],['clk','Clicks'],['lpv','Landing page visits'],['eng','Engagements (clicks, likes, shares, comments)'],['views','Video views'],['sends','Messages sent'],['leads','Leads'],['mql','MQLs'],['sql','SQLs'],['cust','Customers (closed-won)']];
-function lineFun(l){const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
+function lineFun(l){const q=l.qty||0,FUN=funOf(l.c.id);let imp=0,clk=0,views=0,sends=0,leads=0;
  switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
   case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
   case'CPS':sends=q;imp=q*FUN.openRate;clk=q*FUN.sendCtr;break;default:return null}
@@ -535,30 +554,30 @@ const isSocial=a=>a.c.group==='Paid social';
 const isVid=a=>a.p.buy==='CPV'||/vid|reel/i.test(JSON.stringify(a.p.units||''));
 const shortName=s=>s.length>30?s.slice(0,30).replace(/\s+\S*$/,'').replace(/[\s+&,–-]+$/,'')+'…':s;
 const guardOf=a=>a.p.buy==='CPL'?'SQL rate in CRM':a.p.buy+' ≤ '+rateFmt(rateOf(a.p)*(a.p.buy==='CPM'?1.1:1),a.p.buy);
-const ctrK=a=>['CTR','imp',a.p.buy==='CPC'?FUN.ctrCpc:FUN.ctr];
+const ctrK=a=>['CTR','imp',a.p.buy==='CPC'?funOf(a.c.id).ctrCpc:funOf(a.c.id).ctr];
 // Test library: each template knows which lines can run it and how to fill in the row.
 const TEST_LIB={
  msg:{name:'Message (claim vs proof)',fitsTxt:'CPM social, display',fits:a=>a.p.buy==='CPM',make:a=>({type:'Message',variable:'Headline lead',cells:['A product claim','B customer proof point'],
   hyp:'If we lead with a customer result instead of a product claim, CTR improves because buyers trust peer proof over promises.',kpi:ctrK(a),guard:guardOf(a),rule:'Winner gets 70% of this line’s spend next round; retest in 6 weeks.'})},
  pillar:{name:'Pillar (initiative A vs B)',fitsTxt:'Search, CPM lines · needs 2 initiatives',fits:(a,c)=>c.ini.length>1&&['CPC','CPM'].includes(a.p.buy),make:(a,c)=>{const x=shortName(c.ini[0].name),y=shortName(c.ini[1].name),cpc=a.p.buy==='CPC';
   return {type:'Pillar',variable:'Headline pillar',cells:['A '+x,'B '+y],hyp:cpc?`If search ads lead with “${x}” instead of “${y}”, more visitors sign up because it matches what they searched for.`:`If ads lead with “${x}” instead of “${y}”, CTR improves because that pillar matters more to this audience.`,
-   kpi:cpc?['Sign-up CVR','lpv',FUN.cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:cpc?'Winner leads every search ad next round.':'Winning pillar leads this line’s creative next round.'}}},
+   kpi:cpc?['Sign-up CVR','lpv',funOf(a.c.id).cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:cpc?'Winner leads every search ad next round.':'Winning pillar leads this line’s creative next round.'}}},
  angle:{name:'Headline angle (benefit vs feature)',fitsTxt:'Search, CPM lines',fits:a=>['CPC','CPM'].includes(a.p.buy),make:a=>{const cpc=a.p.buy==='CPC';return {type:'Message',variable:'Headline angle',cells:['A benefit-led','B feature-led'],
-  hyp:'If ads lead with the outcome instead of the feature, more visitors sign up because it answers why before how.',kpi:cpc?['Sign-up CVR','lpv',FUN.cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:'Winning angle leads this line’s ads next round.'}}},
+  hyp:'If ads lead with the outcome instead of the feature, more visitors sign up because it answers why before how.',kpi:cpc?['Sign-up CVR','lpv',funOf(a.c.id).cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:'Winning angle leads this line’s ads next round.'}}},
  visual:{name:'Visual (product vs people)',fitsTxt:'Image lines bought on CPM',fits:a=>a.p.buy==='CPM'&&!isVid(a),make:a=>({type:'Creative',variable:'Visual',cells:['A product UI','B customer photo'],
   hyp:'If the image shows a real customer instead of the product UI, CTR improves because people stop for faces.',kpi:ctrK(a),guard:guardOf(a),rule:'Winning visual style carries into the next round’s masters.'})},
  hook:{name:'Video hook (first 5s)',fitsTxt:'Video lines',fits:isVid,make:a=>({type:'Creative',variable:'Opening hook (first 5s)',cells:['A product UI','B customer face','C headline stat'],
-  hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',kpi:['View rate','imp',FUN.viewRate],guard:guardOf(a),rule:'Winning hook opens every video cut next round.'})},
+  hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',kpi:['View rate','imp',funOf(a.c.id).viewRate],guard:guardOf(a),rule:'Winning hook opens every video cut next round.'})},
  lp:{name:'Landing page',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'Landing page',variable:'Landing page',cells:['A product page','B ROAS calculator'],
-  hyp:'If clicks land on an interactive calculator instead of the product page, more visitors sign up because they see their own numbers.',kpi:['Visit → sign-up rate','lpv',FUN.cvr],guard:guardOf(a),rule:'Winning page becomes the default destination for this line.'})},
+  hyp:'If clicks land on an interactive calculator instead of the product page, more visitors sign up because they see their own numbers.',kpi:['Visit → sign-up rate','lpv',funOf(a.c.id).cvr],guard:guardOf(a),rule:'Winning page becomes the default destination for this line.'})},
  offer:{name:'Offer (demo vs report)',fitsTxt:'Lead gen lines',fits:a=>a.p.buy==='CPL',make:a=>({type:'Offer',variable:'Offer',cells:['A demo request','B gated report'],
-  hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',kpi:['Form completion','opens',FUN.leadForm],proxy:['CTR','imp',FUN.ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'})},
+  hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',kpi:['Form completion','opens',funOf(a.c.id).leadForm],proxy:['CTR','imp',funOf(a.c.id).ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'})},
  audience:{name:'Audience (ABM list vs titles)',fitsTxt:'LinkedIn, Meta, ABM, social',fits:a=>a.p.buy==='CPM'&&(isSocial(a)||/abm|account/i.test(a.c.id+a.c.name+a.p.name)),make:a=>({type:'Audience',variable:'Targeting',cells:['A ABM account list','B job-title targeting'],
-  hyp:'If we target the ABM account list instead of job titles, more clicks turn into landing page visits because every impression reaches a target account.',kpi:['Click → visit rate','imp',FUN.ctr*FUN.lpv],guard:'Target-account match ≥ 60%',rule:'Winner gets 70% of prospecting spend; retest in 6 weeks.'})},
+  hyp:'If we target the ABM account list instead of job titles, more clicks turn into landing page visits because every impression reaches a target account.',kpi:['Click → visit rate','imp',funOf(a.c.id).ctr*funOf(a.c.id).lpv],guard:'Target-account match ≥ 60%',rule:'Winner gets 70% of prospecting spend; retest in 6 weeks.'})},
  cta:{name:'CTA wording',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'CTA',variable:'Call to action',cells:['A “Book a demo”','B “See it in action”'],
   hyp:'If the button says “See it in action” instead of “Book a demo”, more people click because it sounds like less of a commitment.',kpi:ctrK(a),guard:guardOf(a),rule:'Winning CTA becomes the default on this line.'})},
  bid:{name:'Bid strategy (manual vs auto)',fitsTxt:'Search, paid social',fits:a=>a.p.buy==='CPC'||(isSocial(a)&&a.p.buy==='CPM'),make:a=>({type:'Bid strategy',variable:'Bidding',cells:['A manual bids','B maximize conversions'],
-  hyp:'If the platform bids for conversions instead of manual bids, more visitors sign up at the same spend because it finds the people likeliest to act.',kpi:['Sign-up CVR','lpv',FUN.cvr],proxy:ctrK(a),guard:guardOf(a),rule:'Winning strategy runs the line next round.'})},
+  hyp:'If the platform bids for conversions instead of manual bids, more visitors sign up at the same spend because it finds the people likeliest to act.',kpi:['Sign-up CVR','lpv',funOf(a.c.id).cvr],proxy:ctrK(a),guard:guardOf(a),rule:'Winning strategy runs the line next round.'})},
  freq:{name:'Frequency cap',fitsTxt:'CPM lines',fits:a=>a.p.buy==='CPM',make:a=>({type:'Frequency',variable:'Frequency cap',cells:['A 2 per week','B 5 per week'],
   hyp:'If we cap at 2 ads per person per week instead of 5, CTR holds up because people don’t tune the ads out.',kpi:ctrK(a),guard:'Reach ≥ plan',rule:'Winning cap becomes the line’s default.'})}};
 function testPlan(R,edits){
@@ -798,7 +817,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['copy','Ad Copy'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -840,7 +859,7 @@ function renderSummary(R){
    <li>Rates are 2026 B2B planning benchmarks, not quotes. Override any of them on the Buy Details tab.</li>
    <li>Market budget is set first from the weights; each market then splits across the channels available there (LinkedIn, Google, X and YouTube are off in China, where WeChat and Baidu take over; Naver runs in Korea; X gets extra weight in Japan).</li>
    <li>Flighting runs always-on across the flight, with extra weight in launch months and the month after. Event amplification only spends in event months.</li>
-   <li>The BOM is the MVP: one master per format and aspect ratio, made once per language (North America and EMEA share English) and resized for each platform.</li>
+   <li>The BOM is the minimum set: one master per format and aspect ratio, made once per language (North America and EMEA share English) and resized for each platform.</li>
   </ul></div></div>`;
 }
 function renderTable(tb,{group=null,numeric=[],money_=[],wrapCols=[],totalCols=[]}={}){
@@ -898,7 +917,7 @@ function renderMVP(R){
  const tb=mvpTable(R),t=totals(R);
  const covered=new Set(R.masters.flatMap(m=>m.lines)).size;
  const gs={};tb.rows.forEach(r=>(gs[r.fmtName]=gs[r.fmtName]||[]).push(r));
- return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Each master shows two kinds of copy: the on-image text designed into the image (eyebrow ≤20, headline ≤35 characters, the same on every platform it's resized for), and the copy typed into each platform with that platform's own limits (LinkedIn: main copy &lt;150 recommended and headline &lt;70; Google: headlines ≤30 and descriptions ≤90; Meta: primary text 125 and headline 40). Edits here and in the Ad Copy tab are the same copy.</span>
+ return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Each master shows two kinds of copy: the on-image text designed into the image (eyebrow ≤20, headline ≤35 characters, the same on every platform it's resized for), and the copy typed into each platform with that platform's own limits (LinkedIn: main copy &lt;150 recommended and headline &lt;70; Google: headlines ≤30 and descriptions ≤90; Meta: primary text 125 and headline 40). The Excel export also has an Ad Copy sheet with every field, its character count and limit, for the agency.</span>
   <span class="chip ${covered===t.lines?'aw':'flag'}">${covered} of ${t.lines} media lines covered</span></div>
  <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>Preview</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Platform copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(typed into each platform)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
  ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="14">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
@@ -997,7 +1016,7 @@ function renderBOM(R){
 }
 function renderSpec(R){
  const tb=specTable(R);let g='';
- return `<div class="toolbar"><span class="note">${tb.rows.length} creative units selected, grouped by platform (units that share a spec are listed once). ${tb.rows.filter(r=>r.bought).length} are bought in the ${TIERNAME[R.tier]} version. Units marked “Confirm” change often or vary by publisher; check the current platform spec before production. Change the selection in section 9.</span></div>
+ return `<div class="toolbar"><span class="note">${tb.rows.length} creative units from the channels you turned on, grouped by platform (units that share a spec are listed once). ${tb.rows.filter(r=>r.bought).length} are bought in the ${TIERNAME[R.tier]} version. Units marked “Confirm” change often or vary by publisher; check the current platform spec before production. Turn channels on or off in the Channels section; pick units and sizes in section 9.</span></div>
  <div class="tscroll"><table><thead><tr><th>Ad unit</th><th>Sizes / ratios</th><th>Files · max size · length</th><th>Copy limits</th><th>Notes</th><th>Used in</th><th class="n">Lead (days)</th></tr></thead><tbody>
  ${tb.rows.map(r=>{const s=UNITS[r.units[0]];const head=r.group!==g?(g=r.group,`<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`):'';return head+`<tr${r.bought?'':' style="opacity:.7"'}><td style="min-width:170px"><strong>${esc(r.name)}</strong>${r.covers?`<div class="sub2">${esc(r.covers)}</div>`:`<div class="sub2">${esc(s.platform)}</div>`}${r.verify?'<span class="chip flag">Confirm</span>':''}</td>
   <td class="m" style="min-width:150px"><ul class="spec-list">${variantsOf(r.units[0]).map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
@@ -1146,7 +1165,7 @@ function renderTests(R){
   <tr><td style="border-top:0"></td><td colspan="7" style="padding-top:0;border-top:0"><strong>Decision rule:</strong> ${esc(t.rule)}${t.fix?`<br><span style="color:${t.status==='no'?'var(--over)':'var(--flag)'}"><strong>Fallback:</strong></span> ${esc(t.fix)}`:''}</td></tr>`).join('')}
  <tr class="tot"><td>Total</td><td>${ts.length} tests · ${TP.cellsN} cells</td><td></td><td></td><td class="n">${money(TP.budget)}</td><td colspan="3">${(TP.share*100).toFixed(1)}% of the ${money(TP.total)} ${esc(TIERNAME[R.tier])} budget (target ${Math.round(TP.target*100)}%${TP.share+0.005<TP.target?'; the rest stays in the regular lines, since a test cell never takes more than half its line’s budget':''})</td></tr>
  </tbody></table></div>
- <div class="note">Sample per cell = 16 × p(1 − p) ÷ (p × lift)², at 95% confidence and 80% power. Baselines: ${pct(FUN.ctr)} CTR on social and display, ${pct(FUN.ctrCpc)} on search, ${pct(FUN.viewRate)} video view rate, ${pct(FUN.leadForm)} lead-form completion, ${pct(FUN.cvr)} visit-to-lead, ${pct(SQL_RATE)} lead-to-SQL. Test cells take the held test budget, spread over the tests in proportion to each line’s spend in its test window.</div>
+ <div class="note">Sample per cell = 16 × p(1 − p) ÷ (p × lift)², at 95% confidence and 80% power. Baselines come from each channel's B2B benchmarks (listed on the Flighting tab), with ${pct(SQL_RATE)} lead-to-SQL. Test cells take the held test budget, spread over the tests in proportion to each line’s spend in its test window.</div>
  <div class="cols">
   <div><h3 style="font-size:14px;margin-bottom:6px">On the flighting calendar</h3><div class="note" style="margin-bottom:8px">Readouts land before each creative refresh (every ${TP.rw} weeks), so results feed the next round of creative.</div>
    <div class="tscroll"><table><thead><tr>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}</tr></thead><tbody>
@@ -1175,13 +1194,14 @@ function renderFlight(R){
  ${(()=>{const O=outcomes(R);const fl=Object.entries(O.flat);return `
  <h2 style="font-size:18px;margin:18px 0 4px">Projected outcomes by month</h2>
  <div class="note" style="margin-bottom:8px">The full funnel by month, phased like each channel's spend: impressions, clicks, landing page visits and leads from each buy plus benchmark rates, then MQLs, SQLs and customers from your pipeline rates. Cost rows divide that month's media spend by the result; CAC here is media cost only (add team and tooling cost for fully loaded CAC). Planning estimates, not guarantees.</div>
- ${(()=>{const P=pipe();return `<div class="pipe-set"><span class="sub2">Pipeline rates (from your CRM history):</span><label>Lead → MQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="mql" value="${Math.round(P.mql*100)}">%</label><label>MQL → SQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="sql" value="${Math.round(P.sql*100)}">%</label><label>SQL → customer <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="win" value="${Math.round(P.win*100)}">%</label></div>`})()}
+ ${(()=>{const P=pipe();return `<div class="pipe-set"><span class="sub2">Pipeline rates (B2B industry defaults; replace with your CRM history):</span><label>Lead → MQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="mql" value="${Math.round(P.mql*100)}">%</label><label>MQL → SQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="sql" value="${Math.round(P.sql*100)}">%</label><label>SQL → customer <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="win" value="${Math.round(P.win*100)}">%</label></div>`})()}
  <div class="tscroll"><table><thead><tr><th>Outcome</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
  ${FULLK.filter(([k])=>O.full[k]).map(([k,n])=>`<tr${k==='leads'?' class="costrow"':''}><td style="white-space:nowrap">${n}</td>${O.full[k].map(v=>`<td class="n">${v>=.5?compact(v):v>=.05?(+v.toFixed(1)):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${sum(O.full[k])>=10?compact(sum(O.full[k])):(+sum(O.full[k]).toFixed(1))}</strong></td></tr>`).join('')}
  <tr class="costrow"><td style="white-space:nowrap">Media spend</td>${O.spend.map(v=>`<td class="n">${v?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${money(sum(O.spend))}</strong></td></tr>
  ${COSTK.filter(([,k])=>O.full[k]).map(([n,k])=>`<tr><td style="white-space:nowrap"><strong>${n}</strong></td>${O.full[k].map((v,i)=>`<td class="n">${v>=.05?money2(O.spend[i]/v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${sum(O.full[k])?money2(sum(O.spend)/sum(O.full[k])):'—'}</strong></td></tr>`).join('')}
  ${fl.map(([u,v])=>`<tr><td style="white-space:nowrap">Flat-fee ${esc(u)}</td>${v.map(x=>`<td class="n">${x>=.05?(+x.toFixed(1)).toLocaleString():'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${(+sum(v).toFixed(1)).toLocaleString()}</strong></td></tr>`).join('')}
  </tbody></table></div>
+ ${benchHTML()}
  <h2 style="font-size:18px;margin:18px 0 4px">KPIs &amp; projected outcomes by channel</h2>
  <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Budget</th><th>KPIs to track</th>${OUTK.filter(([k])=>O.mo[k]).map(([,n])=>`<th class="n">${n}</th>`).join('')}<th>Flat-fee units</th><th class="n">Blended cost per result</th><th class="n">Leads</th><th class="n">SQLs</th><th class="n">CAC</th></tr></thead><tbody>
  ${O.by.map(c=>{const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>c[k]||0));return `<tr><td style="white-space:nowrap"><strong>${esc(c.c.name)}</strong></td><td class="n">${money(c.budget)}</td><td class="sub2" style="min-width:260px">${[...c.kpis].map(esc).join('<br>')}</td>
@@ -1241,7 +1261,7 @@ function renderCompare(){
  <div id="cmp-outcomes"><h3 style="font-size:14px;margin-bottom:6px">Outcomes</h3>
  <div class="tscroll"><table>${head('Estimated outcome')}<tbody>${FUNNEL.map(([k,n])=>`<tr><td>${n}</td>${Fs.map(o=>`<td class="n">${o[k]?compact(o[k]):'<span class="sub2">—</span>'}</td>`).join('')}</tr>`).join('')}
  ${cost.map(([n,k],i)=>`<tr${i?'':' class="costrow"'}><td><strong>${n}</strong></td>${Fs.map(o=>`<td class="n">${o[k]?money2(o[k]):'—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
- <div class="note" style="margin-top:6px">Each buy delivers what it's bought on (impressions for CPM, clicks for CPC, views for CPV, leads for CPL). Everything else is estimated with benchmarks: ${pct(FUN.ctr)} CTR on impressions (${pct(FUN.ctrCpc)} on search), ${pct(FUN.lpv)} of clicks reach the landing page, ${pct(FUN.cvr)} of visits become leads, ${pct(FUN.leadForm)} lead-form completion, ${pct(FUN.viewRate)} video view rate, and reach = impressions ÷ 3.5 frequency. Flat-fee buys (events, sponsorships, newsletters) aren't counted.</div></div>
+ <div class="note" style="margin-top:6px">Each buy delivers what it's bought on (impressions for CPM, clicks for CPC, views for CPV, leads for CPL). Everything else is estimated with each channel's own B2B benchmarks (CTR, click-to-visit, visit-to-lead, lead-form completion, view rate; see the list on the Flighting tab), and reach = impressions ÷ 3.5 frequency. Flat-fee buys (events, sponsorships, newsletters) aren't counted.</div></div>
  <div><h3 style="font-size:14px;margin-bottom:6px">Channel budget</h3>
  <div class="tscroll"><table>${head('Channel')}<tbody>${chs.map(c=>`<tr><td>${esc(c.name)}</td>${Rs.map(R=>{const v=chB(R,c);return `<td class="n">${v?money(v):'<span class="sub2">—</span>'}</td>`}).join('')}</tr>`).join('')}<tr class="tot"><td>Total</td>${Rs.map(R=>`<td class="n">${money(sum(R.lines.map(l=>l.budget)))}</td>`).join('')}</tr></tbody></table></div></div></div>`;
 }
@@ -1290,7 +1310,7 @@ function workbookFor(tiers){
  if(many){const Rs=[0,1,2].map(compute),Ts=Rs.map(totals),Fs=Rs.map(funnel);addSheet(wb,'Compare',[['PLAN',...TIERNAME],['Budget',...Ts.map(t=>Math.round(t.budget))],['Channels',...Ts.map(t=>t.channels)],['Placements',...Ts.map(t=>t.placements)],['Markets',...Ts.map(t=>t.markets)],['Line items',...Ts.map(t=>t.lines)],['BOM creative masters',...Rs.map(R=>R.masters.length)],['Master files',...Ts.map(t=>t.files)],[],['OUTCOMES (estimated)',...TIERNAME],...FUNNEL.map(([k,n])=>[n,...Fs.map(o=>Math.round(o[k]))]),['Blended CPM',...Fs.map(o=>+o.cpm.toFixed(2))],['Blended cost per click',...Fs.map(o=>+o.cpc.toFixed(2))],['Blended cost per lead',...Fs.map(o=>+o.cpl.toFixed(2))]],[34,14,14,14])}
  tiers.forEach(ti=>{const R=compute(ti),p=many?TIERNAME[ti]+' ':'';
   addSheet(wb,p+'Summary',summaryAOA(R),[40,14,10]);
-  addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
+  addSheet(wb,p+'BOM',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
   addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
