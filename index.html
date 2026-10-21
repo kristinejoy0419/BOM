@@ -18,7 +18,7 @@
     <div>
       <div class="eyebrow">GTM strategy → paid media plan</div>
       <h1>Paid Media BOM Builder</h1>
-      <div class="sub">Turn a GTM strategy doc into a paid media bill of materials, spec sheet, creative deliverables list and flighting plan, in Lean, Standard and Full versions.</div>
+      <div class="sub">Turn a GTM strategy doc into a paid media bill of materials, spec sheet, creative deliverables list and flighting plan, in Low, Medium and High versions.</div>
     </div>
     <div class="btns"><span class="example" id="exampleBadge">Example loaded: One Unity · Unity Acquire</span></div>
   </header>
@@ -38,6 +38,7 @@
             <input type="file" id="in-file" accept=".pdf,.docx,.txt,.md" hidden>
             <button class="btn sm primary" id="btn-extract">Fill inputs from doc</button>
             <button class="btn sm rose" id="btn-reset">Reload Unity example</button>
+            <button class="btn sm" id="btn-blank">Start blank</button>
           </div>
           <div class="status" id="extract-status" role="status"></div>
           <div class="note">“Fill inputs from doc” asks the AI agent to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
@@ -60,9 +61,9 @@
         <summary>2 · Budget &amp; flight <span class="hint">per version</span></summary>
         <div class="sec">
           <div class="row3">
-            <label class="f">Lean $<input type="number" id="b-lean" min="0" step="10000"></label>
-            <label class="f">Standard $<input type="number" id="b-standard" min="0" step="10000"></label>
-            <label class="f">Full $<input type="number" id="b-full" min="0" step="10000"></label>
+            <label class="f">Low $<input type="number" id="b-lean" min="0" step="10000"></label>
+            <label class="f">Medium $<input type="number" id="b-standard" min="0" step="10000"></label>
+            <label class="f">High $<input type="number" id="b-full" min="0" step="10000"></label>
           </div>
           <div class="row2">
             <label class="f">Flight start<input type="date" id="in-start"></label>
@@ -72,36 +73,41 @@
       </details>
 
       <details open>
-        <summary>3 · Markets <span class="hint">weight % · language</span></summary>
+        <summary>3 · Markets <span class="hint">weight % · budget · language</span></summary>
         <div class="sec">
           <div class="list" id="mkt-list"></div>
+          <div class="bud-tot" id="mkt-tot"></div>
           <div class="btns"><button class="btn sm" id="add-mkt">Add market</button></div>
+          <div class="note">Budget follows the version selected on the right. Type a % or a $ amount and the other fills in; the remaining markets rebalance to keep the total.</div>
         </div>
       </details>
 
       <details>
         <summary>4 · Audiences <span class="hint">personas</span></summary>
         <div class="sec"><div class="list" id="per-list"></div>
-          <div class="note">Decision-maker, Technical influencer and Day-to-day user drive targeting on each line. Rename them to match your doc.</div></div>
+          <div class="note">The first three drive targeting by channel; rename them to match your doc. Audiences you add apply to every channel. Type in the blank row to add one.</div></div>
       </details>
 
       <details>
         <summary>5 · Initiatives &amp; pillars</summary>
         <div class="sec"><div class="list" id="ini-list"></div>
-          <div class="btns"><button class="btn sm" id="add-ini">Add initiative</button></div></div>
+          <div class="btns"><button class="btn sm" id="add-ini">Add initiative</button></div>
+          <div class="note">Filled from the GTM doc. Each placement uses the initiative whose funnel stage matches its own.</div></div>
       </details>
 
       <details>
         <summary>6 · Launch moments <span class="hint">drive bursts</span></summary>
         <div class="sec"><div class="list" id="mom-list"></div>
           <div class="btns"><button class="btn sm" id="add-mom">Add moment</button></div>
+          <div class="note" id="mom-empty"></div>
           <div class="note">Launches and content drops add weight to that month and the next. Events pull event-amplification spend into their months.</div></div>
       </details>
 
       <details>
-        <summary>7 · Channels <span class="hint">on · weight</span></summary>
+        <summary>7 · Channels <span class="hint">on · weight · budget</span></summary>
         <div class="sec"><div class="list" id="ch-list"></div>
-          <div class="note">L / S / F shows the first version a channel appears in. Weight is relative share within each market.</div></div>
+          <div class="bud-tot" id="ch-tot"></div><div class="status" id="ch-status" role="status"></div>
+          <div class="note">L / M / H shows the first version a channel appears in. Weight is the relative share within each market; Budget is what the channel gets in the version selected on the right. Edit either one and the other updates.</div></div>
       </details>
 
       <details>
@@ -109,15 +115,15 @@
         <div class="sec">
           <div class="eyebrow">Concepts per placement</div>
           <div class="row3">
-            <label class="f">Lean<input type="number" id="c-lean" min="1" max="10"></label>
-            <label class="f">Standard<input type="number" id="c-standard" min="1" max="10"></label>
-            <label class="f">Full<input type="number" id="c-full" min="1" max="10"></label>
+            <label class="f">Low<input type="number" id="c-lean" min="1" max="10"></label>
+            <label class="f">Medium<input type="number" id="c-standard" min="1" max="10"></label>
+            <label class="f">High<input type="number" id="c-full" min="1" max="10"></label>
           </div>
           <div class="eyebrow">Refresh every N weeks</div>
           <div class="row3">
-            <label class="f">Lean<input type="number" id="r-lean" min="1" max="52"></label>
-            <label class="f">Standard<input type="number" id="r-standard" min="1" max="52"></label>
-            <label class="f">Full<input type="number" id="r-full" min="1" max="52"></label>
+            <label class="f">Low<input type="number" id="r-lean" min="1" max="52"></label>
+            <label class="f">Medium<input type="number" id="r-standard" min="1" max="52"></label>
+            <label class="f">High<input type="number" id="r-full" min="1" max="52"></label>
           </div>
         </div>
       </details>
