@@ -119,28 +119,29 @@ const LIMS={li_image:{h:70,b:150},li_video:{h:70,b:150},li_tla:{b:3000},li_doc:{
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 
-/* ==================== EXAMPLE STATE (from GTM Strategy · One Unity: Unity Acquire) ==================== */
-const EXAMPLE_BRIEF=`GTM Strategy: One Unity · Unity Acquire (excerpt used to pre-fill this example)
+/* ==================== EXAMPLE STATE (sample GTM, fictional "Example Co.") ==================== */
+const EX_NAME='Example Co. · Growth Platform 2027';
+const EXAMPLE_BRIEF=`GTM Strategy: Example Co. · Growth Platform 2027 (sample brief used to pre-fill this example)
 
-Solution: Unity Acquire, the unified Vector-powered advertising experience (Unity Ads video + Tapjoy Offerwall in one dashboard on unity.com).
+Solution: Growth Platform, an AI-powered campaign tool that plans, buys and optimizes ads from one dashboard.
 
-2026 initiatives
-1. "Vector 2.0" Perception Reset + Brand Equity: shift the narrative to an agentic engine with unique engine/runtime data. KPI: 30% YoY uAds net revenue growth.
-2. One Unity Adoption & Cross-Sell: make video + offerwall the default. KPIs: 11% YoY Offerwall revenue; +25% of uAds advertisers activating Offerwall.
-3. Data Activation & Measurement Confidence: GA4 + Developer Data Framework. KPIs: 100% advertisers allowing developer data; % linking Google Analytics.
+2027 initiatives
+1. AI Engine Perception Reset + Brand Equity: reposition the platform as an AI engine with unique first-party data. KPI: 30% YoY net revenue growth.
+2. Platform Adoption & Cross-Sell: make multi-format campaigns the default. KPIs: 11% YoY add-on revenue; +25% of advertisers activating a second format.
+3. Data Activation & Measurement Confidence: analytics integrations and first-party data. KPIs: 100% of advertisers sharing first-party data; % linking Google Analytics.
 
-ICP: current advertisers (HOM >$10K/day, Torso $5–10K, Sub-torso $1–5K, SMB $200–1K) and new studios (Top 200 globally) on AppLovin / Meta / Google / TikTok.
+ICP: current advertisers (enterprise >$10K/day, mid-market $1–10K, SMB $200–1K) and new prospects (top 200 globally) on competing platforms.
 Personas & where they learn:
-- Decision-maker (CEO, CMO, Studio Head, VP Growth): LinkedIn; PocketGamer.biz, GamesIndustry.biz, AdExchanger; GDC, ChinaJoy, Pocket Gamer Connects; exec podcasts.
-- Technical influencer (Head of UA, Ad Ops, Growth Data Science): LinkedIn + groups, UA Slack, X, Deconstructor of Fun, GameMakers.
-- Day-to-day user (UA Manager, Media Buyer): LinkedIn, X, Reddit, UA forums, search / LLM search.
-Markets: US and APAC emphasized (China, Japan, Korea); Turkey feedback noted.
+- Decision-maker (CEO, CMO, VP Growth): LinkedIn; industry trades; major industry conferences; exec podcasts.
+- Technical influencer (Head of Growth, Ad Ops, Data Science): LinkedIn + groups, Slack communities, X, industry newsletters.
+- Day-to-day user (Marketing Manager, Media Buyer): LinkedIn, X, Reddit, forums, search / LLM search.
+Markets: US and APAC emphasized (China, Japan, Korea).
 
-Launch calendar: Q1-Mar D28 IAP ROAS + New ROAS Campaign Flow; Q2-Apr One Unity Dashboard Ph1 + Multi-Country Budget; Q2-May/Jun D28 IAA ROAS; Q2/Q3 2026 Growth & Monetization Report; Q2/Q3 Dashboard Ph4 unified onboarding (Offerwall); Q3 Unified uAds & OW SDK; Q4 Insights Agent; Q4 Unity Executive Summit [China]. Ongoing: Vector Spotlight video testimonials, customer proof points, Mobile Insiders co-marketing, new mobile LinkedIn newsletter, technical webinars.`;
+Launch calendar: Q1-Mar ROAS Campaigns + New Campaign Flow; Q2-Apr Unified Dashboard Ph1 + Multi-Country Budget; Q2-Jun Retention Campaigns; Q3 2027 Industry Benchmark Report; Q3 Unified onboarding; Q3 Unified SDK; Q4 Insights Agent; Q4 Executive Summit [China]. Ongoing: customer video testimonials, proof points, co-marketing, LinkedIn newsletter, technical webinars.`;
 
 function exampleState(){return{
- name:'One Unity · Unity Acquire 2026',product:'Unity Acquire (Unity Ads + Offerwall, powered by Vector)',brief:EXAMPLE_BRIEF,
- budgets:{lean:400000,standard:900000,full:1600000},start:'2026-03-01',end:'2026-12-31',
+ name:EX_NAME,product:'Growth Platform (AI-powered campaign planning, buying and optimization)',brief:EXAMPLE_BRIEF,
+ budgets:{lean:400000,standard:900000,full:1600000},start:'2027-03-01',end:'2027-12-31',
  markets:[
   {id:'NA',name:'North America',lang:'EN',on:true,weight:40},
   {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:20},
@@ -149,37 +150,36 @@ function exampleState(){return{
   {id:'KR',name:'Korea',lang:'KO',on:true,weight:12},
   {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:5},
   {id:'LATAM',name:'LATAM',lang:'ES',on:false,weight:5}],
- personas:{dm:{label:'Decision-maker (CEO, CMO, VP Growth)',on:true},tech:{label:'Technical influencer (Head of UA, Ad Ops)',on:true},user:{label:'Day-to-day user (UA Manager, Media Buyer)',on:true}},
+ personas:{dm:{label:'Decision-maker (CEO, CMO, VP Growth)',on:true},tech:{label:'Technical influencer (Head of Growth, Ad Ops)',on:true},user:{label:'Day-to-day user (Marketing Manager, Media Buyer)',on:true}},
  initiatives:[
-  {name:'"Vector 2.0" Perception Reset + Brand Equity',stage:'Awareness',pillar:'Vector is an agentic, game-native UA engine built on Unity engine and runtime data'},
-  {name:'One Unity Adoption & Cross-Sell',stage:'Conversion',pillar:'Run video and offerwall from one dashboard; multi-format by default'},
-  {name:'Data Activation & Measurement Confidence',stage:'Consideration',pillar:'Measurement you can trust: GA4 and developer data, less MMP dependence'}],
+  {name:'AI Engine Perception Reset + Brand Equity',stage:'Awareness',pillar:'An AI campaign engine built on unique first-party data'},
+  {name:'Platform Adoption & Cross-Sell',stage:'Conversion',pillar:'Run every format from one dashboard; multi-format by default'},
+  {name:'Data Activation & Measurement Confidence',stage:'Consideration',pillar:'Measurement you can trust: analytics and first-party data, less guesswork'}],
  moments:[
-  {name:'D28 IAP ROAS + New ROAS Campaign Flow',month:'2026-03',type:'launch',ini:0},
-  {name:'GDC',month:'2026-03',type:'event',ini:0},
-  {name:'One Unity Dashboard Ph1 + Multi-Country Budget',month:'2026-04',type:'launch',ini:1},
-  {name:'D28 IAA ROAS Campaign',month:'2026-06',type:'launch',ini:0},
-  {name:'2026 Growth & Monetization Report',month:'2026-07',type:'content',ini:0},
-  {name:'ChinaJoy',month:'2026-07',type:'event',ini:0},
-  {name:'Dashboard Ph4 · unified onboarding (Offerwall)',month:'2026-08',type:'launch',ini:1},
-  {name:'Unified uAds & Offerwall SDK',month:'2026-09',type:'launch',ini:1},
-  {name:'Unity Executive Summit (China)',month:'2026-11',type:'event',ini:0},
-  {name:'Insights Agent',month:'2026-12',type:'launch',ini:2}],
+  {name:'ROAS Campaigns + New Campaign Flow',month:'2027-03',type:'launch',ini:0},
+  {name:'Spring industry conference',month:'2027-03',type:'event',ini:0},
+  {name:'Unified Dashboard Ph1 + Multi-Country Budget',month:'2027-04',type:'launch',ini:1},
+  {name:'Retention Campaigns',month:'2027-06',type:'launch',ini:0},
+  {name:'2027 Industry Benchmark Report',month:'2027-07',type:'content',ini:0},
+  {name:'Unified onboarding',month:'2027-08',type:'launch',ini:1},
+  {name:'Unified SDK',month:'2027-09',type:'launch',ini:1},
+  {name:'Executive Summit (China)',month:'2027-11',type:'event',ini:0},
+  {name:'Insights Agent',month:'2027-12',type:'launch',ini:2}],
  channels:Object.fromEntries(CH.map(c=>[c.id,{on:true,weight:c.weight}])),
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
- formats:defaultFormats(),landing:'https://unity.com/',copy:exampleCopy()
+ formats:defaultFormats(),landing:'https://example.com/',copy:exampleCopy()
 };}
-function exampleCopy(){return{src:'One Unity · Unity Acquire 2026',
+function exampleCopy(){return{src:EX_NAME,
  voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
  ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
- proof:'Unico: Ad Revenue ROAS campaigns drove 4x+ scale on iOS and Android with flat CPI\nZephyrMobile: ~50% more installs and 7% lower iOS CPI across 6 puzzle titles with Vector\nVoodoo: improved campaign results at scale with high-quality users',
+ proof:'A retail app scaled ROAS campaigns 4x on iOS and Android with flat CPI\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles\nA top publisher improved campaign results at scale with high-quality users',
  ini:[
-  {h:'Grow on D28 ROAS\nGame-native AI for D28 ROAS\nVector: UA that understands games\nSet the goal. Vector finds the players.\nThe UA engine built on Unity game data',
-   b:'Tell Vector your goal. It handles bids and pacing.\nVector uses engine, runtime and IAP signals to find players who stay and pay. Launch D28 ROAS campaigns in minutes.\nZephyrMobile saw ~50% more installs and 7% lower iOS CPI across 6 puzzle titles with Vector.'},
-  {h:'One login for all your UA\nOne Unity: Acquire\nVideo + offerwall. One dashboard.\nRun video and offerwall together',
-   b:'Video + offerwall in one place.\nAdd Offerwall to your video campaigns in a few clicks and reach rewarded players at scale.\nLaunch Unity Ads video and Offerwall campaigns from one dashboard on unity.com, with one login and shared reporting.'},
-  {h:'Less MMP guesswork\nLink GA4. Get sharper ROAS.\nUA measurement you can trust',
-   b:'Link GA4 for sharper ROAS.\nReconcile Unity results with your own analytics, right in the dashboard.\nConnect GA4 and developer data so Vector optimizes on signals you already trust, not just delayed postbacks.'}]};}
+  {h:'Grow on D28 ROAS\nAI built for ROAS\nUA that understands your users\nSet the goal. AI finds the buyers.\nThe campaign engine built on real data',
+   b:'Tell the AI your goal. It handles bids and pacing.\nOur engine uses first-party and in-app signals to find users who stay and pay. Launch ROAS campaigns in minutes.\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles.'},
+  {h:'One login for all your ads\nEvery format. One dashboard.\nVideo + rewarded. One place.\nRun all your formats together',
+   b:'Every format in one place.\nAdd new formats to your campaigns in a few clicks and reach more users at scale.\nLaunch video, display and rewarded campaigns from one dashboard, with one login and shared reporting.'},
+  {h:'Less attribution guesswork\nLink GA4. Get sharper ROAS.\nMeasurement you can trust',
+   b:'Link GA4 for sharper ROAS.\nReconcile results with your own analytics, right in the dashboard.\nConnect GA4 and first-party data so the AI optimizes on signals you already trust, not delayed postbacks.'}]};}
 function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
 function blankState(){const yr=new Date().getFullYear()+1;return{
  name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
@@ -191,8 +191,8 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
-if(!S||!S.markets)S=exampleState();
-if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://unity.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.src==null&&S.name==='One Unity · Unity Acquire 2026')S.copy.src=S.name;
+if(!S||!S.markets||S.name==='One Unity · Unity Acquire 2026')S=exampleState();
+if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}
@@ -324,12 +324,15 @@ function compute(tier){
 function nextMonth(k){let [y,m]=k.split('-').map(Number);m++;if(m>12){m=1;y++}return `${y}-${String(m).padStart(2,'0')}`}
 
 /* ==================== TABLE DEFINITIONS (shared by UI + exports) ==================== */
+// Round a list so the parts still add up to the rounded total (largest remainder)
+function fairRound(v){const f=v.map(Math.floor),left=Math.round(sum(v))-sum(f);v.map((x,i)=>[x-f[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,Math.max(0,left)).forEach(([,i])=>f[i]++);return f}
 function bomTable(R){
  const cols0=[['Line','id'],['Version','ver'],['Initiative','ini'],['Message pillar','pillar'],['Funnel stage','stage'],['Channel group','group'],['Channel','channel'],['Placement','placement'],['Platform / publisher','publisher'],['Market','market'],['Language','lang'],['Audience','audience'],['Targeting','targeting'],['Ad units','unitsTxt'],['Sizes / specs','sizes'],['Buy type','buy'],['Rate','rateTxt'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Flight','flight'],['KPI','kpi'],['Creative (concepts × sizes × rounds)','creative'],['Creative due','due'],['BOM items','bomIds']];
  const cols=cols0;
  const rows=R.lines.map(l=>({id:l.id,ver:TIERNAME[l.tier],ini:l.ini.name,pillar:l.ini.pillar,stage:l.stage,group:l.group,channel:l.channel,placement:l.placement,publisher:l.publisher,market:l.market,lang:l.lang,audience:l.audience,targeting:l.targeting,
   unitsTxt:l.units.map(u=>UNITS[u].platform+' '+UNITS[u].name).join(' + '),sizes:l.units.flatMap(u=>variantsOf(u)).join(' | '),buy:l.p.buy,rateTxt:rateFmt(l.rate,l.p.buy)+(l.p.buy==='Flat'?' per '+(l.p.unit||'unit').replace(/s$/,''):l.p.buy==='CPM'?' CPM':''),
-  aud:l.aud,budget:Math.round(l.budget),qty:Math.round(l.qty),qu:l.qu,flight:l.flight,kpi:l.kpi,creative:`${l.concepts} × ${l.variants} × ${l.rounds}`,due:l.due,bomIds:l.bomIds.join(', ')}));
+  aud:l.aud,budget:l.budget,qty:Math.round(l.qty),qu:l.qu,flight:l.flight,kpi:l.kpi,creative:`${l.concepts} × ${l.variants} × ${l.rounds}`,due:l.due,bomIds:l.bomIds.join(', ')}));
+ const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Line Items',cols,rows};
 }
 function mvpTable(R){
@@ -382,7 +385,7 @@ function outcomes(R){
   else{c.flat[l.qu]=(c.flat[l.qu]||0)+l.qty;(flat[l.qu]=flat[l.qu]||R.months.map(()=>0)).forEach((_,i)=>flat[l.qu][i]+=l.qty*share[i])}});
  return {by:Object.values(by).sort((a,b)=>b.budget-a.budget),mo,flat};
 }
-function flightAOA(R){const tb=flightTable(R),O=outcomes(R);const a=tableToAOA(tb);a.push([],['Projected outcomes by month',...R.months.map(monthLabel),'Total']);
+function flightAOA(R){const tb=flightTable(R),O=outcomes(R);const a=tableToAOA(tb,tb.cols.slice(1).map(c=>c[1]));a.push([],['Projected outcomes by month',...R.months.map(monthLabel),'Total']);
  OUTK.forEach(([k,n])=>{if(O.mo[k])a.push([n,...O.mo[k].map(Math.round),Math.round(sum(O.mo[k]))])});
  Object.entries(O.flat).forEach(([u,v])=>a.push(['Flat-fee '+u,...v.map(x=>+x.toFixed(1)),+sum(v).toFixed(1)]));
  a.push([],['KPIs & projected outcomes by channel','Budget','KPIs',...OUTK.map(o=>o[1]),'Flat-fee units']);
@@ -405,6 +408,18 @@ function summaryRows(R){
 }
 function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(l.p.buy==='CPM')t.imp+=l.qty;if(l.p.buy==='CPC')t.clk+=l.qty;if(l.p.buy==='CPV')t.views+=l.qty;if(l.p.buy==='CPL')t.leads+=l.qty});
  t.files=sum(R.masters.map(m=>m.masterFiles));t.masters=R.masters.length;t.channels=new Set(R.lines.map(l=>l.c.id)).size;t.placements=new Set(R.lines.map(l=>l.p.id)).size;t.markets=new Set(R.lines.map(l=>l.market)).size;t.lines=R.lines.length;t.budget=sum(R.lines.map(l=>l.budget));return t}
+
+// Full-funnel estimate across every buy: each line's bought unit plus benchmark ratios for the rest (flat-fee buys not estimated)
+const FUN={ctr:0.005,ctrCpc:0.02,viewRate:0.3,leadForm:0.12,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
+const FUNNEL=[['imp','Impressions'],['reach','Est. reach (unique people)'],['clk','Clicks'],['lpv','Landing page visits'],['eng','Engagements (clicks, likes, shares, comments)'],['views','Video views'],['sends','Messages sent'],['leads','Leads']];
+function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,leads:0,spend:0};
+ R.lines.forEach(l=>{const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
+  switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
+   case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
+   case'CPS':sends=q;imp=q*FUN.openRate;clk=q*FUN.sendCtr;break;default:return}
+  const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;
+  o.imp+=imp;o.clk+=clk;o.lpv+=lpv;o.eng+=clk+imp*FUN.eng;o.views+=views;o.sends+=sends;o.leads+=leads;o.spend+=l.budget});
+ o.reach=o.imp/3.5;o.cpm=o.imp?o.spend/o.imp*1000:0;o.cpc=o.clk?o.spend/o.clk:0;o.cpl=o.leads?o.spend/o.leads:0;return o}
 
 /* ==================== INPUT RENDERING ==================== */
 function bindSimple(){
@@ -437,7 +452,7 @@ function renderInputs(){
   <input type="number" id="mk-w-${i}" value="${m.weight}" min="0" max="100" step="any" aria-label="Weight %">
   <input type="number" id="mk-b-${i}" min="0" step="1000" aria-label="Market budget" ${m.on?'':'disabled'}>
   <input type="text" id="mk-l-${i}" value="${esc(m.lang)}" aria-label="Language" maxlength="5">
-  <button class="x" data-i="${i}" aria-label="Remove market">×</button></div>`).join('');
+  <button class="x" data-i="${i}" aria-label="Remove market">×</button></div>`).join('')+`<div class="li mkt sumrow"><span></span><span>Total</span><span class="n" id="mk-tot-w"></span><span class="n" id="mk-tot-b"></span><span></span><span></span></div>`;
  S.markets.forEach((m,i)=>{$(`#mk-on-${i}`).onchange=e=>{m.on=e.target.checked;$(`#mk-b-${i}`).disabled=!m.on;changed()};$(`#mk-n-${i}`).oninput=e=>{m.name=e.target.value;changed()};$(`#mk-w-${i}`).oninput=e=>{m.weight=+e.target.value;changed()};
   $(`#mk-b-${i}`).onchange=e=>{setMarketBudget(i,+e.target.value);changed()};$(`#mk-l-${i}`).oninput=e=>{m.lang=e.target.value.toUpperCase();changed()}});
  $('#mkt-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.markets.splice(+b.dataset.i,1);renderInputs();changed()});
@@ -467,7 +482,7 @@ function renderInputs(){
  let html=`<div class="li ch note"><span></span><span>Channel</span><span>Weight</span><span class="bud-h">Budget $</span></div>`,g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
   const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight};const mn=Math.min(...c.pl.map(p=>p.min));
   html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label><input type="number" id="ch-w-${c.id}" value="${st.weight}" min="0" step="any" aria-label="Weight"><input type="number" id="ch-b-${c.id}" min="0" step="1000" aria-label="${esc(c.name)} budget"></div>`});
- $('#ch-list').innerHTML=html;
+ $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span><span class="n" id="ch-tot-w"></span><span class="n" id="ch-tot-b"></span></div>`;
  CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};$(`#ch-w-${c.id}`).oninput=e=>{S.channels[c.id].weight=+e.target.value;changed()};
   $(`#ch-b-${c.id}`).onchange=e=>{setChannelBudget(c.id,+e.target.value);changed()}});
  syncBudgetFields();
@@ -480,11 +495,16 @@ function syncBudgetFields(R){
  const on=S.markets.filter(m=>m.on&&+m.weight>0),ws=sum(on.map(m=>+m.weight));
  S.markets.forEach((m,i)=>{const el=$('#mk-b-'+i);if(!el||el===document.activeElement)return;el.value=m.on&&ws?Math.round(total*(+m.weight||0)/ws):'';
   const w=$('#mk-w-'+i);if(w&&w!==document.activeElement)w.value=+(+m.weight).toFixed(1)});
- const mt=$('#mkt-tot');if(mt){mt.innerHTML=`<span>${on.length} markets on · weights total ${+ws.toFixed(1)}${Math.abs(ws-100)>0.5?' (treated as shares)':'%'}</span><span>${money(total)} ${esc(TIERNAME[t])} budget</span>`}
+ const mt=$('#mkt-tot');if(mt){mt.innerHTML=`<span>${on.length} markets on${Math.abs(ws-100)>0.5?' · weights don\'t add to 100%, so they\'re treated as shares':''}</span><span>Should match ${money(total)}</span>`}
+ const mb=sum(S.markets.map(m=>m.on&&ws?Math.round(total*(+m.weight||0)/ws):0)),mw=$('#mk-tot-w'),mbe=$('#mk-tot-b');
+ if(mw){mw.textContent=(+ws.toFixed(1))+'%';mw.className='n'+(Math.abs(ws-100)>0.5?' bad':'');mw.title=Math.abs(ws-100)>0.5?'Weights don\'t add to 100%, so they are treated as shares':''}
+ if(mbe){mbe.textContent=money(mb);mbe.className='n'+(Math.abs(mb-total)>on.length?' bad':'');mbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
  const cb={};R.lines.forEach(l=>cb[l.c.id]=(cb[l.c.id]||0)+l.budget);
  CH.forEach(c=>{const el=$('#ch-b-'+c.id);if(!el)return;const v=cb[c.id];el.disabled=!v;el.title=v?'':(S.channels[c.id].on?'Not in the '+TIERNAME[t]+' version or its markets':'Channel is off');
   if(el!==document.activeElement)el.value=v?Math.round(v):'';const w=$('#ch-w-'+c.id);if(w&&w!==document.activeElement)w.value=+(+S.channels[c.id].weight).toFixed(1)});
- const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>${Object.keys(cb).length} channels running in ${esc(TIERNAME[t])}</span><span>${money(sum(Object.values(cb)))}</span>`;
+ const cw=$('#ch-tot-w'),cbe=$('#ch-tot-b'),cs=sum(Object.values(cb));
+ if(cbe){cbe.textContent=money(cs);cbe.className='n'+(Math.abs(cs-total)>1?' bad':'');cbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
+ const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>${Object.keys(cb).length} channels running in ${esc(TIERNAME[t])}</span><span>Should match ${money(total)}</span>`;
 }
 function setMarketBudget(i,x){
  const t=bTier(),total=+S.budgets[TIERS[t]]||0,m=S.markets[i];if(!total||!m.on)return;
@@ -509,7 +529,7 @@ $('#add-mkt').onclick=()=>{S.markets.push({id:'M'+Date.now(),name:'New market',l
 $('#add-ini').onclick=()=>{S.initiatives.push({name:'',stage:'Consideration',pillar:''});renderInputs();changed();setTimeout(()=>$('#in-n-'+(S.initiatives.length-1))?.focus(),0)};
 $('#add-mom').onclick=()=>{S.moments.push({name:'',month:S.start.slice(0,7),type:'launch',ini:0});renderInputs();changed();setTimeout(()=>$('#mo-n-'+(S.moments.length-1))?.focus(),0)};
 $('#btn-blank').onclick=()=>{if(!confirm('Clear every input and start a blank plan? This replaces the plan saved in this browser.'))return;S=blankState();PDF=null;renderInputs();changed();setStatus('#extract-status','Blank plan ready. Paste or upload a GTM doc, then press “Fill inputs from doc”.');$('#exampleBadge').hidden=true};
-$('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus('#extract-status','Unity Acquire example reloaded.');$('#exampleBadge').hidden=false};
+$('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus('#extract-status','Example reloaded.');$('#exampleBadge').hidden=false};
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(renderOut,120)}
@@ -523,21 +543,21 @@ function renderSeg(){
 }
 function barList(title,entries,total){
  const max=Math.max(1,...entries.map(e=>e[1]));
- return `<div class="bars"><h3>${esc(title)}</h3>${entries.map(([k,v])=>`<div class="brow" title="${esc(k)}: ${money(v)} (${(v/total*100).toFixed(1)}%)"><span class="lab">${esc(k)}</span><span class="track"><span class="fill" style="width:${(v/max*100).toFixed(1)}%;display:block"></span></span><span class="val">${(v/total*100).toFixed(0)}% · ${compact(v)}</span></div>`).join('')}</div>`;
+ return `<div class="bars"><h3>${esc(title)}</h3>${entries.map(([k,v])=>`<div class="brow" title="${esc(k)}: ${money(v)} (${(v/total*100).toFixed(1)}%)"><span class="lab">${esc(k)}</span><span class="track"><span class="fill" style="width:${(v/max*100).toFixed(1)}%;display:block"></span></span><span class="val">${(v/total*100).toFixed(0)}% · ${compact(v)}</span></div>`).join('')}<div class="btot"><span>Total</span><span class="${Math.abs(sum(entries.map(e=>e[1]))-total)>1?'bad':''}">${money(sum(entries.map(e=>e[1])))} · 100%</span></div></div>`;
 }
 function stageChip(s){return `<span class="chip ${STAGE[s]||''}">${esc(s)}</span>`}
 function renderSummary(R){
- const t=totals(R),s=summaryRows(R);
+ const t=totals(R),s=summaryRows(R),o=funnel(R);
  const flags=R.lines.filter(l=>l.under);
  return `<div class="panel" style="display:flex;flex-direction:column;gap:18px">
   <div><div class="eyebrow">${esc(TIERNAME[R.tier])} version · ${esc(S.name)}</div><h2 style="font-size:20px;margin-top:2px">${money(t.budget)} across ${t.channels} channels and ${t.markets} markets</h2>
   <div class="note">${esc(S.product)} · ${fmtD(parseD(S.start))} – ${fmtD(parseD(S.end))} · ${R.concepts} concepts per placement, refreshed ${R.rounds}× over the flight</div></div>
   <div class="tiles">
    <div class="tile"><span class="v">${t.lines}</span><span class="k">Media line items</span></div>
-   <div class="tile"><span class="v">${compact(t.imp)}</span><span class="k">Est. impressions (CPM buys)</span></div>
-   <div class="tile"><span class="v">${compact(t.clk)}</span><span class="k">Est. clicks (CPC buys)</span></div>
-   <div class="tile"><span class="v">${compact(t.views)}</span><span class="k">Est. video views (CPV)</span></div>
-   <div class="tile"><span class="v">${compact(t.leads)}</span><span class="k">Est. leads (CPL)</span></div>
+   <div class="tile"><span class="v">${compact(o.imp)}</span><span class="k">Est. impressions</span></div>
+   <div class="tile"><span class="v">${compact(o.clk)}</span><span class="k">Est. clicks</span></div>
+   <div class="tile"><span class="v">${compact(o.lpv)}</span><span class="k">Est. landing page visits</span></div>
+   <div class="tile"><span class="v">${compact(o.leads)}</span><span class="k">Est. leads</span></div>
    <div class="tile"><span class="v">${R.masters.length}</span><span class="k">BOM creative masters · ${t.files.toLocaleString()} files</span></div>
   </div>
   <div class="cols">${barList('Budget by channel',s.byChannel,t.budget)}${barList('Budget by market',s.byMarket,t.budget)}</div>
@@ -658,7 +678,7 @@ function renderFlight(R){
  </tbody></table></div>
  ${(()=>{const O=outcomes(R);const fl=Object.entries(O.flat);return `
  <h2 style="font-size:18px;margin:18px 0 4px">Projected outcomes by month</h2>
- <div class="note" style="margin-bottom:8px">Estimated delivery from each buy (budget ÷ rate), phased like its channel's spend. Planning estimates from benchmark rates, not guarantees.</div>
+ <div class="note" style="margin-bottom:8px">What each buy is bought on (budget ÷ rate: impressions for CPM, clicks for CPC, and so on), phased like its channel's spend. The Summary and Compare totals also count the impressions, clicks and leads that other buys generate, so they run higher. Planning estimates from benchmark rates, not guarantees.</div>
  <div class="tscroll"><table><thead><tr><th>Outcome</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
  ${OUTK.filter(([k])=>O.mo[k]).map(([k,n])=>`<tr><td style="white-space:nowrap">${n}</td>${O.mo[k].map(v=>`<td class="n">${v>=.5?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${compact(sum(O.mo[k]))}</strong></td></tr>`).join('')}
  ${fl.map(([u,v])=>`<tr><td style="white-space:nowrap">Flat-fee ${esc(u)}</td>${v.map(x=>`<td class="n">${x>=.05?(+x.toFixed(1)).toLocaleString():'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${(+sum(v).toFixed(1)).toLocaleString()}</strong></td></tr>`).join('')}
@@ -667,6 +687,8 @@ function renderFlight(R){
  <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Budget</th><th>KPIs to track</th>${OUTK.filter(([k])=>O.mo[k]).map(([,n])=>`<th class="n">${n}</th>`).join('')}<th>Flat-fee units</th><th class="n">Blended cost per result</th></tr></thead><tbody>
  ${O.by.map(c=>{const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>c[k]||0));return `<tr><td style="white-space:nowrap"><strong>${esc(c.c.name)}</strong></td><td class="n">${money(c.budget)}</td><td class="sub2" style="min-width:260px">${[...c.kpis].map(esc).join('<br>')}</td>
   ${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${c[k]?compact(c[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="sub2">${Object.entries(c.flat).map(([u,v])=>esc((Math.round(v*10)/10)+' '+u)).join('<br>')||'—'}</td><td class="n">${res?rateFmt(c.budget/res,'CPC'):'<span class="sub2">—</span>'}</td></tr>`}).join('')}
+ ${(()=>{const T={budget:sum(O.by.map(c=>c.budget))};OUTK.forEach(([k])=>T[k]=sum(O.by.map(c=>c[k]||0)));const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>T[k]));
+  return `<tr class="tot"><td>Total</td><td class="n">${money(T.budget)}</td><td></td>${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${T[k]?compact(T[k]):'—'}</td>`).join('')}<td></td><td class="n">${res?rateFmt(T.budget/res,'CPC'):'—'}</td></tr>`})()}
  </tbody></table></div>
  <div class="note" style="margin-top:8px">Blended cost per result divides the channel budget by its clicks, views, leads and messages (impressions excluded).</div>`})()}`;
 }
@@ -680,15 +702,25 @@ function renderAssump(R){
  </tbody></table></div>`;
 }
 function renderCompare(){
- const Rs=[0,1,2].map(compute),Ts=Rs.map(totals);
- const metrics=[['Budget',t=>money(t.budget)],['Channels',t=>t.channels],['Placements',t=>t.placements],['Markets',t=>t.markets],['BOM line items',t=>t.lines],['Est. impressions',t=>compact(t.imp)],['Est. clicks',t=>compact(t.clk)],['Est. video views',t=>compact(t.views)],['Est. leads',t=>compact(t.leads)],['BOM creative masters',t=>t.masters],['Master files',t=>t.files.toLocaleString()]];
+ const Rs=[0,1,2].map(compute),Ts=Rs.map(totals),Fs=Rs.map(funnel);
+ const plan=[['Budget',t=>money(t.budget)],['Channels',t=>t.channels],['Placements',t=>t.placements],['Markets',t=>t.markets],['BOM line items',t=>t.lines],['BOM creative masters',t=>t.masters],['Master files',t=>t.files.toLocaleString()]];
+ const cost=[['Blended CPM','cpm'],['Blended cost per click','cpc'],['Blended cost per lead','cpl']];
  const chs=CH.filter(c=>Rs.some(R=>R.lines.some(l=>l.c.id===c.id)));
  const chB=(R,c)=>sum(R.lines.filter(l=>l.c.id===c.id).map(l=>l.budget));
+ const head=t=>`<thead><tr><th>${t}</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead>`;
  return `<div class="panel" style="display:flex;flex-direction:column;gap:16px"><div><div class="eyebrow">Side by side</div><h2 style="font-size:20px">Low vs Medium vs High</h2>
  <div class="note">Low runs the always-on core (LinkedIn, search, trade newsletters, China and Korea local platforms). Medium adds video, X, ABM, retargeting, lead gen and events. High adds Reddit, Shorts, conquest search, conversation ads, sponsored articles and podcasts.</div></div>
- <div class="tscroll"><table><thead><tr><th>Metric</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${metrics.map(([n,f])=>`<tr><td>${n}</td>${Ts.map(t=>`<td class="n">${f(t)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
- <div class="tscroll"><table><thead><tr><th>Channel budget</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${chs.map(c=>`<tr><td>${esc(c.name)}</td>${Rs.map(R=>{const v=chB(R,c);return `<td class="n">${v?money(v):'<span class="sub2">—</span>'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+ <div><h3 style="font-size:14px;margin-bottom:6px">Plan</h3>
+ <div class="tscroll"><table>${head('Metric')}<tbody>${plan.map(([n,f])=>`<tr><td>${n}</td>${Ts.map(t=>`<td class="n">${f(t)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+ <div id="cmp-outcomes"><h3 style="font-size:14px;margin-bottom:6px">Outcomes</h3>
+ <div class="tscroll"><table>${head('Estimated outcome')}<tbody>${FUNNEL.map(([k,n])=>`<tr><td>${n}</td>${Fs.map(o=>`<td class="n">${o[k]?compact(o[k]):'<span class="sub2">—</span>'}</td>`).join('')}</tr>`).join('')}
+ ${cost.map(([n,k],i)=>`<tr${i?'':' class="costrow"'}><td><strong>${n}</strong></td>${Fs.map(o=>`<td class="n">${o[k]?money2(o[k]):'—'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+ <div class="note" style="margin-top:6px">Each buy delivers what it's bought on (impressions for CPM, clicks for CPC, views for CPV, leads for CPL). Everything else is estimated with benchmarks: ${pct(FUN.ctr)} CTR on impressions (${pct(FUN.ctrCpc)} on search), ${pct(FUN.lpv)} of clicks reach the landing page, ${pct(FUN.cvr)} of visits become leads, ${pct(FUN.leadForm)} lead-form completion, ${pct(FUN.viewRate)} video view rate, and reach = impressions ÷ 3.5 frequency. Flat-fee buys (events, sponsorships, newsletters) aren't counted.</div></div>
+ <div><h3 style="font-size:14px;margin-bottom:6px">Channel budget</h3>
+ <div class="tscroll"><table>${head('Channel')}<tbody>${chs.map(c=>`<tr><td>${esc(c.name)}</td>${Rs.map(R=>{const v=chB(R,c);return `<td class="n">${v?money(v):'<span class="sub2">—</span>'}</td>`}).join('')}</tr>`).join('')}<tr class="tot"><td>Total</td>${Rs.map(R=>`<td class="n">${money(sum(R.lines.map(l=>l.budget)))}</td>`).join('')}</tr></tbody></table></div></div></div>`;
 }
+const pct=v=>(+(v*100).toFixed(1))+'%';
+const money2=v=>'$'+(v<10?v.toFixed(2):Math.round(v).toLocaleString('en-US'));
 function renderOut(){
  renderSeg();
  const v=$('#view');
@@ -707,21 +739,22 @@ function renderOut(){
 }
 
 /* ==================== EXPORTS ==================== */
-function tableToAOA(tb){return [tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))]}
-function summaryAOA(R){const t=totals(R),s=summaryRows(R);const a=[[S.name],[S.product],['Version',TIERNAME[R.tier]],['Flight',S.start+' to '+S.end],['Total budget',Math.round(t.budget)],['Line items',t.lines],['Est. impressions',Math.round(t.imp)],['Est. clicks',Math.round(t.clk)],['Est. video views',Math.round(t.views)],['Est. leads',Math.round(t.leads)],['BOM creative masters',R.masters.length],['Master files',t.files],[]];
- [['By channel',s.byChannel],['By market',s.byMarket],['By initiative',s.byIni],['By funnel stage',s.byStage]].forEach(([n,e])=>{a.push([n,'Budget','Share']);e.forEach(([k,v])=>a.push([k,Math.round(v),+(v/t.budget).toFixed(4)]));a.push([])});return a}
+function tableToAOA(tb,tot){const a=[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];
+ if(tot&&tb.rows.length)a.push(tb.cols.map(([,k],i)=>tot.includes(k)?Math.round(sum(tb.rows.map(r=>+r[k]||0))):i===0?'Total':''));return a}
+function summaryAOA(R){const t=totals(R),s=summaryRows(R),o=funnel(R);const a=[[S.name],[S.product],['Version',TIERNAME[R.tier]],['Flight',S.start+' to '+S.end],['Total budget',Math.round(t.budget)],['Line items',t.lines],['BOM creative masters',R.masters.length],['Master files',t.files],[],['OUTCOMES (estimated)'],...FUNNEL.map(([k,n])=>[n,Math.round(o[k])]),['Blended CPM',+o.cpm.toFixed(2)],['Blended cost per click',+o.cpc.toFixed(2)],['Blended cost per lead',+o.cpl.toFixed(2)],[]];
+ [['By channel',s.byChannel],['By market',s.byMarket],['By initiative',s.byIni],['By funnel stage',s.byStage]].forEach(([n,e])=>{a.push([n,'Budget','Share']);e.forEach(([k,v])=>a.push([k,Math.round(v),+(v/t.budget).toFixed(4)]));a.push(['Total',Math.round(sum(e.map(x=>x[1]))),+(sum(e.map(x=>x[1]))/t.budget).toFixed(4)],[])});return a}
 function addSheet(wb,name,aoa,widths){const ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws['!cols']=widths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31))}
 function workbookFor(tiers){
  const wb=XLSX.utils.book_new();
  const many=tiers.length>1;
- if(many){const Rs=[0,1,2].map(compute),Ts=Rs.map(totals);addSheet(wb,'Compare',[['Metric',...TIERNAME],['Budget',...Ts.map(t=>Math.round(t.budget))],['BOM creative masters',...Rs.map(R=>R.masters.length)],['Channels',...Ts.map(t=>t.channels)],['Placements',...Ts.map(t=>t.placements)],['Line items',...Ts.map(t=>t.lines)],['Est. impressions',...Ts.map(t=>Math.round(t.imp))],['Est. clicks',...Ts.map(t=>Math.round(t.clk))],['Est. leads',...Ts.map(t=>Math.round(t.leads))],['Master files',...Ts.map(t=>t.files)]],[24,14,14,14])}
+ if(many){const Rs=[0,1,2].map(compute),Ts=Rs.map(totals),Fs=Rs.map(funnel);addSheet(wb,'Compare',[['PLAN',...TIERNAME],['Budget',...Ts.map(t=>Math.round(t.budget))],['Channels',...Ts.map(t=>t.channels)],['Placements',...Ts.map(t=>t.placements)],['Markets',...Ts.map(t=>t.markets)],['Line items',...Ts.map(t=>t.lines)],['BOM creative masters',...Rs.map(R=>R.masters.length)],['Master files',...Ts.map(t=>t.files)],[],['OUTCOMES (estimated)',...TIERNAME],...FUNNEL.map(([k,n])=>[n,...Fs.map(o=>Math.round(o[k]))]),['Blended CPM',...Fs.map(o=>+o.cpm.toFixed(2))],['Blended cost per click',...Fs.map(o=>+o.cpc.toFixed(2))],['Blended cost per lead',...Fs.map(o=>+o.cpl.toFixed(2))]],[34,14,14,14])}
  tiers.forEach(ti=>{const R=compute(ti),p=many?TIERNAME[ti]+' ':'';
   addSheet(wb,p+'Summary',summaryAOA(R),[40,14,10]);
-  addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R)),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
-  addSheet(wb,p+'Line Items',tableToAOA(bomTable(R)),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
+  addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
+  addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[16,24,50,24,16,24,60,40,50,24,12,10,10]);
   addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
-  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R)),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
+  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
   addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,40,12,16,30,22,14,90,30,11]);
  });
