@@ -420,9 +420,10 @@ function flightTable(R){
  return {name:'Flighting',cols,rows};
 }
 function assumptionTable(R){
- const cols=[['Channel','channel'],['Placement','placement'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
+ const cols=[['Channel','channel'],['Placement','placement'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Proj. impressions','imp'],['Proj. clicks','clk'],['Proj. landing page visits','lpv'],['Proj. video views','views'],['Proj. leads','leads'],['Cost per lead','cpl'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
  const rows=[];CH.forEach(c=>c.pl.forEach(p=>{const ls=R.lines.filter(l=>l.p.id===p.id);if(!ls.length)return;
-  rows.push({channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
+  const F_={imp:0,clk:0,lpv:0,views:0,leads:0};ls.forEach(l=>{const f=lineFun(l);if(f)for(const k in F_)F_[k]+=f[k]});for(const k in F_)F_[k]=Math.round(F_[k]);
+  rows.push({...F_,cpl:F_.leads?+(sum(ls.map(l=>l.budget))/F_.leads).toFixed(2):'',channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
  const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Buy Details',cols,rows};
 }
@@ -679,7 +680,14 @@ const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['s
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
- $('#tabs').innerHTML=UI.tier===3?'':TABS.map(([k,n])=>`<button role="tab" aria-selected="${UI.tab===k}" data-k="${k}">${n}</button>`).join('');
+ const ord=UI.tabOrder||[],tabs=TABS.slice().sort((a,b)=>{const i=ord.indexOf(a[0]),j=ord.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j)});
+ $('#tabs').innerHTML=UI.tier===3?'':tabs.map(([k,n])=>`<button role="tab" aria-selected="${UI.tab===k}" data-k="${k}" draggable="true" title="Drag to reorder">${n}</button>`).join('');
+ let dragK=null;$('#tabs').querySelectorAll('button').forEach(b=>{
+  b.ondragstart=e=>{dragK=b.dataset.k;b.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragK)};
+  b.ondragend=()=>{b.classList.remove('drag');$('#tabs').querySelectorAll('.over').forEach(x=>x.classList.remove('over'))};
+  b.ondragover=e=>{e.preventDefault();b.classList.add('over')};b.ondragleave=()=>b.classList.remove('over');
+  b.ondrop=e=>{e.preventDefault();const from=dragK||e.dataTransfer.getData('text/plain'),to=b.dataset.k;if(!from||from===to)return;
+   const ks=tabs.map(t=>t[0]).filter(k=>k!==from);ks.splice(ks.indexOf(to),0,from);UI.tabOrder=ks;save();renderOut()}});
  $('#tabs').hidden=UI.tier===3;
  $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tab=b.dataset.k;save();renderOut()});
 }
@@ -886,11 +894,11 @@ function renderFlight(R){
 }
 function renderAssump(R){
  const tb=assumptionTable(R);
- return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
- <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
+ return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions. Projections use each buy's own delivery plus the benchmark funnel (CTR, landing page rate, lead rate) shown on the Compare view.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
+ <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
  ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
-  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td><td></td><td></td><td></td></tr>
+  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(tb.rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(tb.rows.map(r=>r.leads));return L?money2(sum(tb.rows.map(r=>r.budget))/L):'—'})()}</td><td></td><td></td><td></td></tr>
  </tbody></table></div>`;
 }
 function renderCompare(){
@@ -949,7 +957,7 @@ function workbookFor(tiers){
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
   addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
-  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
+  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
   addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,60,40,12,16,30,22,14,90,30,11]);
  });
