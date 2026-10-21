@@ -31,17 +31,14 @@
         <div class="sec">
           <label class="f">Campaign name<input type="text" id="in-name"></label>
           <label class="f">Product / solution<input type="text" id="in-product"></label>
-          <label class="f">GTM doc text (paste, or upload a .pdf / .docx / .txt)
-            <textarea id="in-brief" rows="9"></textarea></label>
-          <div class="btns">
-            <label class="btn sm" for="in-file" style="display:inline-flex;align-items:center">Upload doc</label>
-            <input type="file" id="in-file" accept=".pdf,.docx,.txt,.md" hidden>
-            <button class="btn sm primary" id="btn-extract">Fill inputs from doc</button>
-            <button class="btn sm rose" id="btn-reset">Reload example</button>
-            <button class="btn sm" id="btn-blank">Start blank</button>
-          </div>
+          <label class="btn primary run" for="in-file" id="btn-upload" tabindex="0" role="button"><span class="spin" aria-hidden="true"></span><span id="btn-upload-t">Upload GTM doc</span></label>
+          <input type="file" id="in-file" accept=".pdf,.docx,.txt,.md" hidden>
+          <div class="note" style="margin-top:-4px">A .pdf, .docx or .txt. Pick the file and the inputs below fill in on their own.</div>
+          <label class="f">Or paste the doc text
+            <textarea id="in-brief" rows="7" placeholder="Paste the GTM strategy here. It fills in as soon as you paste."></textarea></label>
+          <div class="btns linkrow"><button class="lnk" id="btn-extract">Fill again from this text</button><span class="sub2">·</span><button class="lnk" id="btn-reset">Reload example</button><span class="sub2">·</span><button class="lnk" id="btn-blank">Start blank</button></div>
           <div class="status" id="extract-status" role="status"></div>
-          <div class="note">“Fill inputs from doc” asks the AI agent to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
+          <div class="note">Uploading or pasting the doc asks the AI agent to read the brief and set markets, personas, initiatives, launch moments and channels. Everything stays editable below.</div>
           <details class="agent" id="d-agent">
             <summary>AI agent <span class="chip" id="agent-chip">Not connected</span></summary>
             <div class="agent-body">

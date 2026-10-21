@@ -230,7 +230,8 @@ function monthsList(){const a=parseD(S.start),b=parseD(S.end);const out=[];if(!(
 const monthLabel=k=>{const [y,m]=k.split('-');return MONTHN[+m-1]+' '+y.slice(2)};
 function flightWeeks(){return Math.max(1,(parseD(S.end)-parseD(S.start))/6048e5)}
 function eligible(c,m){const k=c.markets;if(k==='all')return true;if(k.only)return k.only.includes(m.id);if(k.exclude)return !k.exclude.includes(m.id);return true}
-function activePl(c,tier){return c.pl.filter(p=>p.min<=tier)}
+// A checked channel runs in every version: bigger versions add its extra placements, smaller ones keep its entry placement.
+function activePl(c,tier){const a=c.pl.filter(p=>p.min<=tier);if(a.length)return a;const m=Math.min(...c.pl.map(p=>p.min));return c.pl.filter(p=>p.min===m)}
 function vinfo(u,v){const U=UNITS[u];let fmt=U.fmt,logo=false;
  if(/^video/i.test(v))fmt='video';else if(/^logo/i.test(v)){fmt='static';logo=true}else if(/^image/i.test(v))fmt='static';else if(/^banner/i.test(v))fmt='display';
  const sz=v.match(/(\d{2,4})×(\d{2,4})/);let ratio=null;const rm=v.match(/(\d+(?:\.\d+)?:\d+)/);
@@ -276,7 +277,7 @@ function adCopy({fmt,logo,lim,ini,concepts,langs}){
 
 /* ==================== ENGINE ==================== */
 // Channel split per version: a version's own weights once its budgets are edited, else the shared default split
-const chW=(id,t)=>{const c=S.channels[id];return c?+(c.tw?.[TIERS[t]]??c.weight):0};
+const chW=(id,t)=>{const c=S.channels[id];return c?+c.weight:0};
 const setChW=(id,t,v)=>{const c=S.channels[id];(c.tw=c.tw||{})[TIERS[t]]=v};
 function compute(tier){
  const T=TIERS[tier],total=+S.budgets[T]||0;
@@ -284,12 +285,19 @@ function compute(tier){
  const weeks=flightWeeks(),rounds=Math.max(1,Math.ceil(weeks/Math.max(1,+S.refresh[T]||8))),concepts=Math.max(1,+S.concepts[T]||1);
  const evMonths=S.moments.filter(x=>x.type==='event'&&x.month);
  const lines=[];
+ // Budget split: channels with a typed $ (section 7) get exactly that, spread over the markets they run in by market weight.
+ // The rest of the budget goes market by market to the other checked channels, by channel weight.
+ const plsInM=(c,m)=>activePl(c,tier).filter(p=>unitsFor(p,m).length),runs=(c,m)=>S.channels[c.id]?.on&&eligible(c,m)&&plsInM(c,m).length>0;
+ const pinned=CH.filter(c=>S.channels[c.id]?.on&&pinOf(c.id,tier)!=null&&mkts.some(m=>runs(c,m))),ps=sum(pinned.map(c=>pinOf(c.id,tier))),sc=ps>total&&ps>0?total/ps:1;
+ const alloc={};const put=(m,c,b)=>{if(b>0)(alloc[m.id]=alloc[m.id]||[]).push([c,b])};
+ pinned.forEach(c=>{const ms=mkts.filter(m=>runs(c,m)),w=ms.map(m=>m.weight*(c.boost?.[m.id]||1)),ws=sum(w);ms.forEach((m,i)=>put(m,c,pinOf(c.id,tier)*sc*w[i]/ws))});
+ const free=c=>!pinned.includes(c)&&chW(c.id,tier)>0,left=Math.max(0,total-ps*sc);
+ const has=mkts.map(m=>CH.some(c=>free(c)&&runs(c,m)));
+ let room=mkts.map((m,j)=>has[j]?Math.max(0,total*m.weight/wsum-sum((alloc[m.id]||[]).map(x=>x[1]))):0);if(!sum(room))room=mkts.map((m,j)=>has[j]?+m.weight:0);const rs=sum(room);
+ mkts.forEach((m,j)=>{if(!rs||!room[j])return;const mb=left*room[j]/rs,el=CH.filter(c=>free(c)&&runs(c,m)),cw=el.map(c=>chW(c.id,tier)*(c.boost?.[m.id]||1)),cws=sum(cw);el.forEach((c,i)=>put(m,c,mb*cw[i]/cws))});
  for(const m of mkts){
-  const mb=total*m.weight/wsum;
-  const plsIn=c=>activePl(c,tier).filter(p=>unitsFor(p,m).length);
-  const elig=CH.filter(c=>S.channels[c.id]?.on&&chW(c.id,tier)>0&&eligible(c,m)&&plsIn(c).length);
-  const cw=elig.map(c=>chW(c.id,tier)*(c.boost?.[m.id]||1)),cws=sum(cw);
-  elig.forEach((c,i)=>{const cb=mb*cw[i]/cws,pls=plsIn(c),ps=sum(pls.map(p=>p.share));
+  const plsIn=c=>plsInM(c,m);
+  (alloc[m.id]||[]).sort((a,b)=>CH.indexOf(a[0])-CH.indexOf(b[0])).forEach(([c,cb])=>{const pls=plsIn(c),ps=sum(pls.map(p=>p.share));
    pls.forEach(p=>{const b=cb*p.share/ps,rate=rateOf(p),units=unitsFor(p,m);
     let qty,qu;if(p.buy==='Flat'){qty=Math.floor(b/rate);qu=p.unit||'units'}else{qty=p.buy==='CPM'?b/rate*1000:b/rate;qu=BUYUNIT[p.buy]}
     const variants=sum(units.map(u=>variantsOf(u).length));
@@ -621,7 +629,7 @@ function renderInputs(){
  const pn=$('#pe-new');pn.onchange=()=>{const v=pn.value.trim();pn.value='';if(!v)return;S.personas['c'+Date.now()]={label:v,on:true,custom:true};renderInputs();changed();setTimeout(()=>$('#pe-new')?.focus(),0)};
  pn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pn.onchange()}};
  // initiatives
- $('#ini-list').innerHTML=(S.initiatives.length?'':'<div class="note">No initiatives yet. “Fill inputs from doc” pulls them from the GTM, or add your own.</div>')+S.initiatives.map((x,i)=>`<div class="li ini"><input type="text" id="in-n-${i}" value="${esc(x.name)}" aria-label="Initiative name" placeholder="Initiative name">
+ $('#ini-list').innerHTML=(S.initiatives.length?'':'<div class="note">No initiatives yet. Uploading the GTM doc pulls them in, or add your own.</div>')+S.initiatives.map((x,i)=>`<div class="li ini"><input type="text" id="in-n-${i}" value="${esc(x.name)}" aria-label="Initiative name" placeholder="Initiative name">
   <select id="in-s-${i}" aria-label="Funnel stage">${Object.keys(STAGE).map(s=>`<option ${s===x.stage?'selected':''}>${s}</option>`).join('')}</select>
   <input class="full" type="text" id="in-p-${i}" value="${esc(x.pillar)}" aria-label="Message pillar" placeholder="Message pillar">
   <div class="full btns" style="justify-content:space-between"><span class="note">Initiative ${i+1} · ${esc(x.stage)} placements</span><button class="x" data-i="${i}" aria-label="Remove initiative">×</button></div></div>`).join('');
@@ -637,9 +645,9 @@ function renderInputs(){
  $('#mom-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.moments.splice(+b.dataset.i,1);renderInputs();changed()});
  // channels
  let html=`<div class="li ch note"><span></span><span>Channel</span>${TIERNAME.map(n=>`<span class="n">${n} $</span>`).join('')}</div>`,g='';const GO=[...new Set(CH.map(c=>c.group))];CH.slice().sort((x,y)=>GO.indexOf(x.group)-GO.indexOf(y.group)).forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
-  const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight};const mn=Math.min(...c.pl.map(p=>p.min));
-  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label>${[0,1,2].map(t=>`<input type="number" id="ch-b-${c.id}-${t}" min="0" step="1000" aria-label="${esc(c.name)} ${TIERNAME[t]} budget">`).join('')}</div>`});
- $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span>${[0,1,2].map(t=>`<span class="n" id="ch-tot-b-${t}"></span>`).join('')}</div>`;
+  const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight}
+  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span></label>${[0,1,2].map(t=>`<input type="number" id="ch-b-${c.id}-${t}" min="0" step="1000" aria-label="${esc(c.name)} ${TIERNAME[t]} budget">`).join('')}</div>`});
+ $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span>${[0,1,2].map(t=>`<span class="n" id="ch-tot-b-${t}"></span>`).join('')}</div><div class="li ch chk"><span></span><span>Budget (section 1)</span>${[0,1,2].map(t=>`<span class="n" id="ch-bud-${t}"></span>`).join('')}</div><div class="li ch chk"><span></span><span>Difference</span>${[0,1,2].map(t=>`<span class="n" id="ch-diff-${t}"></span>`).join('')}</div>`;
  CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;solveAllPins();changed()};
   [0,1,2].forEach(t=>{$(`#ch-b-${c.id}-${t}`).onchange=e=>{setChannelBudget(c.id,e.target.value===''?null:+e.target.value,t);changed()}})});
  syncBudgetFields();
@@ -657,10 +665,13 @@ function syncBudgetFields(R){
  if(mw){mw.textContent=(+ws.toFixed(1))+'%';mw.className='n'+(Math.abs(ws-100)>0.5?' bad':'');mw.title=Math.abs(ws-100)>0.5?'Weights don\'t add to 100%, so they are treated as shares':''}
  if(mbe){mbe.textContent=money(mb);mbe.className='n'+(Math.abs(mb-total)>on.length?' bad':'');mbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
  const Rs=[0,1,2].map(i=>R&&R.tier===i?R:compute(i)),tots=[0,1,2].map(i=>+S.budgets[TIERS[i]]||0),cbs=Rs.map(Ri=>{const o={};Ri.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o});
- CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id],mn=Math.min(...c.pl.map(p=>p.min)),pin=pinOf(c.id,i);el.disabled=mn>i;el.classList.toggle('pinned',pin!=null&&S.channels[c.id].on);
-  el.placeholder=mn>i?'—':'0';el.title=mn>i?'Starts in '+TIERNAME[mn]+' (see the '+'LMH'[mn]+'+ tag)':pin!=null?'You set this. Clear it to let it share the rest.':!S.channels[c.id].on?'Type a budget to turn this channel on':v?'Shares what’s left after the channels you typed':'Not in this version’s markets yet';if(el!==document.activeElement)el.value=v?Math.round(v):''}));
+ CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id],pin=pinOf(c.id,i);el.disabled=false;el.classList.toggle('pinned',pin!=null&&S.channels[c.id].on);
+  el.placeholder='0';el.title=pin!=null?'You set this. Clear it to let it share the rest.':!S.channels[c.id].on?'Type a budget to turn this channel on':v?'Shares what’s left after the channels you typed':'Not in this version’s markets yet';if(el!==document.activeElement)el.value=v?Math.round(v):''}));
+ [0,1,2].forEach(i=>{const cs=sum(Object.values(cbs[i])),d=cs-tots[i],bE=$('#ch-bud-'+i),dE=$('#ch-diff-'+i);if(bE)bE.textContent=compact(tots[i]).replace(/^/,'$');
+  if(dE){const ok=Math.abs(d)<=1;dE.textContent=ok?'✓ matches':(d>0?'+':'−')+compact(Math.abs(d)).replace(/^/,'$');dE.className='n '+(ok?'good':'bad');dE.title=ok?'Channels add up to the '+TIERNAME[i]+' budget':money(Math.abs(d))+(d<0?' not placed':' over')+' the '+TIERNAME[i]+' budget'}});
  [0,1,2].forEach(i=>{const e=$('#ch-tot-b-'+i);if(!e)return;const cs=sum(Object.values(cbs[i]));e.textContent=compact(cs).replace(/^/,'$');e.className='n'+(Math.abs(cs-tots[i])>1?' bad':'');e.title=money(cs)+' · should equal the '+TIERNAME[i]+' budget: '+money(tots[i])});
- const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`;
+ const empty=S.markets.filter(m=>m.on&&+m.weight>0&&!Rs.some(Ri=>Ri.lines.some(l=>l.m.id===m.id)));
+ const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`+(empty.length?`<span style="display:block;margin-top:4px;color:var(--flag)">${empty.map(m=>m.name).join(', ')} ${empty.length>1?'have':'has'} no checked channel that runs there, so ${empty.length>1?'their':'its'} share goes to the other markets. Check a channel that runs there, or turn the market off in section 3.</span>`:'');
 }
 function setMarketBudget(i,x){
  const t=bTier(),total=+S.budgets[TIERS[t]]||0,m=S.markets[i];if(!total||!m.on)return;
@@ -672,28 +683,16 @@ function setMarketBudget(i,x){
 // Channel $ typed in section 7 are pinned per version. Pinned channels hold their dollars; the rest share what's left.
 const pinOf=(id,t)=>{const v=S.channels[id]?.pin?.[TIERS[t]];return v==null||v===''?null:+v};
 const chByCh=R=>{const o={};R.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o};
-function solvePins(t){
- const ids=Object.keys(S.channels).filter(k=>S.channels[k].on&&pinOf(k,t)!=null);if(!ids.length)return null;
- ids.forEach(k=>{if(!(chW(k,t)>0))setChW(k,t,1)});
- let R;for(let it=0;it<14;it++){R=compute(t);const cur=chByCh(R),tot=sum(Object.values(cur));if(!tot)break;
-  const pins=ids.filter(k=>cur[k]>0),ps=sum(pins.map(k=>pinOf(k,t))),free=Object.keys(cur).filter(k=>!pins.includes(k)),fs=sum(free.map(k=>cur[k]));
-  const sc=ps>tot||!free.length?tot/Math.max(ps,1):1,left=Math.max(0,tot-ps*sc);
-  let off=0;for(const k in cur){const tg=pins.includes(k)?pinOf(k,t)*sc:fs>0?cur[k]/fs*left:0;off=Math.max(off,Math.abs(tg-cur[k]));setChW(k,t,Math.max(1e-6,chW(k,t)*Math.max(tg,1e-6)/cur[k]))}
-  if(off<1)break}
- const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&chW(k,t)>0),s=sum(on.map(k=>chW(k,t)));if(s>0)on.forEach(k=>setChW(k,t,chW(k,t)/s*100));
- return compute(t)}
-function solveAllPins(){[0,1,2].forEach(solvePins)}
+function solveAllPins(){}
 function pinNote(t){const tot=+S.budgets[TIERS[t]]||0,ids=Object.keys(S.channels).filter(k=>S.channels[k].on&&pinOf(k,t)!=null);if(!ids.length)return '';
- const ps=sum(ids.map(k=>pinOf(k,t))),R=compute(t),cur=chByCh(R),miss=ids.filter(k=>Math.abs((cur[k]||0)-pinOf(k,t))>Math.max(2,pinOf(k,t)*0.01));
- const room=sum(Object.values(cur));
- if(ps>room+1)return room<tot-1?`The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, but only ${money(room)} of its ${money(tot)} budget is in markets where they run (the rest sits in markets with no channel on), so they were scaled down to fit. Turn on a channel for those markets, or lower a channel.`:`The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, more than its ${money(tot)} budget, so they were scaled down to fit. Raise the ${TIERNAME[t]} budget in section 1 or lower a channel.`;
- if(miss.length)return `${miss.map(k=>CHMAP[k].name).join(', ')} can’t take the full amount in ${TIERNAME[t]}: ${miss.length>1?'they only run':'it only runs'} in some markets, so ${miss.length>1?'they’re':'it’s'} capped by those markets’ budget. Raise their share in section 3 to give more.`;
- const free=Object.keys(cur).filter(k=>!ids.includes(k)).length;
- return Math.abs(ps-tot)>1&&!free?`Typed channels add to ${money(ps)} in ${TIERNAME[t]}, less than its ${money(tot)} budget; turn on another channel or lower the budget in section 1.`:''}
+ const ps=sum(ids.map(k=>pinOf(k,t))),cur=chByCh(compute(t)),none=ids.filter(k=>!cur[k]);
+ if(none.length)return `${none.map(k=>CHMAP[k].name).join(', ')} ${none.length>1?'don’t':'doesn’t'} run in any market that’s on, so ${none.length>1?'their':'its'} ${TIERNAME[t]} budget isn’t placed. Turn on a market for ${none.length>1?'them':'it'} in section 3.`;
+ if(ps>tot+1)return `The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, more than its ${money(tot)} budget, so they were scaled down to fit. Raise the ${TIERNAME[t]} budget in section 1 or lower a channel.`;
+ return ''}
 function setChannelBudget(id,x,t){
  if(t==null)t=bTier();const c=S.channels[id];c.pin=c.pin||{};
  if(x==null||isNaN(x))delete c.pin[TIERS[t]];else{c.pin[TIERS[t]]=Math.max(0,x);if(!c.on){c.on=true;const cb=$('#ch-on-'+id);if(cb)cb.checked=true}}
- solvePins(t);const n=[0,1,2].map(pinNote).filter(Boolean);setStatus('#ch-status',n.join(' '),n.length>0);
+ const n=[0,1,2].map(pinNote).filter(Boolean);setStatus('#ch-status',n.join(' '),n.length>0);
 }
 function autoChannels(){Object.values(S.channels).forEach(c=>{delete c.tw;delete c.pin})}
 
@@ -705,7 +704,7 @@ $('#btn-blank').onclick=()=>{if(!confirm('Clear every input and start a blank pl
 $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus('#extract-status','Example reloaded.');$('#exampleBadge').hidden=false};
 
 /* ==================== OUTPUT RENDERING ==================== */
-let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{if(Object.values(S.channels).some(c=>c.pin&&Object.keys(c.pin).length)){solveAllPins();save()}renderOut()},120)}
+let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
 const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
@@ -1084,16 +1083,23 @@ $('#x-copy').onclick=()=>{const txt=UI.tier===3?'':toDelim(currentTable(),'\t');
  navigator.clipboard.writeText(txt).then(()=>setStatus('#x-status','Copied. Paste into Excel or Google Sheets.')).catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');setStatus('#x-status','Copied. Paste into Excel or Google Sheets.')}catch(e){setStatus('#x-status','Copy was blocked here.',true)}ta.remove()})};
 
 /* ==================== DOC UPLOAD + EXTRACTION ==================== */
-$('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatus('#extract-status','Reading '+f.name+'…');
+let BUSY_T=null;function runBusy(txt){const b=$('#btn-upload'),t=$('#btn-upload-t');clearTimeout(BUSY_T);b.classList.remove('done');
+ if(txt===false){b.classList.remove('busy');b.removeAttribute('aria-busy');t.textContent='Upload GTM doc';return}
+ if(txt==='done'){b.classList.remove('busy');b.removeAttribute('aria-busy');b.classList.add('done');t.textContent='✓ Inputs filled';BUSY_T=setTimeout(()=>runBusy(false),2500);return}
+ b.classList.add('busy');b.setAttribute('aria-busy','true');t.textContent=txt}
+$('#btn-upload').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#in-file').click()}};
+$('#in-brief').addEventListener('paste',()=>setTimeout(()=>{S.brief=$('#in-brief').value;save();if(S.brief.trim().length>=200)runExtract()},50));
+$('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatus('#extract-status','Reading '+f.name+'…');runBusy('Reading '+f.name+'…');
  try{let text;PDF=null;
   if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){const buf=await f.arrayBuffer();const r=await pdfRead(buf);PDF={name:f.name,buf,pageChars:r.pageChars,b64:b64(buf),text:r.text.replace(/\n{3,}/g,'\n\n').trim(),pages:r.pages};text=PDF.text;
    if(text.length<40){S.brief='';$('#in-brief').value='';save();
-    return setStatus('#extract-status',(agentOn()||SAMPLE)?`Loaded ${f.name} (${r.pages} page${r.pages>1?'s':''}). It has no selectable text, so ${SAMPLE?'Claude':'the AI agent'} will read the pages directly. Press “Fill inputs from doc”.`:`${f.name} has no selectable text (it may be scanned). Connect an AI agent below so it can read the pages, or paste the text.`,!(agentOn()||SAMPLE))}}
+    e.target.value='';if(agentOn()||SAMPLE)return runExtract();runBusy(false);
+    return setStatus('#extract-status',`${f.name} has no selectable text (it may be scanned). Connect an AI agent below so it can read the pages, or paste the text.`,true)}}
   else if(/\.docx$/i.test(f.name)){if(!window.mammoth)throw new Error('Word reader did not load');const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});text=r.value}
   else text=await f.text();
   S.brief=text.replace(/\n{3,}/g,'\n\n').trim();$('#in-brief').value=S.brief;save();
-  setStatus('#extract-status',`Loaded ${f.name}${PDF?` (${PDF.pages} pages, ${S.brief.length.toLocaleString()} characters)`:` (${S.brief.length.toLocaleString()} characters)`}.${PDF&&SAMPLE?' Claude will also look at the pages, so charts and scans count.':PDF&&agentOn()?' The AI agent will read the PDF itself.':''} Press “Fill inputs from doc”.`)}
- catch(err){setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
+  e.target.value='';return runExtract()}
+ catch(err){runBusy(false);setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
 const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
@@ -1323,14 +1329,17 @@ function agentFromLink(){
 agentFromLink();
 $('#agent-off').onclick=()=>{AGENT=null;try{localStorage.removeItem(AGENT_LS)}catch(e){}renderAgent();setStatus('#agent-status','Disconnected. Your key was removed from this browser.')};
 
-$('#btn-extract').onclick=async()=>{
- const text=(S.brief||'').trim();const pdf=pdfForBrief();if(text.length<40&&!pdf)return setStatus('#extract-status','Paste or upload the GTM doc text first.',true);
- const btn=$('#btn-extract');btn.disabled=true;
+$('#btn-extract').onclick=()=>runExtract();
+let RUNNING=false;
+async function runExtract(){
+ if(RUNNING)return;S.brief=$('#in-brief').value;
+ const text=(S.brief||'').trim();const pdf=pdfForBrief();if(text.length<40&&!pdf){runBusy(false);return setStatus('#extract-status','Upload the GTM doc or paste its text first.',true)}
+ const btn=$('#btn-extract');btn.disabled=true;RUNNING=true;let ok=false;runBusy(aiReady()?'Reading the doc…':'Filling inputs…');
  const yr=(S.start||'2026').slice(0,4);
  try{
   let x,how;
   if(aiReady()){
-   setStatus('#extract-status',aiLabel()+(pdf?' is reading '+pdf.name+'…':' is reading the brief…'));
+   setStatus('#extract-status',aiLabel()+(pdf?' is reading '+pdf.name+'…':' is reading the brief…'));runBusy((SAMPLE?'Claude':'AI')+' is reading the doc…');
    const prompt=`You are a senior paid media planner. Read the GTM strategy text below and extract inputs for a paid media plan.
 Reply with only JSON in exactly this shape:
 {"campaignName":string,"product":string,
@@ -1354,13 +1363,13 @@ ${text.slice(0,60000)}
    x=await aiJSON(prompt,{pdf});how=SAMPLE?'Claude'+(pdf?', with page images':''):(AGENT.provider==='gemini'?'Gemini':'AI agent')+(pdf?', full PDF':'');
   }else{x=localExtract(text);how='keyword scan'}
   const ch=applyExtract(x||{});clearCopyForNewBrief();renderInputs();changed();$('#exampleBadge').hidden=true;
-  setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);
+  setStatus('#extract-status',ch.length?`Filled from the doc (${how}): ${ch.join(', ')}. Review the sections below.`:'Nothing usable was found in the text. Fill the inputs by hand.',!ch.length);ok=ch.length>0;
   if(aiReady())draftCopy();else setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');
  }catch(e){
   if(e&&e.code==='not_granted'){const x=localExtract(text);const ch=applyExtract(x);clearCopyForNewBrief();renderInputs();changed();setStatus('#copy-status','The previous ad copy was cleared for this brief. Write new copy here.');setStatus('#extract-status','Claude access was declined, so a keyword scan filled: '+(ch.join(', ')||'nothing')+'.')}
   else setStatus('#extract-status',aiErr(e,'Extraction'),true)
- }finally{btn.disabled=false}
-};
+ }finally{btn.disabled=false;RUNNING=false;runBusy(ok?'done':false)}
+}
 
 function clearCopyForNewBrief(){S.copyEdits={};S.copy={src:S.name,voice:'',ctas:'',proof:'',ini:S.initiatives.map(()=>({h:'',b:''}))}}
 $('#btn-copy').onclick=()=>draftCopy();
