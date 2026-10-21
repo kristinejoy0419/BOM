@@ -211,7 +211,30 @@ if(!S||!S.markets||S.name==='One Unity · Unity Acquire 2026')S=exampleState();
 if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
-function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}
+// Projects: every plan lives in a library in this browser; the open one autosaves. Backups are one JSON file with every project.
+const PJKEY=LSKEY+'-projects';
+const pjAll=()=>{try{return JSON.parse(localStorage.getItem(PJKEY)||'{}')||{}}catch(e){return {}}};
+const pjPut=P=>{try{localStorage.setItem(PJKEY,JSON.stringify(P));return true}catch(e){return false}};
+const pjId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let PJ_ERR=false;
+function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}
+ if(UI.pj){const P=pjAll();if(P[UI.pj]){P[UI.pj].S=S;P[UI.pj].saved=Date.now();PJ_ERR=!pjPut(P);const h=document.getElementById('pj-hint');if(h)h.textContent=PJ_ERR?'browser storage full: download a backup':'saved '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}}}
+(function pjEnsure(){const P=pjAll();if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
+function pjOpen(id){const P=pjAll();if(!P[id])return;try{localStorage.setItem(LSKEY,JSON.stringify(P[id].S));UI.pj=id;localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}location.reload()}
+function renderProjects(){const P=pjAll(),ids=Object.keys(P).sort((a,b)=>(P[b].saved||0)-(P[a].saved||0));
+ $('#pj-sel').innerHTML=ids.map(id=>`<option value="${id}" ${id===UI.pj?'selected':''}>${esc(P[id].name||'Untitled plan')}</option>`).join('');
+ $('#pj-name').value=P[UI.pj]?.name||'';$('#pj-del').disabled=ids.length<2}
+function wireProjects(){
+ $('#pj-sel').onchange=e=>{save();pjOpen(e.target.value)};
+ $('#pj-name').oninput=e=>{const P=pjAll();if(P[UI.pj]){P[UI.pj].name=e.target.value.trim()||'Untitled plan';pjPut(P);const o=$('#pj-sel').querySelector(`option[value="${UI.pj}"]`);if(o)o.textContent=P[UI.pj].name}};
+ $('#pj-new').onclick=()=>{save();const P=pjAll(),id=pjId();P[id]={name:'New plan '+new Date().toLocaleDateString(),S:blankState(),saved:Date.now()};if(!pjPut(P))return setStatus('#pj-status','Browser storage is full. Download a backup, then delete an old project.',true);pjOpen(id)};
+ $('#pj-copy').onclick=()=>{save();const P=pjAll(),id=pjId();P[id]={name:(P[UI.pj]?.name||'Plan')+' (copy)',S:JSON.parse(JSON.stringify(S)),saved:Date.now()};if(!pjPut(P))return setStatus('#pj-status','Browser storage is full. Download a backup, then delete an old project.',true);UI.pj=id;save();renderProjects();setStatus('#pj-status','Copy saved. You are now working in the copy; rename it above.')};
+ $('#pj-del').onclick=()=>{const P=pjAll(),n=P[UI.pj]?.name||'this project';if(Object.keys(P).length<2||!confirm('Delete “'+n+'”? Download a backup first if you might want it back.'))return;delete P[UI.pj];pjPut(P);const next=Object.keys(P).sort((a,b)=>(P[b].saved||0)-(P[a].saved||0))[0];UI.pj=null;pjOpen(next)};
+ $('#pj-export').onclick=()=>{save();const d=new Date().toISOString().slice(0,10);saveFile('paid-media-hub-projects-'+d+'.json',JSON.stringify({app:'paid-media-hub',version:1,exported:new Date().toISOString(),projects:pjAll()},null,1))};
+ $('#pj-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text()),inc=j&&j.projects;if(!inc||typeof inc!=='object')throw 0;
+   const P=pjAll();let n=0,m=0;for(const [id,pr] of Object.entries(inc)){if(!pr||!pr.S||!pr.S.markets)continue;if(P[id]&&JSON.stringify(P[id].S)===JSON.stringify(pr.S)){m++;continue}const k=P[id]?pjId():id;P[k]={name:pr.name||'Imported plan',S:pr.S,saved:pr.saved||Date.now()};n++}
+   if(!n&&!m)throw 0;if(!pjPut(P))return setStatus('#pj-status','Browser storage is full, so the backup could not be opened. Delete an old project first.',true);renderProjects();setStatus('#pj-status',n?`Opened the backup: ${n} project${n>1?'s':''} added to your list${m?` (${m} already here)`:''}. Pick one above.`:'Everything in that backup is already in your list.')}
+  catch(err){setStatus('#pj-status','That file isn’t a Paid Media Hub backup.',true)}e.target.value=''}}
 
 /* ==================== HELPERS ==================== */
 const $=s=>document.querySelector(s);
@@ -1788,7 +1811,7 @@ Rules: one entry in "initiatives" per initiative above, same order. For each: 5 
 }
 
 /* ==================== BOOT ==================== */
-renderInputs();renderOut();renderAgent();
+renderInputs();renderOut();renderAgent();renderProjects();wireProjects();
 (function hook(n){
  if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;renderAgent();newCheer(true)}).catch(()=>{});return}
  if(n<20)setTimeout(()=>hook(n+1),250);
