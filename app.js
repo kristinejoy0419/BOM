@@ -268,7 +268,7 @@ function adCopy({fmt,logo,lim,ini,concepts,langs}){
  else if(fmt==='text'){const hs=[0,1,2].map(i=>pickFit(H,lim.h,i)).filter(Boolean),bs=[0,1].map(i=>pickFit(B,lim.b,i)).filter(Boolean);
   rows.push({label:'Ad set',parts:[...[...new Map(hs.map(x=>[x.t,x])).values()].map(x=>({k:'H',lim:lim.h,...x})),...[...new Map(bs.map(x=>[x.t,x])).values()].map(x=>({k:'D',lim:lim.b,...x}))]})}
  else for(let i=0;i<concepts;i++){const parts=[];
-  if(lim.h||!('b' in lim)){const h=pickFit(H,lim.h,i);if(h)parts.push({k:fmt==='video'?'Super':'H',lim:lim.h,...h})}
+  if(lim.h||!('b' in lim)){const h=pickFit(H,lim.h,i);if(h)parts.push({k:'H',lim:lim.h,...h})}
   if(lim.b){const b=pickFit(B,lim.b,i);if(b)parts.push({k:'Body',lim:lim.b,...b})}
   const c=pickFit(CT,lim.cta,i);if(c&&fmt!=='document')parts.push({k:'CTA',lim:lim.cta,...c});
   if(parts.length)rows.push({label:'C'+(i+1),parts})}
@@ -284,9 +284,9 @@ function onImageCopy({fmt,logo,ini,concepts,langs}){
  const C=S.copy||{},bank=(C.ini||[])[ini]||(C.ini||[])[0]||{},H=linesOf(bank.h),E=linesOf(C.eyebrow),CT=linesOf(C.ctas);
  const loc=langs.filter(l=>l!=='EN'),rows=[];
  for(let i=0;i<concepts;i++){const parts=[];const e=pickFit(E,ONIMG.eye,i),h=pickFit(H,ONIMG.h,i),c=pickFit(CT,ONIMG.cta,i);
-  if(e&&fmt!=='video')parts.push({k:'Eyebrow',lim:ONIMG.eye,...e});if(h)parts.push({k:fmt==='video'?'Super':'Headline',lim:ONIMG.h,...h});
+  if(e&&fmt!=='video')parts.push({k:'Eyebrow',lim:ONIMG.eye,...e});if(h)parts.push({k:fmt==='video'?'On-screen headline (super)':'Headline',lim:ONIMG.h,...h});
   if(c&&fmt!=='static')parts.push({k:fmt==='video'?'End card CTA':'CTA button',lim:ONIMG.cta,...c});if(parts.length)rows.push({label:'C'+(i+1),parts})}
- const note=[fmt==='static'?'Social feeds: keep text to about 20% of the image or less (Meta favors light text).':fmt==='display'?'Logo, headline and CTA on every size.':'One super per card; end card with logo and CTA.',loc.length?'Localize for '+loc.join(', ')+'; check limits after translation.':''].filter(Boolean).join(' ');
+ const note=[fmt==='static'?'Social feeds: keep text to about 20% of the image or less (Meta favors light text).':fmt==='display'?'Logo, headline and CTA on every size.':'Hold each on-screen line 2–3 seconds; burn in captions for muted autoplay; end card with logo and CTA.',loc.length?'Localize for '+loc.join(', ')+'; check limits after translation.':''].filter(Boolean).join(' ');
  if(!rows.length)return {rows,note:'Add headlines (and on-image eyebrows) in section 10.',text:'(no copy yet)'};
  return finishAd({rows,note})}
 // Platform copy: the text typed into each platform's ad fields, with that platform's own names and limits.
@@ -295,7 +295,11 @@ const LGF={li_lgf:1,meta_lgf:1},PERSONAL={li_image:1,li_video:1,li_doc:1};
 function platformAd(u,{ini,concepts,langs}){const U=UNITS[u],L=LIMS[u]||{},f=VISUAL(U.fmt)?'static':U.fmt;
  if(U.fmt==='display'&&!L.b)return {rows:[],note:'No typed fields: the copy lives on the banner (see On-image copy in the BOM tab).',text:'Copy lives on the banner'};
  const ad=adCopy({fmt:f,lim:L,ini,concepts,langs}),N=FIELD_NAMES[U.platform]||{};
- ad.rows.forEach(r=>{r.parts.forEach(p=>{if(LGF[u])p.k=p.k==='H'?'Form headline':p.k==='Body'?'Offer detail':p.k;else p.k=N[p.k]||(p.k==='H'?'Headline':p.k==='D'?'Description':p.k)});
+// LinkedIn, Meta and Reddit CTAs are chosen from a fixed button list, so map the bank's CTA to the closest option
+const CTA_OPT={LinkedIn:{demo:'Request demo',reg:'Register',dl:'Download',sign:'Sign up',def:'Learn more'},Meta:{demo:'Book now',reg:'Sign up',dl:'Download',sign:'Sign up',def:'Learn more'},Reddit:{demo:'Learn more',reg:'Sign up',dl:'Download',sign:'Sign up',def:'Learn more'}};
+function pickCTA(pl,t){const o=CTA_OPT[pl];if(!o)return t;const x=String(t).toLowerCase();return /demo|meeting|call|book/.test(x)?o.demo:/regist|webinar|event|attend|save (my|your) seat/.test(x)?o.reg:/download|report|guide|ebook|get the/.test(x)?o.dl:/sign ?up|start|try|free|trial|create/.test(x)?o.sign:o.def}
+const CTAPICK={LinkedIn:'CTA button (pick from LinkedIn list)',Meta:'CTA button (pick from Meta list)',X:'CTA (website card button)','X (Twitter)':'CTA (website card button)',YouTube:'CTA button (≤10 chars)',Reddit:'CTA button (pick from list)'};
+ ad.rows.forEach(r=>{r.parts.forEach(p=>{if(p.k==='CTA'){p.t=pickCTA(U.platform,p.t);p.k=CTAPICK[U.platform]||'CTA';if(U.platform==='YouTube')p.lim=10;else if(CTAPICK[U.platform])p.lim=0;return}if(u==='gs_ext'){p.k=p.k==='H'?'Sitelink text':p.k==='D'?'Sitelink description':p.k;return}if(LGF[u])p.k=p.k==='H'?'Form headline':p.k==='Body'?'Offer detail':p.k;else p.k=N[p.k]||(p.k==='H'?'Headline':p.k==='D'?'Description':p.k)});
   if(LGF[u])r.parts.push({k:'Thank-you message',lim:300,t:'Thanks! Your copy is on its way to your inbox.',over:0});
   if(PERSONAL[u]){const b=r.parts.find(p=>p.k==='Main copy (intro text)');if(b)r.parts.push({k:'Personalized intro (optional)',lim:L.b,t:'Hi %FIRSTNAME%, '+b.t.charAt(0).toLowerCase()+b.t.slice(1),over:0})}});
  ad.rows.forEach(r=>r.parts.forEach(p=>{p.over=p.lim?Math.max(0,p.t.length-p.lim):0}));
@@ -872,10 +876,10 @@ function adPreview(M){
    <div class="pv-ft">${hl?`<span class="pv-hl">${b('B','b')} ${cut(hl,48)}</span>`:'<span></span>'}<span class="pv-cta">${b('C','c')} ${cut(cta,18)}</span></div></div>`;
   legend=[main&&['A','a','Main copy (typed in platform)'],hl&&['B','b','Headline (typed in platform)'],['C','c','CTA button'],['D','d','On-image copy (designed into the image)']].filter(Boolean)}
  else if(M.fmt==='video'){
-  const sup=pick(oi,/super/i)||oh,end=pick(oi,/end card|cta/i)||cta;
+  const sup=pick(oi,/on-screen|super/i)||oh,end=pick(oi,/end card|cta/i)||cta;
   body=`<div class="pv-card">${head}${main?`<div class="pv-main">${b('A','a')} ${cut(main,110)}</div>`:''}${art(`<div class="pv-play">▶</div><div class="pv-oi pv-sup">${b('D','d')}<div class="pv-h">${cut(sup||'Super',40)}</div></div><div class="pv-end">${b('E','e')} End card: ${cut(end,18)}</div>`)}
    <div class="pv-ft">${hl?`<span class="pv-hl">${b('B','b')} ${cut(hl,48)}</span>`:'<span></span>'}<span class="pv-cta">${b('C','c')} ${cut(cta,18)}</span></div></div>`;
-  legend=[main&&['A','a','Main copy (typed in platform)'],hl&&['B','b','Headline (typed in platform)'],['C','c','CTA button'],['D','d','Super (on-screen text)'],['E','e','End card CTA']].filter(Boolean)}
+  legend=[main&&['A','a','Main copy (typed in platform)'],hl&&['B','b','Headline (typed in platform)'],['C','c','CTA button'],['D','d','On-screen headline (super)'],['E','e','End card CTA']].filter(Boolean)}
  else if(M.fmt==='display'){
   body=`<div class="pv-ban">${b('D','d')}<div class="pv-blogo">${brand}</div><div class="pv-h">${cut(oh||'Headline on the banner',36)}</div><span class="pv-bcta">${b('C','c')} ${cut(octa||'Learn more',16)}</span></div>`;
   legend=[['D','d','Headline designed into the banner'],['C','c','CTA button on the banner']]}
@@ -922,7 +926,7 @@ function mvpOverlay(ad,mad){
 }
 function adCellEdit(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
- return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span>${r.parts.map((p,j)=>{const long=(p.lim||0)>90||p.t.length>90;
+ return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(/^C\d+$/.test(r.label)?'Concept '+r.label.slice(1):r.label)}</span>${r.parts.map((p,j)=>{const long=(p.lim||0)>90||p.t.length>90;
   const attrs=`class="cp-edit" data-lk="${esc(ad.lk)}" data-key="${esc(r.label+'|'+j)}" data-lim="${p.lim||''}" aria-label="${esc(r.label+' '+p.k)}"`;
   return `<div style="margin-top:4px"><div class="sub2" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(p.k)}${p.edited?' · edited':p.fromMvp?' · from BOM':''}</span><span class="cp-count ${p.over>0?'over':''}">${p.lim?`${p.t.length}/${p.lim}`:p.t.length+' chars'}</span></div>
    ${long?`<textarea ${attrs} rows="2">${esc(p.t)}</textarea>`:`<input type="text" ${attrs} value="${esc(p.t)}">`}</div>`}).join('')}</div>`).join('')}
@@ -930,7 +934,7 @@ function adCellEdit(ad){
 }
 function adCell(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
- return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip over">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
+ return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(/^C\d+$/.test(r.label)?'Concept '+r.label.slice(1):r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip over">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
 function adCopyUnits(R){const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pls:new Set(),ini:{},langs:new Set()}).pls.add(l.channel+' · '+l.placement);const i=Math.max(0,iniIdx(l.p));used[u].ini[i]=(used[u].ini[i]||0)+l.budget;used[u].langs.add(l.lang)}));
  return UNIT_GROUPS.map(([g,us])=>[g,us.filter(u=>used[u]).map(u=>{const x=used[u],ini=+Object.entries(x.ini).sort((a,b)=>b[1]-a[1])[0][0];return {u,U:UNITS[u],pls:[...x.pls],ad:platformAd(u,{ini,concepts:R.concepts,langs:[...x.langs]})}})]).filter(([,a])=>a.length)}
