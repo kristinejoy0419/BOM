@@ -589,7 +589,8 @@ function goalBudget(tier){const G=gr(),T=TIERS[tier],keep=S.budgets[T],target=+G
 function scen(o,k,pk){const P=pipe(),leads=o.leads*k,mql=leads*Math.min(1,P.mql*pk),sql=mql*Math.min(1,P.sql*pk),cust=sql*Math.min(1,P.win*pk);return {...o,leads,mql,sql,cust}}
 function renderGrowth(R){const G=gr(),o=funnel(R),E=econ(R,o),mo=outcomes(R),cap=G.sdr*G.perSdr;
  const inp=(k,l,u,step=1,w=96)=>`<label>${l} <input class="rate g-in" style="width:${w+24}px!important" type="number" min="0" step="${step}" data-k="${k}" value="${G[k]}">${u||''}</label>`;
- const tile=(v,k,cls='')=>`<div class="tile ${cls}"><span class="v">${v}</span><span class="k">${k}</span></div>`;
+ const tile=(v,k,cls='',f='')=>`<div class="tile ${cls}"${f?` title="How it's calculated: ${esc(f)}"`:''}><span class="v">${v}</span><span class="k">${k}</span>${f?`<span class="tf">= ${esc(f)}</span>`:''}</div>`;
+ const n1=v=>v>=10?compact(v):(+v.toFixed(1)).toString(),gpm=G.acv*G.gm/100/12;
  const gl={cust:'customers',pipe:'pipeline $',sql:'SQLs'}[G.goalType];
  const gb=[0,1,2].map(t=>({t,o:funnel(compute(t)),b:+S.budgets[TIERS[t]]||0})),need=goalBudget(R.tier);
  const goalTxt=v=>G.goalType==='pipe'?money(v):compact(v);
@@ -615,9 +616,9 @@ function renderGrowth(R){const G=gr(),o=funnel(R),E=econ(R,o),mo=outcomes(R),cap
   <div class="note">Media plan outcomes turned into revenue, payback and ROI. Type your own numbers in the boxes; everything on this tab and the Summary updates. Planning estimates, not guarantees.</div></div>
  <div class="pipe-set"><span class="sub2">Revenue:</span>${inp('acv','Deal size (ACV) $','',1000,110)}${inp('gm','Gross margin','%',1,64)}${inp('life','Customer lifetime','yrs',0.5,64)}</div>
  <div class="pipe-set"><span class="sub2">Other costs:</span>${inp('agency','Agency fee','% of media',1,64)}${inp('creative','Creative production $','',1000,110)}${inp('tools','Tools &amp; data $','',1000,110)}</div>
- <div class="tiles">${tile(money(E.pipeline),'Pipeline (SQLs × ACV)')}${tile(money(E.rev),'First-year new revenue')}${tile(money(E.total),`All-in cost · media ${compact(E.media)} + fees, creative, tools ${compact(E.total-E.media)}`)}
-  ${tile(money(E.cacF),`Fully loaded CAC (media only ${money(E.cacM)})`)}${tile(E.ltvCac?E.ltvCac.toFixed(1)+' : 1':'—',`LTV : CAC (aim for 3 : 1 or better)`,E.ltvCac&&E.ltvCac<3?'warn':'')}${tile(E.payback?Math.round(E.payback)+' mo':'—','CAC payback (aim for under 18 months)',E.payback>18?'warn':'')}
-  ${tile((E.pipeRoi).toFixed(1)+'×','Pipeline per $1 spent')}${tile(Math.round(E.roi*100)+'%','First-year ROI on gross profit')}${tile(money(E.ltv),'Lifetime gross profit per customer')}</div>
+ <div class="tiles">${tile(money(E.pipeline),'Pipeline (SQLs × ACV)','',`${n1(o.sql)} SQLs × ${money(G.acv)} ACV`)}${tile(money(E.rev),'First-year new revenue','',`${n1(o.cust)} customers × ${money(G.acv)} ACV`)}${tile(money(E.total),'All-in cost','',`${money(E.media)} media + ${money(E.fees)} agency fee (${G.agency}%) + ${money(+G.creative||0)} creative + ${money(+G.tools||0)} tools`)}
+  ${tile(money(E.cacF),`Fully loaded CAC (media only ${money(E.cacM)})`,'',`${money(E.total)} all-in ÷ ${n1(o.cust)} customers`)}${tile(E.ltvCac?E.ltvCac.toFixed(1)+' : 1':'—',`LTV : CAC (aim for 3 : 1 or better)`,E.ltvCac&&E.ltvCac<3?'warn':'',`${money(E.ltv)} lifetime gross profit ÷ ${money(E.cacF)} CAC`)}${tile(E.payback?Math.round(E.payback)+' mo':'—','CAC payback (aim for under 18 months)',E.payback>18?'warn':'',`${money(E.cacF)} CAC ÷ ${money(gpm)} gross profit a month (ACV × ${G.gm}% ÷ 12)`)}
+  ${tile((E.pipeRoi).toFixed(1)+'×','Pipeline per $1 spent','',`${money(E.pipeline)} pipeline ÷ ${money(E.total)} all-in`)}${tile(Math.round(E.roi*100)+'%','First-year ROI on gross profit','',`(${money(E.rev)} revenue × ${G.gm}% − ${money(E.total)} cost) ÷ ${money(E.total)}`)}${tile(money(E.ltv),'Lifetime gross profit per customer','',`${money(G.acv)} ACV × ${G.gm}% margin × ${G.life} yrs`)}</div>
 
  <div><h2 style="font-size:18px">Start from the goal</h2><div class="note">Pick what you need to deliver and see the budget it takes at this plan's mix, including diminishing returns.</div>
   <div class="pipe-set" style="margin-top:8px"><label>Goal <select id="g-goaltype">${[['cust','Customers'],['sql','SQLs'],['pipe','Pipeline $']].map(([v,n])=>`<option value="${v}" ${G.goalType===v?'selected':''}>${n}</option>`).join('')}</select></label>${inp('goal','Target','',1,120)}</div>
