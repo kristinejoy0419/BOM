@@ -549,7 +549,7 @@ function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,lead
 
 /* ==================== GROWTH PLAN ==================== */
 // Revenue side, goal-back budget, scenarios, saturation, total cost, sales capacity, in-flight rules, incrementality
-const GROWTH_DEF={acv:30000,gm:75,life:3,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
+const GROWTH_DEF={acv:60000,gm:80,life:4,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
 const gr=()=>({...GROWTH_DEF,...(S.growth||{})});
 // Diminishing returns: spend where a channel's results fall to ~63% of linear (planning estimate per flight)
 const SAT_CAP={linkedin:1500000,google:800000,meta:1000000,x:300000,reddit:300000,youtube:800000,trade:300000,creators:200000,abm:600000,events:300000,wechat:300000,baidu:200000,naver:200000};
@@ -607,11 +607,11 @@ function renderGrowth(R){const G=gr(),o=funnel(R),E=econ(R,o),mo=outcomes(R),cap
   <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Spend</th><th class="n">Efficiency</th><th class="n">Leads</th><th class="n">Avg cost per lead</th><th class="n">Next $10K: cost per lead</th><th>Room to grow</th></tr></thead><tbody>
   ${satRows.map(r=>`<tr><td>${esc(r.c.name)}</td><td class="n">${money(r.spend)}</td><td class="n">${Math.round(r.eff*100)}%</td><td class="n">${r.leads>0.5?compact(r.leads):'<span class="sub2">—</span>'}</td><td class="n">${r.cpl&&r.leads>0.5?money(r.cpl):'<span class="sub2">—</span>'}</td><td class="n">${r.mcpl&&r.leads>0.5?money(r.mcpl):'<span class="sub2">—</span>'}</td><td><span class="chip ${r.eff>0.9?'aw':r.eff>0.8?'':'flag'}">${r.eff>0.9?'Plenty':r.eff>0.8?'Some':'Near saturation'}</span></td></tr>`).join('')}</tbody></table></div></div>
 
- <div><h2 style="font-size:18px">Can sales keep up?</h2><div class="pipe-set" style="margin-top:6px">${inp('sdr','SDRs working these leads','',1,64)}${inp('perSdr','Leads each can work a month','',10,72)}<span class="chip ${flagCap?'flag':'aw'}">${flagCap?`${over.filter(Boolean).length} month${over.filter(Boolean).length>1?'s':''} over capacity`:'Capacity covers every month'}</span></div>
+ <div><h2 style="font-size:18px">Can sales keep up?</h2><div class="note">Compares the leads this plan creates each month with how many your SDRs can actually call. Capacity = number of SDRs × leads each can work in a month. A month in amber has more leads than the team can follow up on, usually launch and event months when spend is heaviest.</div><div class="pipe-set" style="margin-top:6px">${inp('sdr','SDRs working these leads','',1,64)}${inp('perSdr','Leads each can work a month','',10,72)}<span class="chip ${flagCap?'flag':'aw'}">${flagCap?`${over.filter(Boolean).length} month${over.filter(Boolean).length>1?'s':''} over capacity`:'Capacity covers every month'}</span></div>
   <div class="tscroll"><table><thead><tr><th>Month</th>${R.months.map(m=>`<th class="n">${esc(monthLabel(m))}</th>`).join('')}</tr></thead><tbody>
-  <tr><td>Leads</td>${lm.map((v,i)=>`<td class="n"${over[i]?' style="color:var(--flag);font-weight:600"':''}>${compact(v)}</td>`).join('')}</tr>
-  <tr><td>SDR capacity</td>${lm.map(()=>`<td class="n">${compact(cap)}</td>`).join('')}</tr></tbody></table></div>
-  <div class="note" style="margin-top:6px">Agree an SLA with sales before launch: follow up on every hand-raiser within 1 hour (5 minutes for demo requests), route by market, and send leads from months over capacity to nurture instead of letting them go cold.</div></div>
+  <tr><td>Leads from this plan</td>${lm.map((v,i)=>`<td class="n"${over[i]?' style="color:var(--flag);font-weight:600"':''}>${compact(v)}</td>`).join('')}</tr>
+  <tr><td>Leads your SDRs can work</td>${lm.map(()=>`<td class="n">${compact(cap)}</td>`).join('')}</tr></tbody></table></div>
+  <div class="note" style="margin-top:6px">To fix an amber month: add an SDR (or borrow one) for that month, raise leads per SDR, or shift some of that month's spend later. Agree an SLA with sales before launch: follow up on every hand-raiser within 1 hour (5 minutes for demo requests), route by market, and send leads from months over capacity to nurture instead of letting them go cold.</div></div>
 
  <div><h2 style="font-size:18px">In-flight rules: when to scale, hold or cut</h2><div class="note">Agree these with the agency up front so budget moves on data, not opinion. Targets come from this plan's projections.</div>
   <div class="tscroll"><table><thead><tr><th>Channel</th><th>Watch</th><th class="n">Target</th><th>Scale if</th><th>Cut if</th><th>Check</th></tr></thead><tbody>
@@ -900,7 +900,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
