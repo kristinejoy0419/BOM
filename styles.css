@@ -88,6 +88,15 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .li.mom .full{grid-column:1/-1}
 .li.ini{grid-template-columns:1fr 130px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .li.ini .full{grid-column:1/-1}
+.ugrp{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rail .ugrp>summary{padding:10px 12px;font-family:var(--f-body);font-size:13px;font-weight:600;letter-spacing:0}
+.rail .ugrp>summary .note{margin-left:auto;font-weight:500}
+.rail details.ugrp:not([open])>summary::after{content:"+"}.rail details.ugrp[open]>summary::after{content:"−"}
+.ugbody{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
+.li.unit{align-items:start}
+.sizes{display:flex;flex-wrap:wrap;gap:4px 6px}
+.sz{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:var(--sunk);cursor:pointer}
+.sz input{width:13px;height:13px;margin:0}
 .li.unit .spec{font-size:11px;color:var(--ink);opacity:.78}
 .chgroup{font-family:var(--f-body);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-top:6px}
 .tierchip{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--rose-soft);color:var(--rose);white-space:nowrap}

@@ -237,7 +237,8 @@ function vinfo(u,v){const U=UNITS[u];let fmt=U.fmt,logo=false;
  if(rm)ratio=rm[1];else if(sz){const r=sz[1]/sz[2],K=[['1.91:1',1.91],['1:1',1],['4:5',.8],['9:16',.5625],['16:9',1.778],['2:1',2],['3:4',.75],['4:3',1.333]];const k=K.find(k=>Math.abs(k[1]-r)<.03);ratio=k?k[0]:null}
  return {fmt,logo,size:sz?sz[1]+'×'+sz[2]:null,area:sz?sz[1]*sz[2]:0,ratio,label:v}}
 const unitOn=u=>S.units?.[u]!==false;
-function variantsOf(u){return unitOn(u)?UNITS[u].variants:[]}
+const sizeOn=(u,v)=>!S.vOff?.[u+'|'+v];
+function variantsOf(u){return unitOn(u)?UNITS[u].variants.filter(v=>sizeOn(u,v)):[]}
 function videoLengths(){const a=String(S.formats._video?.lengths||'').split(/[,;/]+/).map(x=>x.trim()).filter(Boolean);return a.length?a:['1 length']}
 function unitsFor(p,m){const a=typeof p.units==='function'?p.units(m):p.units;return a.filter(u=>variantsOf(u).length)}
 function rateOf(p){const r=S.rates[p.id];return r!=null&&r!==''&&!isNaN(r)?+r:p.rate}
@@ -385,9 +386,9 @@ function utmTable(R){
 function specTable(R){
  const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pl:new Set(),mk:new Set(),lg:new Set()});used[u].pl.add(l.channel+' · '+l.placement);used[u].mk.add(l.market);used[u].lg.add(l.lang)}));
  const cols=[['Platform','group'],['Ad unit','name'],['Runs on','covers'],['Sizes / aspect ratios','sizes'],['File types','files'],['Max file size','max'],['Length / duration','length'],['Copy limits','copy'],['Notes','notes'],['Used in','usedIn'],['Markets','mk'],['Languages','lg'],['Production lead (days)','lead'],['Confirm with platform','verify']];
- const rows=[];UNIT_GROUPS.forEach(([g,us])=>{const by={};us.filter(unitOn).forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
+ const rows=[];UNIT_GROUPS.forEach(([g,us])=>{const by={};us.filter(u=>variantsOf(u).length).forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
   Object.values(by).forEach(grp=>{const s=UNITS[grp[0]],U=k=>[...new Set(grp.flatMap(u=>used[u]?[...used[u][k]]:[]))];const pl=U('pl');
-   rows.push({group:g,units:grp,name:grp.map(u=>UNITS[u].name).join(' + '),covers:grp.map(u=>UNITS[u].covers).filter(Boolean).join('; '),sizes:s.variants.join(' | '),files:s.files,max:s.max,length:s.length,
+   rows.push({group:g,units:grp,name:grp.map(u=>UNITS[u].name).join(' + '),covers:grp.map(u=>UNITS[u].covers).filter(Boolean).join('; '),sizes:variantsOf(grp[0]).join(' | '),files:s.files,max:s.max,length:s.length,
     copy:[...new Set(grp.flatMap(u=>UNITS[u].copy))].join(' | '),notes:[...new Set(grp.map(u=>UNITS[u].notes).filter(Boolean))].join(' '),usedIn:pl.length?pl.join('; '):'Selected · not bought in '+TIERNAME[R.tier],bought:pl.length>0,
     mk:U('mk').join(', '),lg:U('lg').join(', '),lead:Math.max(...grp.map(u=>UNITS[u].lead)),verify:grp.some(u=>UNITS[u].verify)?'Yes':''})})});
  return {name:'Spec Sheet',cols,rows};
@@ -567,14 +568,22 @@ function renderCopyInputs(){
 function renderInputs(){
  bindSimple();renderCopyInputs();
  const plU={};CH.forEach(c=>c.pl.forEach(p=>{const us=typeof p.units==='function'?[...new Set(S.markets.flatMap(m=>p.units(m)))]:p.units;us.forEach(u=>(plU[u]=plU[u]||new Set()).add(c.name+' · '+p.name))}));
- $('#fmt-list').innerHTML=UNIT_GROUPS.map(([g,us])=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
-  return `<div class="chgroup">${esc(g)}</div>`+Object.values(by).map(grp=>{const U=UNITS[grp[0]],id=grp.join('+'),n=new Set(grp.flatMap(u=>[...(plU[u]||[])])).size;
-   return `<div class="li per unit"><input type="checkbox" id="un-${id}" ${grp.every(unitOn)?'checked':''} aria-label="Include ${esc(grp.map(u=>UNITS[u].name).join(', '))}"><label for="un-${id}" style="display:flex;flex-direction:column;min-width:0;gap:1px">
-    <span>${grp.map(u=>esc(UNITS[u].name)).join(' + ')} ${n?`<span class="tierchip" title="${esc([...new Set(grp.flatMap(u=>[...(plU[u]||[])]))].join('; '))}">${n} placement${n>1?'s':''}</span>`:'<span class="tierchip" style="background:var(--sunk);color:var(--muted)">not bought</span>'}</span>
-    ${U.covers?`<span class="note">Runs on: ${esc(U.covers)}</span>`:''}<span class="note spec">${esc(U.variants.join(' · '))}${U.files&&U.files!=='—'?' · '+esc(U.files):''}${U.max&&U.max!=='—'?' · max '+esc(U.max):''}${U.length&&U.length!=='—'?' · '+esc(U.length):''}</span></label></div>`}).join('')}).join('');
- UNIT_GROUPS.forEach(([,us])=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));Object.values(by).forEach(grp=>{const el=document.getElementById('un-'+grp.join('+'));
-  el.onchange=e=>{S.units=S.units||{};grp.forEach(u=>S.units[u]=e.target.checked);changed()}})});
- $('#un-all').onclick=()=>{S.units={};renderInputs();changed()};$('#un-none').onclick=()=>{S.units=Object.fromEntries(Object.keys(UNITS).map(u=>[u,false]));renderInputs();changed()};
+ const grpsOf=us=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));return Object.values(by)};
+ UI.ug=UI.ug||{};
+ $('#fmt-list').innerHTML=UNIT_GROUPS.map(([g,us],gi)=>{const G=grpsOf(us),on=G.filter(grp=>grp.every(u=>variantsOf(u).length)).length;
+  return `<details class="ugrp" data-g="${gi}" ${UI.ug[gi]?'open':''}><summary><span>${esc(g)}</span><span class="note">${on} of ${G.length} unit${G.length>1?'s':''} on</span></summary><div class="ugbody">`+G.map(grp=>{const U=UNITS[grp[0]],id=grp.join('+'),pls=[...new Set(grp.flatMap(u=>[...(plU[u]||[])]))],n=pls.length,nv=U.variants.length,von=U.variants.filter(v=>sizeOn(grp[0],v)).length;
+   return `<div class="li per unit"><input type="checkbox" id="un-${id}" ${grp.every(unitOn)?'checked':''} aria-label="Include ${esc(grp.map(u=>UNITS[u].name).join(', '))}"><div style="display:flex;flex-direction:column;min-width:0;gap:2px">
+    <label for="un-${id}"><strong style="font-weight:600">${grp.map(u=>esc(UNITS[u].name)).join(' + ')}</strong></label>
+    <span class="note">${nv>1?`${von} of ${nv} sizes · `:''}${n?`<span title="${esc(pls.join('; '))}">used in ${n} media placement${n>1?'s':''}</span>`:'not bought in any version'}</span>
+    ${U.covers?`<span class="note">Runs on: ${esc(U.covers)}</span>`:''}
+    ${nv>1?`<div class="sizes">${U.variants.map((v,vi)=>`<label class="sz"><input type="checkbox" id="sz-${id}-${vi}" ${sizeOn(grp[0],v)?'checked':''} ${grp.every(unitOn)?'':'disabled'}>${esc(v)}</label>`).join('')}</div>`:`<span class="note spec">${esc(U.variants[0])}</span>`}
+    <span class="note spec">${[U.files,U.max!=='—'&&U.max?'max '+U.max:'',U.length!=='—'?U.length:''].filter(x=>x&&x!=='—').map(esc).join(' · ')}</span></div></div>`}).join('')+'</div></details>'}).join('');
+ $$('#fmt-list details.ugrp').forEach(d=>d.ontoggle=()=>{UI.ug[d.dataset.g]=d.open;save()});
+ UNIT_GROUPS.forEach(([,us])=>grpsOf(us).forEach(grp=>{const id=grp.join('+');
+  document.getElementById('un-'+id).onchange=e=>{S.units=S.units||{};grp.forEach(u=>S.units[u]=e.target.checked);renderInputs();changed()};
+  UNITS[grp[0]].variants.forEach((v,vi)=>{const el=document.getElementById(`sz-${id}-${vi}`);if(el)el.onchange=e=>{S.vOff=S.vOff||{};grp.forEach(u=>{if(e.target.checked)delete S.vOff[u+'|'+v];else S.vOff[u+'|'+v]=true});renderInputs();changed()}})}));
+ $('#un-all').onclick=()=>{S.units={};S.vOff={};renderInputs();changed()};$('#un-none').onclick=()=>{S.units=Object.fromEntries(Object.keys(UNITS).map(u=>[u,false]));renderInputs();changed()};
+ $('#un-open').onclick=()=>{const open=![...$$('#fmt-list details.ugrp')].every(d=>d.open);UNIT_GROUPS.forEach((_,i)=>UI.ug[i]=open);save();renderInputs()};
  const vl=$('#in-vlen');vl.value=S.formats._video.lengths;vl.oninput=()=>{S.formats._video.lengths=vl.value;changed()};
  // markets
  $('#mkt-list').innerHTML=`<div class="li mkt note"><span></span><span>Market</span><span>%</span><span class="bud-h">Budget $</span><span>Lang</span><span></span></div>`+S.markets.map((m,i)=>`
@@ -789,7 +798,7 @@ function renderSpec(R){
  return `<div class="toolbar"><span class="note">${tb.rows.length} creative units selected, grouped by platform (units that share a spec are listed once). ${tb.rows.filter(r=>r.bought).length} are bought in the ${TIERNAME[R.tier]} version. Units marked “Confirm” change often or vary by publisher; check the current platform spec before production. Change the selection in section 9.</span></div>
  <div class="tscroll"><table><thead><tr><th>Ad unit</th><th>Sizes / ratios</th><th>Files · max size · length</th><th>Copy limits</th><th>Notes</th><th>Used in</th><th class="n">Lead (days)</th></tr></thead><tbody>
  ${tb.rows.map(r=>{const s=UNITS[r.units[0]];const head=r.group!==g?(g=r.group,`<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`):'';return head+`<tr${r.bought?'':' style="opacity:.7"'}><td style="min-width:170px"><strong>${esc(r.name)}</strong>${r.covers?`<div class="sub2">${esc(r.covers)}</div>`:`<div class="sub2">${esc(s.platform)}</div>`}${r.verify?'<span class="chip flag">Confirm</span>':''}</td>
-  <td class="m" style="min-width:150px"><ul class="spec-list">${s.variants.map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
+  <td class="m" style="min-width:150px"><ul class="spec-list">${variantsOf(r.units[0]).map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
   <td style="min-width:160px">${esc(r.files)}<div class="sub2">${esc(r.max)}${r.length!=='—'?' · '+esc(r.length):''}</div></td>
   <td style="min-width:220px"><ul class="spec-list">${r.copy.split(' | ').map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
   <td style="min-width:180px" class="sub2">${esc(r.notes)}</td>
