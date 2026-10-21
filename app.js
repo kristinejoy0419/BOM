@@ -186,6 +186,7 @@ function exampleState(){return{
 };}
 function exampleCopy(){return{src:EX_NAME,
  voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
+ eyebrow:'New: AI campaign engine\nThe 2027 UA report\nBuilt on real data',
  ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
  proof:'A retail app scaled ROAS campaigns 4x on iOS and Android with flat CPI\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles\nA top publisher improved campaign results at scale with high-quality users',
  ini:[
@@ -207,7 +208,7 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
 if(!S||!S.markets||S.name==='One Unity · Unity Acquire 2026')S=exampleState();
-if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
+if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}
@@ -275,6 +276,30 @@ function adCopy({fmt,logo,lim,ini,concepts,langs}){
  return finishAd({rows,note});
 }
 
+// On-image copy: the words designed into the image, video supers or banner. Same for every platform the master is resized for.
+const ONIMG={eye:20,h:35,cta:15};
+const VISUAL=f=>['static','video','display'].includes(f);
+function onImageCopy({fmt,logo,ini,concepts,langs}){
+ if(logo)return {rows:[],note:'Brand lockups only. No copy.',text:'Brand lockups only'};
+ const C=S.copy||{},bank=(C.ini||[])[ini]||(C.ini||[])[0]||{},H=linesOf(bank.h),E=linesOf(C.eyebrow),CT=linesOf(C.ctas);
+ const loc=langs.filter(l=>l!=='EN'),rows=[];
+ for(let i=0;i<concepts;i++){const parts=[];const e=pickFit(E,ONIMG.eye,i),h=pickFit(H,ONIMG.h,i),c=pickFit(CT,ONIMG.cta,i);
+  if(e&&fmt!=='video')parts.push({k:'Eyebrow',lim:ONIMG.eye,...e});if(h)parts.push({k:fmt==='video'?'Super':'Headline',lim:ONIMG.h,...h});
+  if(c&&fmt!=='static')parts.push({k:fmt==='video'?'End card CTA':'CTA button',lim:ONIMG.cta,...c});if(parts.length)rows.push({label:'C'+(i+1),parts})}
+ const note=[fmt==='static'?'Social feeds: keep text to about 20% of the image or less (Meta favors light text).':fmt==='display'?'Logo, headline and CTA on every size.':'One super per card; end card with logo and CTA.',loc.length?'Localize for '+loc.join(', ')+'; check limits after translation.':''].filter(Boolean).join(' ');
+ if(!rows.length)return {rows,note:'Add headlines (and on-image eyebrows) in section 10.',text:'(no copy yet)'};
+ return finishAd({rows,note})}
+// Platform copy: the text typed into each platform's ad fields, with that platform's own names and limits.
+const FIELD_NAMES={LinkedIn:{H:'Headline',Body:'Intro text'},Meta:{H:'Headline',Body:'Primary text'},'Google Ads':{H:'Headline',D:'Description'},'X (Twitter)':{H:'Card headline',Body:'Post text'},X:{H:'Card headline',Body:'Post text'},Reddit:{H:'Headline'},YouTube:{H:'Headline',Body:'Description'}};
+const LGF={li_lgf:1,meta_lgf:1},PERSONAL={li_image:1,li_video:1,li_doc:1};
+function platformAd(u,{ini,concepts,langs}){const U=UNITS[u],L=LIMS[u]||{},f=VISUAL(U.fmt)?'static':U.fmt;
+ if(U.fmt==='display'&&!L.b)return {rows:[],note:'No typed fields: the copy lives on the banner (see On-image copy in the BOM tab).',text:'Copy lives on the banner'};
+ const ad=adCopy({fmt:f,lim:L,ini,concepts,langs}),N=FIELD_NAMES[U.platform]||{};
+ ad.rows.forEach(r=>{r.parts.forEach(p=>{if(LGF[u])p.k=p.k==='H'?'Form headline':p.k==='Body'?'Offer detail':p.k;else p.k=N[p.k]||(p.k==='H'?'Headline':p.k==='D'?'Description':p.k)});
+  if(LGF[u])r.parts.push({k:'Thank-you message',lim:300,t:'Thanks! Your copy is on its way to your inbox.',over:0});
+  if(PERSONAL[u]){const b=r.parts.find(p=>p.k==='Intro text');if(b)r.parts.push({k:'Personalized intro (optional)',lim:L.b,t:'Hi %FIRSTNAME%, '+b.t.charAt(0).toLowerCase()+b.t.slice(1),over:0})}});
+ ad.rows.forEach(r=>r.parts.forEach(p=>{p.over=p.lim?Math.max(0,p.t.length-p.lim):0}));
+ return applyEdits(finishAd(ad),'P|'+u)}
 /* ==================== ENGINE ==================== */
 // Channel split per version: a version's own weights once its budgets are edited, else the shared default split
 const chW=(id,t)=>{const c=S.channels[id];return c?+c.weight:0};
@@ -341,7 +366,7 @@ function compute(tier){
   const masterFiles=concepts*rounds*M.langs.size*nL;
   const LOCAL=/^(wc_|bd_|nv_)/,us=[...M.units],usE=us.filter(u=>!LOCAL.test(u));const lim={};(usE.length?usE:us).forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
   const ini=+Object.entries(M.iniB).sort((a,b)=>b[1]-a[1])[0]?.[0]||0;
-  const ad=applyEdits(adCopy({fmt:M.fmt,logo:M.logo,lim,ini,concepts,langs:[...M.langs]}),'M|'+M.key);
+  const ad=VISUAL(M.fmt)?applyEdits(onImageCopy({fmt:M.fmt,logo:M.logo,ini,concepts,langs:[...M.langs]}),'OI|'+M.key):{rows:[],note:'Typed into the platform: see the Ad Copy tab.',text:'See Ad Copy tab',flags:0,lk:''};
   return {...M,id,name,nL,adapt,masterFiles,ad,iniName:S.initiatives[ini]?.name||'—',units:[...M.units],totalFiles:masterFiles*adapt,lines:[...M.lines],langs:[...M.langs],pls:[...M.pls],chs:[...M.chs],mk:[...M.mk],due:isoD(new Date(parseD(S.start)-M.lead*864e5)),
    master:M.best.size||'—'}});
  const keyToId=Object.fromEntries(masters.map(m=>[m.key,m.id]));
@@ -363,7 +388,7 @@ function bomTable(R){
  return {name:'Line Items',cols,rows};
 }
 function mvpTable(R){
- const cols=[['BOM item','id'],['Format','fmtName'],['Creative master','name'],['Ad copy','adTxt'],['Lead initiative','iniName'],['Media lines covered','linesTxt'],['# lines','nLines'],['Master size','master'],['Languages','langsTxt'],['Concepts','concepts'],['Refresh rounds','rounds'],['Video cuts','cuts'],['Master files','masterFiles'],['Platform resizes','adapt'],['Total files incl. resizes','totalFiles'],['Platform adaptations','adaptTxt'],['Channels','chsTxt'],['Markets','mkTxt'],['Media budget on these lines','budget'],['First due','due']];
+ const cols=[['BOM item','id'],['Format','fmtName'],['Creative master','name'],['On-image copy','adTxt'],['Lead initiative','iniName'],['Media lines covered','linesTxt'],['# lines','nLines'],['Master size','master'],['Languages','langsTxt'],['Concepts','concepts'],['Refresh rounds','rounds'],['Video cuts','cuts'],['Master files','masterFiles'],['Platform resizes','adapt'],['Total files incl. resizes','totalFiles'],['Platform adaptations','adaptTxt'],['Channels','chsTxt'],['Markets','mkTxt'],['Media budget on these lines','budget'],['First due','due']];
  const rows=R.masters.map(m=>({id:m.id,fmtName:FMTNAME[m.fmt]||m.fmt,name:m.name,adTxt:m.ad.text,iniName:m.iniName,master:m.master,langsTxt:m.langs.join(', '),concepts:R.concepts,rounds:R.rounds,cuts:m.fmt==='video'?R.lens.join(', '):'—',masterFiles:m.masterFiles,adapt:m.adapt,totalFiles:m.totalFiles,
   adaptTxt:Object.keys(m.sizes).join('; '),chsTxt:m.chs.join(', '),mkTxt:m.mk.join(', '),linesTxt:m.lines.join(', '),nLines:m.lines.length,budget:Math.round(m.budget),due:m.due}));
  return {name:'BOM (MVP)',cols,rows};
@@ -376,21 +401,46 @@ function pixelTable(R){
  const rows=used.map(c=>{const t=TAGS[c.id]||{},ls=R.lines.filter(l=>l.c.id===c.id);return{channel:c.name,tag:t.tag,events:t.events,click:t.click,extra:t.extra,mk:[...new Set(ls.map(l=>l.market))].join(', '),n:ls.length}});
  return {name:'Tagging - Pixels',cols,rows};
 }
+// Trafficking settings (activation-guide style): naming taxonomy, cost center, CRM, gated/ungated
+const TRAFFIC_DEF={bu:'',region:'',cc:'',crm:'',crmName:'',content:'ug',ctype:'rpt',med:'channel',assets:'',doc:'',build:'Agency builds'};
+const trafficOf=()=>({...TRAFFIC_DEF,...(S.traffic||{})});
+const OBJ={CPM:['Brand awareness','Impressions / reach'],CPC:['Website traffic','Landing page clicks'],CPL:['Lead generation','Leads'],CPV:['Video views','Views (2s+ / ThruPlay)'],CPS:['Sponsored messaging','Sends / opens'],Flat:['Sponsorship (IO)','Delivery per IO']};
+const STG={Awareness:'aw',Consideration:'co',Conversion:'cv'};
+const CHC={linkedin:'soc-li',google:'sem-gg',meta:'soc-fb',x:'soc-x',reddit:'soc-rd',youtube:'vid-yt',trade:'pr-trd',creators:'cr-nl',abm:'prg-abm',events:'evt',wechat:'soc-wc',baidu:'sem-bd',naver:'sem-nv'};
+const FMTC={static:'img',video:'vid',carousel:'car',text:'txt',display:'dsp',native:'nat',messaging:'msg',audio:'aud',doc:'doc'};
+const DEF_EXCL='Competitor & partner lists; current employees; students & interns; existing customers / converters (CRM upload)';
+const DEVICES={search:'All (mobile bid adj.)',video:'All',display:'All',social:'All (mobile-first)'};
+function workback(){const t=trafficOf(),live=parseD(S.start),d=n=>isoD(new Date(live-n*864e5));
+ return [['Budget, cost center & CRM campaign ID confirmed','Client',17],['Brief + BOM handed to agency','Client',16],['Audience lists, exclusions & conversion events shared','Client',14],['Creative files + ad copy final','Client',11],['Trafficking sheet filled (campaign & ad IDs, placeholder URLs)','Agency',10],['Campaigns built in platform (paused)','Agency',9],['Tags & pixels verified, test conversions fire','Agency',8],['Lead gen forms built & synced to CRM','Agency',8],['Client QA of builds (names, URLs, targeting, budgets)','Client',5],['Fixes from QA','Agency',5],['Final sign-off','Client',2],['Go live','Agency',0]].map(([task,owner,n])=>({task,owner,due:d(n),days:n?'T−'+n:'Launch'}))}
+function geoBudget(R){const m={};R.lines.forEach(l=>{const k=l.market;(m[k]=m[k]||{market:k,lines:0,budget:0,ch:new Set()});m[k].lines++;m[k].budget+=l.budget;m[k].ch.add(l.channel)});
+ const rows=Object.values(m).sort((a,b)=>b.budget-a.budget).map(r=>({...r,ch:[...r.ch].join(', ')}));return {rows,total:sum(rows.map(r=>r.budget))}}
 function utmTable(R){
  const base=(S.landing||'https://example.com/').trim(),camp=slugU(S.name)+'_'+TIERS[R.tier];
- const cols=[['Line','id'],['Channel','channel'],['Placement','placement'],['Market','market'],['Lang','lang'],['BOM items','bom'],['Files to traffic','files'],['Ad copy','copy'],['Ad / placement name','adname'],['Test cells','test'],['Pixel / tag','pixel'],['utm_source','src'],['utm_medium','med'],['utm_campaign','camp'],['utm_content','cont'],['utm_term','term'],['Tracked URL','url'],['Flight','flight'],['Creative due','due']];
+ const cols=[['Line','id'],['Channel','channel'],['Placement','placement'],['Market','market'],['Lang','lang'],['BOM items','bom'],['Files to traffic','files'],['Campaign name','cname'],['Campaign group','cgroup'],['Objective','obj'],['Optimization goal','opt'],['Budget','budget'],['Daily budget','daily'],['Ad set / audience','adset'],['Exclusions','excl'],['Devices','devices'],['Conversion event','conv'],['Lead gen form','lgf'],['CTA','cta'],['# of ads','nads'],['Builds needed','build'],['Platform ad copy','copy'],['On-image copy','onimg'],['Ad / placement name','adname'],['Ad names (one per file)','adnames'],['Test cells','test'],['Pixel / tag','pixel'],['utm_source','src'],['utm_medium','med'],['utm_campaign','camp'],['utm_content','cont'],['utm_term','term'],['Tracked URL','url'],['Flight','flight'],['Creative due','due'],['Cost center','cc'],['CRM campaign ID','crm'],['Content type','ctype'],['Campaign ID (agency)','x1'],['Ad IDs (agency)','x2'],['Est. audience size (agency)','x3'],['Client QA','x4']];
+ const TR=trafficOf(),days=Math.max(1,(parseD(S.end)-parseD(S.start))/864e5+1),yymm=String(S.start||'').slice(0,7);
  const idByKey=Object.fromEntries(R.masters.map(m=>[m.key,m])),TP=testPlan(R);
- const rows=R.lines.map(l=>{const tt=testOfLine(TP,l.id);const src=UTM_SRC[l.c.id]||slugU(l.channel),med=UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
+ const rows=R.lines.map(l=>{const tt=testOfLine(TP,l.id);const src=UTM_SRC[l.c.id]||slugU(l.channel),med=TR.med==='cpc'&&!/^Flat$/.test(l.p.buy)?'cpc':UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
   const q=`utm_source=${encodeURIComponent(src)}&utm_medium=${encodeURIComponent(med)}&utm_campaign=${encodeURIComponent(camp)}&utm_content=${encodeURIComponent(cont)}&utm_term=${encodeURIComponent(term)}`;
   const lim={};l.units.forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
-  const f0=UNITS[l.units[0]].fmt,lm=l.bomIds.map(id=>R.masters.find(m=>m.id===id)).filter(m=>m&&m.ad.rows.length),same=lm.filter(m=>m.fmt===f0);
-  let ad=adCopy({fmt:f0,lim,ini:Math.max(0,iniIdx(l.p)),concepts:l.concepts,langs:[l.lang]});(same.length?same:lm.slice(0,1)).slice().reverse().forEach(m=>{ad=mvpOverlay(ad,m.ad)});
-  ad=applyEdits(ad,editKey(R.tier,l));
+  const lm=l.bomIds.map(id=>R.masters.find(m=>m.id===id)).filter(m=>m&&m.ad.rows.length),oi=lm[0];
+  const cu=l.units.find(u=>(LIMS[u]||{}).b||(LIMS[u]||{}).h)||l.units[0],pa=platformAd(cu,{ini:Math.max(0,iniIdx(l.p)),concepts:l.concepts,langs:[l.lang]});
+  let ad=JSON.parse(JSON.stringify(pa));ad=applyEdits(ad,editKey(R.tier,l));
   const files=[...l.bom].map(k=>{const m=idByKey[k];return m?m.id+' '+m.name:''}).filter(Boolean).join('; ')+' → '+l.units.flatMap(u=>variantsOf(u).map(v=>UNITS[u].name+' '+v)).join(', ')+` (${l.concepts} concepts × ${l.rounds} rounds)`;
-  return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,pixel:(TAGS[l.c.id]||{}).tag||'',_test:tt,test:tt?tt.id+' · '+tt.cells.map(c=>tt.id+'-'+c[0]+' '+c.slice(2)).join(' / ')+` (one ad per cell: add _${tt.id}-A, _${tt.id}-B… to the ad name and utm_content; readout ${tt.readoutISO})`:'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
-   src,med,camp,cont,term,url:base+(base.includes('?')?'&':'?')+q}});
+  return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,onimg:oi?oi.id+': '+oi.ad.text:'—',_oi:oi,pixel:(TAGS[l.c.id]||{}).tag||'',_test:tt,test:tt?tt.id+' · '+tt.cells.map(c=>tt.id+'-'+c[0]+' '+c.slice(2)).join(' / ')+` (one ad per cell: add _${tt.id}-A, _${tt.id}-B… to the ad name and utm_content; readout ${tt.readoutISO})`:'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
+   src,med,camp,cont,term,url:base+(base.includes('?')?'&':'?')+q,...trafficRow(R,l,TR,days,yymm,cu,ad)}});
  return {name:'Agency trafficking sheet',cols,rows};
 }
+const audCode=a=>String(a||'all').split(/[,&+/;]| and /).map(x=>x.trim()).filter(Boolean).slice(0,4).map(x=>x.split(/[\s-]+/).map(w=>w[0]||'').join('').toLowerCase()).join('-')||'all';
+const szCode=v=>{const m=String(v).match(/(\d+)\s*[×x]\s*(\d+)/);if(m)return m[1]+'x'+m[2];const r=String(v).match(/(\d+(?:\.\d+)?):(\d+)/);return r?r[1]+'-'+r[2]:slugU(v).slice(0,10)};
+function trafficRow(R,l,TR,days,yymm,cu,ad){
+ const ob=OBJ[l.p.buy]||['—','—'],lg=l.units.find(u=>LGF[u]),U=UNITS[cu]||{},t=TAGS[l.c.id]||{};
+ const cname=[slugU(TR.bu)||'bu',slugU(TR.region)||'global',slugU(l.m.id),slugU(l.lang),TR.content,CHC[l.c.id]||slugU(l.c.id),slugU(ob[0]),STG[l.stage]||'aw',yymm,audCode(l.aud),TR.cc?'cc'+slugU(TR.cc):'ccXXXX',slugU(S.initiatives[l.ini]?.name||'')].filter(Boolean).join('_');
+ const adnames=l.units.flatMap(u=>variantsOf(u).map(v=>[TR.content==='g'?'g':'ug',TR.ctype,'s-'+(FMTC[UNITS[u].fmt]||UNITS[u].fmt),'nm:'+slugU(l.bomIds[0]||l.id)+'-01','sz:'+szCode(v),audCode(l.aud),'a',slugU(l.m.id)].join('_')));
+ const cta=(ad.rows[0]?.parts||[]).find(p=>/cta/i.test(p.k))?.t||(l.stage==='Awareness'?'Learn more':l.stage==='Conversion'?'Sign up':'Download');
+ return {cname,cgroup:slugU(S.name)+'_'+(STG[l.stage]||'aw'),obj:ob[0],opt:ob[1],budget:Math.round(l.budget),daily:Math.round(l.budget/days),budgetTxt:money(l.budget),dailyTxt:money(l.budget/days)+'/day',
+  adset:(l.aud||'')+(l.targeting?' · '+l.targeting:''),excl:DEF_EXCL,devices:l.c.group==='Search'?DEVICES.search:/video/i.test(U.fmt||'')?DEVICES.video:DEVICES.social,
+  conv:String(t.events||'').split(',')[0].trim()||'—',lgf:lg?'Yes: '+UNITS[lg].name+' (sync to CRM, hidden field = line ID)':'No (landing page)',cta,nads:adnames.length*Math.max(1,l.concepts),adnames:adnames.join('\n'),
+  build:TR.build,cc:TR.cc||'(add in Tagging settings)',crm:TR.crm?TR.crm+(TR.crmName?' · '+TR.crmName:''):'(add in Tagging settings)',ctype:(TR.content==='g'?'Gated':'Ungated')+' · '+TR.ctype,x1:'',x2:'',x3:'',x4:''}}
 function specTable(R){
  const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pl:new Set(),mk:new Set(),lg:new Set()});used[u].pl.add(l.channel+' · '+l.placement);used[u].mk.add(l.market);used[u].lg.add(l.lang)}));
  const cols=[['Platform','group'],['Ad unit','name'],['Runs on','covers'],['Sizes / aspect ratios','sizes'],['File types','files'],['Max file size','max'],['Length / duration','length'],['Copy limits','copy'],['Notes','notes'],['Used in','usedIn'],['Markets','mk'],['Languages','lg'],['Production lead (days)','lead'],['Confirm with platform','verify']];
@@ -513,7 +563,8 @@ function testPlan(R,edits){
  const ed=edits||S.testEdits?.[T]||{},drop=ed.drop||[];
  defs=defs.filter(d=>!drop.includes(d.key));
  (ed.add||[]).forEach(x=>{const a=byP[x.pid],L=TEST_LIB[x.tpl];if(!a||!L||!L.fits(a,ctx)||defs.some(d=>d.key===x.tpl+':'+x.pid))return;
-  const d=mk(x.tpl,a,Math.min(defs.filter(d=>d.a.p.id===x.pid).length,3));d.added=true;defs.push(d)});
+  const d=mk(x.tpl,a,Math.min(defs.filter(d=>d.a.p.id===x.pid).length,3));d.added=true;
+  if(x.hyp)d.hyp=x.hyp;if(Array.isArray(x.cells)&&x.cells.length>1)d.cells=x.cells.slice(0,4).map((c,i)=>String.fromCharCode(65+i)+' '+String(c).replace(/^[A-D][\s.:)-]+/,''));if(x.variable)d.variable=x.variable;d.custom=!!(x.hyp||x.cells);defs.push(d)});
  // run each line-based test
  const tests=[],total=+S.budgets[T]||0,held=(S.testShare?.[T]??TEST_SHARE[R.tier])/100;
  const topOf=a=>{const mk={};a.lines.forEach(l=>mk[l.m.id]=(mk[l.m.id]||0)+l.budget);return Object.keys(mk).sort((x,y)=>mk[y]-mk[x])};
@@ -581,6 +632,7 @@ function bindSimple(){
 function renderCopyInputs(){
  const C=S.copy;const banks=S.initiatives.length?S.initiatives:[{name:'All lines',general:true}];while(C.ini.length<banks.length)C.ini.push({h:'',b:''});
  $('#cp-voice').value=C.voice||'';$('#cp-voice').oninput=e=>{C.voice=e.target.value;changed()};
+ $('#cp-eye').value=C.eyebrow||'';$('#cp-eye').oninput=e=>{C.eyebrow=e.target.value;changed()};
  $('#cp-cta').value=C.ctas||'';$('#cp-cta').oninput=e=>{C.ctas=e.target.value;changed()};
  $('#cp-proof').value=C.proof||'';$('#cp-proof').oninput=e=>{C.proof=e.target.value;changed()};
  const stale=C.src&&C.src!==S.name,empty=!C.ini.some(q=>q&&(q.h||q.b));
@@ -723,7 +775,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['copy','Ad Copy'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -785,9 +837,9 @@ function renderMVP(R){
  const tb=mvpTable(R),t=totals(R);
  const covered=new Set(R.masters.flatMap(m=>m.lines)).size;
  const gs={};tb.rows.forEach(r=>(gs[r.fmtName]=gs[r.fmtName]||[]).push(r));
- return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Click any ad copy to edit it; counters turn red when a line is over its character limit, and your edits carry through to the Spec Sheet &amp; Tagging tab.</span>
+ return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. The copy here is the on-image text (eyebrow ≤20, headline ≤35 characters), the same on every platform the master is resized for. The copy typed into each platform (LinkedIn intro text, Google headlines, Meta primary text) has its own limits and lives in the Ad Copy tab.</span>
   <span class="chip ${covered===t.lines?'aw':'flag'}">${covered} of ${t.lines} media lines covered</span></div>
- <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>Ad copy</th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
+ <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
  ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="12">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
   <td class="m"><strong>${r.id}</strong></td><td style="min-width:170px"><strong>${esc(r.name)}</strong><div class="sub2">${esc(r.chsTxt)}</div></td>
   <td style="min-width:380px">${adCellEdit(R.masters.find(m=>m.id===r.id).ad)}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
@@ -817,24 +869,58 @@ function adCellEdit(ad){
   const attrs=`class="cp-edit" data-lk="${esc(ad.lk)}" data-key="${esc(r.label+'|'+j)}" data-lim="${p.lim||''}" aria-label="${esc(r.label+' '+p.k)}"`;
   return `<div style="margin-top:4px"><div class="sub2" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(p.k)}${p.edited?' · edited':p.fromMvp?' · from BOM':''}</span><span class="cp-count ${p.over>0?'over':''}">${p.lim?`${p.t.length}/${p.lim}`:p.t.length+' chars'}</span></div>
    ${long?`<textarea ${attrs} rows="2">${esc(p.t)}</textarea>`:`<input type="text" ${attrs} value="${esc(p.t)}">`}</div>`}).join('')}</div>`).join('')}
-  ${ad.edited?`<button class="btn sm ghost cp-reset" data-lk="${esc(ad.lk)}">${ad.lk.startsWith('M|')?'Reset to bank copy':'Reset to BOM copy'}</button>`:''}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
+  ${ad.edited?`<button class="btn sm ghost cp-reset" data-lk="${esc(ad.lk)}">${/^(M|OI|P)\|/.test(ad.lk)?'Reset to bank copy':'Reset to platform copy'}</button>`:''}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
 function adCell(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
  return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip over">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
+function adCopyUnits(R){const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pls:new Set(),ini:{},langs:new Set()}).pls.add(l.channel+' · '+l.placement);const i=Math.max(0,iniIdx(l.p));used[u].ini[i]=(used[u].ini[i]||0)+l.budget;used[u].langs.add(l.lang)}));
+ return UNIT_GROUPS.map(([g,us])=>[g,us.filter(u=>used[u]).map(u=>{const x=used[u],ini=+Object.entries(x.ini).sort((a,b)=>b[1]-a[1])[0][0];return {u,U:UNITS[u],pls:[...x.pls],ad:platformAd(u,{ini,concepts:R.concepts,langs:[...x.langs]})}})]).filter(([,a])=>a.length)}
+function renderAdCopy(R){const G=adCopyUnits(R),fl=sum(G.flatMap(([,a])=>a.map(x=>x.ad.flags||0)));
+ return `<div class="toolbar"><span class="note">The copy typed into each platform’s ad fields, with that platform’s own field names and limits, so LinkedIn, Google and Meta never share a limit. Each concept (C1, C2…) pairs with the matching on-image copy in the BOM tab. Edit any line; counters turn red when it’s over, and edits flow to every trafficking line that uses the unit.</span>
+  <span class="chip ${fl?'over':'aw'}">${fl?fl+' lines over limit':'All copy within limits'}</span></div>
+ ${G.map(([g,a])=>`<h3 style="font-size:15px;margin:14px 0 8px">${esc(g)}</h3><div class="ac-grid">${a.map(x=>`<div class="ac-card"><div><strong>${esc(x.U.platform)} · ${esc(x.U.name)}</strong><div class="sub2">${x.U.copy.map(esc).join(' · ')}</div><div class="sub2" style="margin-top:2px">Used in: ${esc(x.pls.join('; '))}</div></div>${adCellEdit(x.ad)}</div>`).join('')}</div>`).join('')}`}
+function adCopyAOA(R){const a=[['Platform group','Platform','Ad unit','Concept','Field','Copy','Characters','Limit','Over by','Used in']];
+ adCopyUnits(R).forEach(([g,us])=>us.forEach(x=>{if(!x.ad.rows.length)a.push([g,x.U.platform,x.U.name,'','',x.ad.note,'','','',x.pls.join('; ')]);x.ad.rows.forEach(r=>r.parts.forEach(p=>a.push([g,x.U.platform,x.U.name,r.label,p.k,p.t,p.t.length,p.lim||'',p.over||'',x.pls.join('; ')])))}));
+ a.push([],['ON-IMAGE COPY (designed into the image, video or banner)'],['BOM item','Creative master','Concept','Field','Copy','Characters','Limit','Note']);
+ R.masters.filter(m=>m.ad.rows.length).forEach(m=>m.ad.rows.forEach(r=>r.parts.forEach(p=>a.push([m.id,m.name,r.label,p.k,p.t,p.t.length,p.lim||'',m.ad.note]))));return a}
 function renderTagging(R){
- const px=pixelTable(R),ut=utmTable(R);
- return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits (it follows your BOM edits; edit a line here to override it just for that placement; counters turn red when over), the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
+ const px=pixelTable(R),ut=utmTable(R),T=trafficOf(),wb=workback(),gb=geoBudget(R);
+ const inp=(k,lab,ph)=>`<label class="f">${lab}<input type="text" class="tr-in" data-k="${k}" value="${esc(T[k])}" placeholder="${esc(ph||'')}"></label>`;
+ const sel=(k,lab,opts)=>`<label class="f">${lab}<select class="tr-in" data-k="${k}">${opts.map(([v,n])=>`<option value="${v}" ${T[k]===v?'selected':''}>${n}</option>`).join('')}</select></label>`;
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">One row per media line, laid out the way the agency builds it: <strong>campaign → ad set → ads</strong>. It names each campaign and ad with a standard taxonomy, gives the objective, budget (total and daily), audience and exclusions, conversion event, lead form, CTA, files, copy and tracked URL. The grey columns at the end are for the agency to fill in (campaign ID, ad IDs, audience size) and for your QA.</div></div>
    <label class="f" style="min-width:260px">Landing page URL<input type="text" id="in-landing" value="${esc(S.landing)}"></label></div>
-  <div class="tscroll"><table><thead><tr><th>Line</th><th>Placement · market</th><th>BOM items</th><th>Files to traffic</th><th>Ad copy</th><th>Ad name</th><th>Test cells</th><th>UTMs</th><th>Tracked URL</th><th>Due</th></tr></thead><tbody>
-  ${ut.rows.map(r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.channel)} · ${esc(r.market)} · ${esc(r.lang)}</div></td>
-   <td class="m" style="white-space:nowrap">${esc(r.bom)}</td><td class="sub2" style="min-width:240px">${esc(r.files)}</td><td style="min-width:420px">${adCellEdit(r._ad)}</td>
-   <td class="m" style="min-width:200px;word-break:break-all">${esc(r.adname)}</td>
+  <div class="tr-set"><div class="eyebrow" style="grid-column:1/-1">Trafficking settings (fill once, used in every name)</div>
+   ${inp('bu','Business unit code','e.g. grow')}${inp('region','Region code','e.g. amer, emea, global')}${inp('cc','Cost center','e.g. 4410')}${inp('crm','CRM campaign ID','e.g. 701Ux000…')}${inp('crmName','CRM campaign name','')}
+   ${sel('content','Content access',[['ug','Ungated'],['g','Gated (form)']])}${inp('ctype','Content type code','rpt, wbn, demo, ebook')}
+   ${sel('med','utm_medium style',[['channel','By channel (paid_social, cpc, display…)'],['cpc','Always cpc']])}
+   ${sel('build','Who builds audiences & conversions',[['Agency builds','Agency builds audiences, exclusions & conversion events'],['Client provides','Client provides lists & events; agency applies'],['Already exist','Already exist in the ad accounts']])}
+   ${inp('assets','Asset folder link','Drive / Box link to final files')}${inp('doc','Brief / copy doc link','')}</div>
+  <div class="tscroll"><table class="tr-tbl"><thead><tr class="tr-grp"><th colspan="2"></th><th colspan="4">Campaign</th><th colspan="3">Ad set</th><th colspan="5">Ads</th><th colspan="2">Tracking</th><th colspan="4" class="ag">Agency fills · client QA</th></tr>
+   <tr><th>Line</th><th>Placement · market</th><th>Campaign name</th><th>Objective · optimization</th><th>Budget</th><th>Flight · due</th><th>Audience &amp; targeting</th><th>Exclusions · devices</th><th>Conversion · lead form</th><th>BOM items · files</th><th>Ad copy</th><th>CTA · # ads</th><th>Ad names</th><th>Test cells</th><th>UTMs</th><th>Tracked URL</th><th class="ag">Campaign ID</th><th class="ag">Ad IDs</th><th class="ag">Est. audience</th><th class="ag">Client QA</th></tr></thead><tbody>
+  ${ut.rows.map(r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="min-width:190px">${esc(r.placement)}<div class="sub2">${esc(r.channel)} · ${esc(r.market)} · ${esc(r.lang)}</div></td>
+   <td class="m" style="min-width:240px;word-break:break-all">${esc(r.cname)}<div class="sub2">group: ${esc(r.cgroup)}</div></td>
+   <td style="min-width:150px">${esc(r.obj)}<div class="sub2">${esc(r.opt)}</div></td>
+   <td class="m" style="white-space:nowrap">${esc(r.budgetTxt)}<div class="sub2">${esc(r.dailyTxt)}</div></td>
+   <td style="min-width:140px">${esc(r.flight)}<div class="sub2">creative due ${esc(r.due)}</div></td>
+   <td style="min-width:220px">${esc(r.adset)}<div class="sub2">${esc(r.build)}</div></td>
+   <td class="sub2" style="min-width:200px">${esc(r.excl)}<div>Devices: ${esc(r.devices)}</div></td>
+   <td style="min-width:180px">${esc(r.conv)}<div class="sub2">${esc(r.lgf)}</div></td>
+   <td class="sub2" style="min-width:220px"><span class="m">${esc(r.bom)}</span><div>${esc(r.files)}</div></td>
+   <td style="min-width:420px">${adCellEdit(r._ad)}</td>
+   <td style="white-space:nowrap">${esc(r.cta)}<div class="sub2">${r.nads} ads</div></td>
+   <td class="m sub2" style="min-width:260px;word-break:break-all">${r.adnames.split('\n').map(esc).join('<br>')}<div style="margin-top:4px">short: ${esc(r.adname)}</div></td>
    <td style="min-width:180px">${r._test?`<span class="chip cv">${r._test.id}</span> ${esc(r._test.type)}<div class="m sub2" style="word-break:break-all;margin-top:4px">${r._test.cells.map(c=>esc(r.adname+'_'+r._test.id+'-'+c[0])).join('<br>')}</div><div class="sub2">utm_content + _${r._test.id.toLowerCase()}-a, -b…</div>`:'<span class="sub2">—</span>'}</td>
    <td class="m" style="min-width:200px">source=${esc(r.src)}<br>medium=${esc(r.med)}<br>campaign=${esc(r.camp)}<br>content=${esc(r.cont)}<br>term=${esc(r.term)}</td>
-   <td class="m" style="min-width:260px;word-break:break-all">${esc(r.url)}</td><td class="m">${esc(r.due)}</td></tr>`).join('')}
+   <td class="m" style="min-width:260px;word-break:break-all">${esc(r.url)}</td>
+   <td class="ag"></td><td class="ag"></td><td class="ag"></td><td class="ag"></td></tr>`).join('')}
   </tbody></table></div>
+  <div class="tr-two"><div><h2 style="font-size:18px">Budget by market</h2><div class="note">Totals the sheet above so finance and the agency can check it against the PO. Cost center: ${esc(T.cc||'not set yet')}.</div>
+   <div class="tscroll"><table><thead><tr><th>Market</th><th>Channels</th><th>Lines</th><th style="text-align:right">Budget</th></tr></thead><tbody>${gb.rows.map(r=>`<tr><td>${esc(r.market)}</td><td class="sub2">${esc(r.ch)}</td><td class="m">${r.lines}</td><td class="m" style="text-align:right">${money(r.budget)}</td></tr>`).join('')}
+   <tr class="tot"><td><strong>Grand total</strong></td><td></td><td class="m">${R.lines.length}</td><td class="m" style="text-align:right"><strong>${money(gb.total)}</strong></td></tr></tbody></table></div></div>
+   <div><h2 style="font-size:18px">Launch workback</h2><div class="note">Counted back from the flight start (${esc(fmtD(parseD(S.start)))}). Move the start date in section 2 and these move with it.</div>
+   <div class="tscroll"><table><thead><tr><th>When</th><th>Due</th><th>Task</th><th>Owner</th></tr></thead><tbody>${wb.map(w=>`<tr><td class="m">${w.days}</td><td class="m" style="white-space:nowrap">${w.due}</td><td>${esc(w.task)}</td><td><span class="chip ${w.owner==='Agency'?'cv':''}">${w.owner}</span></td></tr>`).join('')}</tbody></table></div></div></div>
   <div style="margin-top:10px"><h2 style="font-size:18px">Pixels &amp; conversion tracking by channel</h2>
   <div class="note">Install site-wide tags before launch and gate them behind your consent manager (GDPR in EMEA, PIPL in China, PIPA in Korea). Fire the same conversion events on every channel so results compare.</div></div>
   ${renderTable(px,{numeric:['n'],wrapCols:['tag','events','click','extra','mk']})}</div>`;
@@ -885,6 +971,9 @@ function renderTestBuilder(R,TP){
  <div class="toolbar" style="margin:0;align-items:flex-end"><div><h3 style="font-size:16px">Build the plan</h3>
   <div class="note">Drag a test from the library onto a media line. Lines that can run it light up, and the row below fills in the cells, budget, KPI, sample size, run time and readout. Or click a template, then click a line.</div></div>
   <div class="btns"><button class="btn primary" id="tb-auto" title="Rebuild the recommended plan for this version">Auto-build for me</button><button class="btn ghost" id="tb-clear">Start blank</button></div></div>
+ <div class="tb-ai"><label class="f" style="flex:1;min-width:220px">Or describe the test and let ${aiReady()?esc(aiLabel()):'the dashboard'} set it up
+   <input type="text" id="tb-ask" placeholder="e.g. Test a demo offer vs a free trial on LinkedIn lead gen" value="${esc(UI.tpAsk||'')}"></label>
+   <button class="btn primary run" id="tb-ask-go" style="width:auto"><span class="spin" aria-hidden="true"></span><span>Set it up for me</span></button></div>
  ${custom?`<div class="note">You’ve changed the auto-built plan (${(ed.add||[]).length} added, ${(ed.drop||[]).length} removed). Auto-build puts back the recommended tests.</div>`:''}
  ${UI.tpMsg?`<div class="tb-msg">${UI.tpMsg}</div>`:''}
  <div class="tb-grid">
@@ -905,9 +994,38 @@ function renderTestBuilder(R,TP){
    <span class="sub2">${esc(x.a.c.name)} · ${esc(x.a.p.name)}</span><span class="sub2">${compact(x.t.have)} ${esc(x.t.unit)} per cell against ${compact(x.t.need)} needed · ${money(x.t.budget)} in test cells</span>
    <button class="btn ghost tb-add" data-tpl="${x.tpl}" data-pid="${x.a.p.id}">+ Add</button></div>`).join('')}</div></div>`:''}
  </div>`}
+// "Describe a test": AI picks the template and line and writes the hypothesis and cells; without AI, a keyword match picks them
+const TB_WORDS={msg:/message|claim|proof|headline lead/i,pillar:/pillar|initiative/i,angle:/angle|benefit|feature/i,visual:/visual|image|photo|picture/i,hook:/hook|first (3|5|five|three)|opening|video/i,lp:/landing|\blp\b|page|calculator/i,offer:/offer|demo|trial|report|ebook|e-book|webinar|gated/i,audience:/audience|abm|target|job title|persona|account list/i,cta:/\bcta\b|button|call to action/i,bid:/bid|bidding|max(imize)? conv|manual/i,freq:/frequen|cap\b/i};
+function testGuess(txt,TP){const T=Object.entries(TEST_LIB),tl=txt.toLowerCase();
+ const tpl=(T.find(([id])=>TB_WORDS[id].test(txt))||T[0])[0],L=TEST_LIB[tpl];
+ const fits=TP.places.filter(a=>L.fits(a,TP.ctx)),named=fits.filter(a=>tl.includes(a.c.name.toLowerCase().split(/[ (]/)[0])||tl.includes(a.c.id));
+ const a=(named.length?named:fits)[0];const vs=txt.match(/(.+?)\s+(?:vs\.?|versus|against|or)\s+(.+?)(?:\s+(?:on|in|for|across)\s|$)/i);
+ if(!a)return null;if(!vs)return {tpl,pid:a.p.id,ov:null};const A=vs[1].replace(/^(test(ing)?|try|compare)\s+(an?\s+|the\s+)?/i,'').trim(),B=vs[2].replace(/^(an?\s+|the\s+)/i,'').trim(),k0=L.make(a,TP.ctx).kpi[0],k=/^[A-Z][a-z]/.test(k0)?k0[0].toLowerCase()+k0.slice(1):k0;
+ return {tpl,pid:a.p.id,ov:{cells:[A,B],hyp:`If we run ${B} instead of ${A} on this line, ${k} improves because it’s a better fit for what this audience wants.`}}}
+async function testFromText(txt,btn){txt=(txt||'').trim();if(txt.length<6){UI.tpMsg='Describe the test in a few words first, like “demo vs free trial on LinkedIn lead gen”.';return renderOut()}
+ const R=compute(UI.tier),TP=testPlan(R);btn.classList.add('busy');btn.disabled=true;let pick=null,how='keyword match';
+ try{if(aiReady()){btn.lastElementChild.textContent=aiLabel()+' is setting it up…';
+   const lib=Object.entries(TEST_LIB).map(([id,t])=>`${id}: ${t.name} (fits ${t.fitsTxt})`).join('\n');
+   const lines=TP.places.map(a=>`${a.p.id}: ${a.c.name} · ${a.p.name} · ${a.p.buy} · ${money(a.budget)} · fits: ${Object.keys(TEST_LIB).filter(k=>TEST_LIB[k].fits(a,TP.ctx)).join(',')}`).join('\n');
+   const x=await aiJSON(`You are a B2B paid media testing strategist. Set up one A/B test from the request below, using this media plan.
+Test templates (id: name):
+${lib}
+Media lines (id: channel · placement · buy type · budget · templates that fit):
+${lines}
+Request: """${txt}"""
+Pick the template and the media line that best match the request; the template must be in that line's "fits" list. Write a one-sentence hypothesis in the form "If ..., then ... because ...", a short variable name, and 2 to 3 test cells (short labels, no letters).
+Reply with only JSON: {"tpl":string,"pid":string,"variable":string,"hyp":string,"cells":[string],"why":string}`);
+   if(x&&TEST_LIB[x.tpl]&&TP.places.some(a=>a.p.id===x.pid&&TEST_LIB[x.tpl].fits(a,TP.ctx)))pick={tpl:x.tpl,pid:x.pid,ov:{hyp:x.hyp,cells:x.cells,variable:x.variable},why:x.why};how=aiLabel()}
+ }catch(e){}
+ if(!pick)pick=testGuess(txt,TP);btn.classList.remove('busy');btn.disabled=false;
+ if(!pick){UI.tpMsg='No line in this version can run that kind of test. Try another channel or switch versions.';return renderOut()}
+ UI.tpAsk='';testAdd(pick.tpl,pick.pid,pick.ov||{variable:TEST_LIB[pick.tpl].name});
+ UI.tpMsg=(UI.tpMsg||'')+` <span class="sub2">Set up by ${esc(how)}${pick.why?': '+esc(pick.why):''}. Edit or remove it with × on the line.</span>`;renderOut()}
 function testEdit(f){const T=TIERS[UI.tier];S.testEdits=S.testEdits||{};const e=S.testEdits[T]=S.testEdits[T]||{add:[],drop:[]};e.add=e.add||[];e.drop=e.drop||[];f(e);save();renderOut()}
-function testAdd(tpl,pid){const R=compute(UI.tier);let key=tpl+':'+pid;
- testEdit(e=>{e.drop=e.drop.filter(k=>k!==key);const auto=testPlan(R,{drop:e.drop,add:[]}).tests.some(t=>t.key===key);if(!auto&&!e.add.some(x=>x.tpl===tpl&&x.pid===pid))e.add.push({tpl,pid})});
+function testAdd(tpl,pid,ov){const R=compute(UI.tier);let key=tpl+':'+pid;
+ testEdit(e=>{e.drop=e.drop.filter(k=>k!==key);const auto=testPlan(R,{drop:e.drop,add:[]}).tests.some(t=>t.key===key);
+  if(ov){e.add=e.add.filter(x=>!(x.tpl===tpl&&x.pid===pid));if(auto)e.drop.push(key);e.add.push({tpl,pid,...ov})}
+  else if(!auto&&!e.add.some(x=>x.tpl===tpl&&x.pid===pid))e.add.push({tpl,pid})});
  const t=testPlan(compute(UI.tier)).tests.find(t=>t.key===key);UI.tpSel=null;UI.tpNew=key;
  UI.tpMsg=t?`Added <strong>${t.id} ${esc(t.type)}</strong> on ${esc(t.ch)} · ${esc(t.placement)}: ${t.status==='ok'?'reads out as planned':t.status==='fix'?'reads out with a fallback (see its row)':'can’t reach significance, so it runs as a directional read'}. Readout ${fmtD(t.readout)}.`:'That line already has this test.';renderOut();
  setTimeout(()=>{const r=document.querySelector('tr.tb-new');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'})},50)}
@@ -927,6 +1045,7 @@ function wireTestBuilder(){const v=$('#view'),lines=[...v.querySelectorAll('.tb-
   l.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&UI.tpSel&&ok()){e.preventDefault();testAdd(UI.tpSel,l.dataset.pid)}}});
  v.querySelectorAll('.tb-x').forEach(b=>b.onclick=e=>{e.stopPropagation();testRemove(b.dataset.key)});
  v.querySelectorAll('.tb-add').forEach(b=>b.onclick=()=>testAdd(b.dataset.tpl,b.dataset.pid));
+ const ask=$('#tb-ask'),go=$('#tb-ask-go');if(ask&&go){ask.oninput=()=>{UI.tpAsk=ask.value};ask.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go.click()}};go.onclick=()=>testFromText(ask.value,go)}
  const au=$('#tb-auto');if(au)au.onclick=()=>{const T=TIERS[UI.tier];if(S.testEdits)delete S.testEdits[T];UI.tpSel=null;UI.tpNew=null;UI.tpMsg='Rebuilt the recommended test plan for this version.';save();renderOut()};
  const cl=$('#tb-clear');if(cl)cl.onclick=()=>{const R=compute(UI.tier),T=TIERS[UI.tier];const keys=testPlan(R,{add:[],drop:[]}).tests.map(t=>t.key);S.testEdits=S.testEdits||{};S.testEdits[T]={add:[],drop:keys};UI.tpSel=null;UI.tpNew=null;UI.tpMsg='Cleared every test. Drag tests in from the library, or press Auto-build.';save();renderOut()};
 }
@@ -1042,11 +1161,12 @@ function renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
+ v.querySelectorAll('.tr-in').forEach(el=>el.onchange=()=>{S.traffic=S.traffic||{};S.traffic[el.dataset.k]=el.value.trim();save();setTimeout(renderOut,0)});
  v.querySelectorAll('.cp-edit').forEach(el=>{const lim=+el.dataset.lim||0;const mark=()=>{const n=el.value.length,c=el.parentElement.querySelector('.cp-count');c.textContent=lim?n+'/'+lim:n+' chars';const o=lim&&n>lim;c.classList.toggle('over',!!o);el.classList.toggle('over',!!o)};mark();
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
@@ -1068,19 +1188,22 @@ function workbookFor(tiers){
  tiers.forEach(ti=>{const R=compute(ti),p=many?TIERNAME[ti]+' ':'';
   addSheet(wb,p+'Summary',summaryAOA(R),[40,14,10]);
   addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
+  addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
   addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
   addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
+  addSheet(wb,p+'Workback',[['When','Due','Task','Owner'],...workback().map(w=>[w.days,w.due,w.task,w.owner])],[8,12,60,10]);
+  {const g=geoBudget(R);addSheet(wb,p+'Budget by Market',[['Market','Channels','Lines','Budget'],...g.rows.map(r=>[r.market,r.ch,r.lines,Math.round(r.budget)]),['Grand total','',R.lines.length,Math.round(g.total)]],[24,60,8,14])}
   addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,60,40,12,16,30,22,14,90,30,11]);
  });
  return wb;
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
@@ -1185,6 +1308,17 @@ function localExtract(text){
 }
 let SAMPLE=null;
 const PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ==================== HERO PEP TALK ==================== */
+const CHEERS=['You make work suck less. 🙌','Your media plan is so balanced it does yoga. 🧘','Somewhere a CFO just smiled at your CPL. 😌','You + this BOM = the agency’s favorite brief. 💌','Spreadsheets fear you. Respectfully. 📊','Your UTMs are cleaner than my kitchen. 🧼','Reminder: you are more than your CTR. But also, nice CTR. ✨','That budget isn’t going to allocate itself. Oh wait, it is. 🤖','Creative due dates? You eat those for breakfast. 🥞','You put the “fun” in funnel. 🎢','Legend has it your media plans never need a v2. 🏆','Coffee count: high. Brilliance: higher. ☕','Plot twist: the algorithm is a fan of yours. 💅','You are the A in every A/B test. 🅰️','Go ahead, flex that blended CPM. 💪'];
+let cheerI=Math.floor(Math.random()*CHEERS.length);
+function showCheer(t){const el=$('#cheer-t');if(el)el.textContent=t}
+async function newCheer(useAI){
+ if(useAI&&aiReady()){try{const x=await aiJSON(`Write one short, funny, warm line of encouragement for a B2B paid media marketer opening their media planning dashboard${S.name?` for "${S.name}"`:''}. Playful, workplace-safe, under 80 characters, ending with exactly one fitting emoji. In the spirit of "You make work suck less. 🙌". Don't repeat: ${CHEERS[cheerI]}. Reply with only JSON: {"line": string}`);
+   if(x&&typeof x.line==='string'&&x.line.trim().length>4&&x.line.length<140)return showCheer(x.line.trim())}catch(e){}}
+ cheerI=(cheerI+1)%CHEERS.length;showCheer(CHEERS[cheerI])}
+showCheer(CHEERS[cheerI]);
+$('#cheer-new').onclick=()=>newCheer(true);
 /* ==================== AI AGENT ====================
    Two ways to reach Claude: the built-in one when this page runs inside Claude (SAMPLE),
    or the viewer's own Anthropic API key, which also reads PDFs natively (layout, tables, scans). */
@@ -1419,6 +1553,6 @@ Rules: one entry in "initiatives" per initiative above, same order. For each: 5 
 /* ==================== BOOT ==================== */
 renderInputs();renderOut();renderAgent();
 (function hook(n){
- if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;renderAgent()}).catch(()=>{});return}
+ if(window.claude&&claude.use){claude.use('downloads').then(d=>{DL=d}).catch(()=>{});claude.use('sample').then(s=>{SAMPLE=s;renderAgent();newCheer(true)}).catch(()=>{});return}
  if(n<20)setTimeout(()=>hook(n+1),250);
 })(0);
