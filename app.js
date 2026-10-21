@@ -477,7 +477,7 @@ function trafficRow(R,l,TR,days,yymm,cu,ad){
  const adnames=l.units.flatMap(u=>variantsOf(u).map(v=>[TR.content==='g'?'g':'ug',TR.ctype,'s-'+(FMTC[UNITS[u].fmt]||UNITS[u].fmt),'nm:'+slugU(l.bomIds[0]||l.id)+'-01','sz:'+szCode(v),audCode(l.aud),'a',slugU(l.m.id)].join('_')));
  const cta=(ad.rows[0]?.parts||[]).find(p=>/cta/i.test(p.k))?.t||(l.stage==='Awareness'?'Learn more':l.stage==='Conversion'?'Sign up':'Download');
  return {cname,cgroup:slugU(S.name)+'_'+(STG[l.stage]||'aw'),obj:ob[0],opt:ob[1],budget:Math.round(l.budget),daily:Math.round(l.budget/days),budgetTxt:money(l.budget),dailyTxt:money(l.budget/days)+'/day',
-  adset:(l.aud||'')+' · '+l.tmethod+(l.targeting?' · '+l.targeting:''),excl:DEF_EXCL,devices:l.c.group==='Search'?DEVICES.search:/video/i.test(U.fmt||'')?DEVICES.video:DEVICES.social,
+  adset:(l.aud||'')+' · '+l.tmethod,excl:DEF_EXCL,devices:l.c.group==='Search'?DEVICES.search:/video/i.test(U.fmt||'')?DEVICES.video:DEVICES.social,
   conv:String(t.events||'').split(',')[0].trim()||'—',lgf:lg?'Yes: '+UNITS[lg].name+' (sync to CRM, hidden field = line ID)':'No (landing page)',cta,nads:adnames.length*Math.max(1,l.concepts),adnames:adnames.join('\n'),
   build:TR.build,cc:TR.cc||'(add in Tagging settings)',crm:TR.crm?TR.crm+(TR.crmName?' · '+TR.crmName:''):'(add in Tagging settings)',ctype:(TR.content==='g'?'Gated':'Ungated')+' · '+TR.ctype,x1:'',x2:'',x3:'',x4:''}}
 function specTable(R){
@@ -658,17 +658,17 @@ function growthAOA(R){const o=funnel(R),E=econ(R,o),G=E.G;return [['GROWTH PLAN 
 
 /* ==================== AUDIENCE, TARGETING & ASSETS ==================== */
 // Per-placement audience (from the personas in section 4) and targeting method, editable on Buy Details; flows to the agency sheet
-const TGT_METHODS=['Job titles & seniority','Company lists (TAL / ABM)','Skills & member groups','Company industries & size','Predictive / lookalike','Interests & behaviors','Keywords (search intent)','Retargeting (site visitors, engagers)','Contextual / publisher placement','Event attendees & geo-fence'];
-function tgtDefault(c,p){const id=p.id;if(c.id==='google'||c.id==='baidu'||(c.id==='naver'&&/_s$/.test(id)))return 'Keywords (search intent)';
- if(/_rt$/.test(id))return 'Retargeting (site visitors, engagers)';if(c.id==='abm')return 'Company lists (TAL / ABM)';if(c.id==='events')return 'Event attendees & geo-fence';
- if(c.id==='linkedin')return 'Job titles & seniority';if(['trade','creators'].includes(c.id))return 'Contextual / publisher placement';return 'Interests & behaviors'}
-const tgtOf=(c,p)=>(S.plTgt||{})[p.id]||tgtDefault(c,p);
+const TGT_METHODS=['Job title','Skills','Predictive','TAL','Industry','Interests','Keywords','Retargeting','Contextual','Geo-fence'];
+function tgtDefault(c,p){const id=p.id;if(c.id==='google'||c.id==='baidu'||(c.id==='naver'&&/_s$/.test(id)))return 'Keywords';
+ if(/_rt$/.test(id))return 'Retargeting';if(c.id==='abm')return 'TAL';if(c.id==='events')return 'Geo-fence';
+ if(c.id==='linkedin')return 'Job title';if(['trade','creators'].includes(c.id))return 'Contextual';return 'Interests'}
+const tgtOf=(c,p)=>{const v=(S.plTgt||{})[p.id];return TGT_METHODS.includes(v)?v:tgtDefault(c,p)};
 const audKeyOf=p=>(S.plAud||{})[p.id]||'';
 function audLabel(c,p){const k=audKeyOf(p);if(k==='_all')return Object.keys(S.personas).filter(x=>S.personas[x]?.on&&S.personas[x].label).map(x=>S.personas[x].label.split('(')[0].trim()).join(', ')||'—';
  if(k&&S.personas[k]?.label)return S.personas[k].label.split('(')[0].trim();return personaShort(c)}
 function audSelect(c,p){const k=audKeyOf(p),ps=Object.keys(S.personas).filter(x=>S.personas[x]?.on&&S.personas[x].label);
  return `<select class="aud-in" data-pid="${p.id}" aria-label="Audience for ${esc(p.name)}" style="width:100%"><option value="" ${!k?'selected':''}>Default: ${esc(personaShort(c))}</option>${ps.map(x=>`<option value="${x}" ${k===x?'selected':''}>${esc(S.personas[x].label)}</option>`).join('')}<option value="_all" ${k==='_all'?'selected':''}>All personas</option></select>`}
-function tgtSelect(c,p){const v=tgtOf(c,p);return `<select class="tgt-in" data-pid="${p.id}" aria-label="Targeting for ${esc(p.name)}" style="width:100%">${TGT_METHODS.map(m=>`<option ${m===v?'selected':''}>${esc(m)}</option>`).join('')}</select>${p.tgt?`<div class="sub2" style="margin-top:3px;max-width:220px">${esc(p.tgt)}</div>`:''}`}
+function tgtSelect(c,p){const v=tgtOf(c,p);return `<select class="tgt-in" data-pid="${p.id}" aria-label="Targeting for ${esc(p.name)}" style="width:100%">${TGT_METHODS.map(m=>`<option ${m===v?'selected':''}>${esc(m)}</option>`).join('')}</select>`}
 
 // Assets: the content each campaign promotes (ebooks, webinars, videos…), with links, dates and Salesforce IDs
 const ASSET_TYPES=['eBook','Report / guide','Webinar','Video','Case study','Demo / trial','Event','Blog / article','Tool / calculator','Other'];
@@ -1382,7 +1382,7 @@ function renderAssump(R){
  const rateCell=r=>`<td class="n"><input class="rate" type="number" step="any" min="0" data-rt="${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td>`;
  const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th>Audience</th><th>Targeting</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
  const lnHead=`<th>Line</th><th>Channel</th><th>Placement</th><th>Category</th><th>Market</th><th>Lang</th><th>Audience</th><th>Stage</th><th>Buy</th><th class="n">Rate</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Flight</th><th>Initiative</th><th>KPI</th><th>BOM items</th>`;
- const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}${(()=>{const p=PLMAP[r._id],c=CH.find(x=>x.pl.some(q=>q.id===r._id)),pp=c.pl.find(q=>q.id===r._id);return `<td style="min-width:200px">${audSelect(c,pp)}</td><td style="min-width:230px">${tgtSelect(c,pp)}</td>`})()}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+ const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}${(()=>{const p=PLMAP[r._id],c=CH.find(x=>x.pl.some(q=>q.id===r._id)),pp=c.pl.find(q=>q.id===r._id);return `<td style="min-width:200px">${audSelect(c,pp)}</td><td style="min-width:150px">${tgtSelect(c,pp)}</td>`})()}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
   ${rateCell(r)}<td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`;
  const lnRow=r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="white-space:nowrap">${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.publisher)}</div></td>${catCell(r._id)}<td>${esc(r.market)}</td><td class="m">${esc(r.lang)}</td><td class="sub2" style="min-width:160px">${esc(r.aud||'')}</td><td>${stageChip(r.stage)}</td><td class="m">${esc(r.buy)}</td>
   ${rateCell(r)}<td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.flight)}</td><td class="sub2">${esc(r.ini)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td><td class="m">${esc(r.bomIds)}</td></tr>`;
