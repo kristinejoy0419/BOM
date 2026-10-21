@@ -1,5 +1,5 @@
 /* ==================== LIBRARY: channels, placements, ad unit specs ==================== */
-const TIERS=['lean','standard','full'], TIERNAME=['Lean','Standard','Full'];
+const TIERS=['lean','standard','full'], TIERNAME=['Low','Medium','High'];
 const STAGE={Awareness:'aw',Consideration:'co',Conversion:'cv'};
 const BUYUNIT={CPM:'impressions',CPC:'clicks',CPV:'views',CPL:'leads',CPS:'sends'};
 
@@ -180,6 +180,13 @@ function exampleCopy(){return{src:'One Unity · Unity Acquire 2026',
    b:'Video + offerwall in one place.\nAdd Offerwall to your video campaigns in a few clicks and reach rewarded players at scale.\nLaunch Unity Ads video and Offerwall campaigns from one dashboard on unity.com, with one login and shared reporting.'},
   {h:'Less MMP guesswork\nLink GA4. Get sharper ROAS.\nUA measurement you can trust',
    b:'Link GA4 for sharper ROAS.\nReconcile Unity results with your own analytics, right in the dashboard.\nConnect GA4 and developer data so Vector optimizes on signals you already trust, not just delayed postbacks.'}]};}
+function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
+function blankState(){const yr=new Date().getFullYear()+1;return{
+ name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
+ markets:MKT_RULES.map(r=>({id:r[0],name:r[2],lang:r[3],on:r[0]==='NA',weight:r[0]==='NA'?100:0})),
+ personas:blankPersonas(),initiatives:[],moments:[],
+ channels:Object.fromEntries(CH.map(c=>[c.id,{on:!['wechat','baidu','naver'].includes(c.id),weight:c.weight}])),
+ concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},formats:defaultFormats(),landing:'',copy:{src:'',voice:'',ctas:'',proof:'',ini:[]},copyEdits:{}}}
 function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:true}]).concat([['_video',{lengths:'15s, 30s'}]]))}
 
 const LSKEY='paid-media-bom-builder-v1';
@@ -192,6 +199,8 @@ function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.s
 
 /* ==================== HELPERS ==================== */
 const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const PERSONA_HINT={dm:'Decision-maker (titles)',tech:'Technical influencer (titles)',user:'Day-to-day user (titles)'};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
 const money=v=>'$'+Math.round(v).toLocaleString('en-US');
@@ -217,15 +226,21 @@ function variantsOf(u){return UNITS[u].variants.filter(v=>fmtOn(vinfo(u,v).fmt))
 function videoLengths(){const a=String(S.formats._video?.lengths||'').split(/[,;/]+/).map(x=>x.trim()).filter(Boolean);return a.length?a:['1 length']}
 function unitsFor(p,m){const a=typeof p.units==='function'?p.units(m):p.units;return a.filter(u=>variantsOf(u).length)}
 function rateOf(p){const r=S.rates[p.id];return r!=null&&r!==''&&!isNaN(r)?+r:p.rate}
-function iniOf(p){const L=S.initiatives;if(!L.length)return {name:'—',pillar:'—'};return L[p.ini]||L[0]}
-function personaShort(c){return c.personas.filter(k=>S.personas[k]?.on).map(k=>S.personas[k].label.split('(')[0].trim()).join(', ')||'—'}
-function personaText(c){return c.personas.filter(k=>S.personas[k]?.on).map(k=>S.personas[k].label).join('; ')||'—'}
+// placements map to the initiative whose funnel stage matches theirs (falls back to the library's suggestion, then the first)
+function iniIdx(p){const L=S.initiatives;if(!L.length)return -1;const m=L.map((x,i)=>x.stage===p.stage?i:-1).filter(i=>i>=0);
+ return m.length?m[(p.ini||0)%m.length]:(L[p.ini]?p.ini:0)}
+function iniOf(p){const i=iniIdx(p);return i<0?{name:'—',pillar:'—'}:S.initiatives[i]}
+const perKeys=c=>[...c.personas,...Object.keys(S.personas).filter(k=>S.personas[k].custom)].filter(k=>S.personas[k]?.on&&S.personas[k].label);
+function personaShort(c){return perKeys(c).map(k=>S.personas[k].label.split('(')[0].trim()).join(', ')||'—'}
+function personaText(c){return perKeys(c).map(k=>S.personas[k].label).join('; ')||'—'}
 
 /* ==================== AD COPY ==================== */
 const linesOf=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
 function pickFit(list,lim,i){if(!list.length)return null;if(!lim)return {t:list[i%list.length],over:0};
  const fit=list.filter(x=>x.length<=lim);if(fit.length){const t=fit[fit.length-1-(i%fit.length)];return {t,over:0}}
  const t=list.slice().sort((a,b)=>a.length-b.length)[0];return {t,over:t.length-lim}}
+const copyText=(rows,note)=>rows.map(r=>r.label+': '+r.parts.map(p=>`${p.k} "${p.t}"${p.over>0?` [OVER LIMIT ${p.t.length}/${p.lim}]`:''}`).join(' | ')).join('\n')+(note?'\n'+note:'');
+function finishAd(ad){ad.text=copyText(ad.rows,ad.note);ad.flags=ad.rows.reduce((a,r)=>a+r.parts.filter(p=>p.over>0).length,0);return ad}
 function adCopy({fmt,logo,lim,ini,concepts,langs}){
  if(logo)return {rows:[],note:'Brand lockups only. No copy.',text:'Brand lockups only'};
  const C=S.copy||{},bank=(C.ini||[])[ini]||(C.ini||[])[0]||{},H=linesOf(bank.h),B=linesOf(bank.b),CT=linesOf(C.ctas),P=linesOf(C.proof);
@@ -240,8 +255,7 @@ function adCopy({fmt,logo,lim,ini,concepts,langs}){
   const c=pickFit(CT,lim.cta,i);if(c&&fmt!=='document')parts.push({k:'CTA',lim:lim.cta,...c});
   if(parts.length)rows.push({label:'C'+(i+1),parts})}
  if(!rows.length)return {rows,note:'Add headlines and body copy in section 10.',text:'(no copy yet)'};
- const text=rows.map(r=>r.label+': '+r.parts.map(p=>`${p.k} "${p.t}"${p.over>0?` [over ${p.lim} by ${p.over}]`:''}`).join(' | ')).join('\n')+(note?'\n'+note:'');
- return {rows,note,text,flags:rows.reduce((a,r)=>a+r.parts.filter(p=>p.over>0).length,0)};
+ return finishAd({rows,note});
 }
 
 /* ==================== ENGINE ==================== */
@@ -289,7 +303,7 @@ function compute(tier){
  lines.forEach(l=>{l.bom=new Set();l.units.forEach(u=>variantsOf(u).forEach(v=>{const vi=vinfo(u,v);
   const key=vi.logo?'static|logo':(['static','video'].includes(vi.fmt)&&vi.ratio)?vi.fmt+'|'+vi.ratio:(vi.fmt==='display'&&vi.size)?'display|'+vi.size:vi.fmt+'|'+u;
   const M=ms[key]=ms[key]||{key,fmt:vi.fmt,ratio:vi.ratio,logo:vi.logo,unit:u,units:new Set(),sizes:{},langs:new Set(),lines:new Set(),pls:new Set(),chs:new Set(),mk:new Set(),budget:0,lead:0,best:null,iniB:{}};
-  M.units.add(u);const ii=S.initiatives[l.p.ini]?l.p.ini:0;M.iniB[ii]=(M.iniB[ii]||0)+l.budget;
+  M.units.add(u);const ii=Math.max(0,iniIdx(l.p));M.iniB[ii]=(M.iniB[ii]||0)+l.budget;
   M.sizes[UNITS[u].platform+' '+UNITS[u].name+(vi.size?' '+vi.size:'')]=1;if(!M.best||vi.area>M.best.area)M.best=vi;
   M.langs.add(l.lang);M.pls.add(l.channel+' · '+l.placement);M.chs.add(l.channel);M.mk.add(l.market);M.lead=Math.max(M.lead,UNITS[u].lead);
   if(!M.lines.has(l.id)){M.lines.add(l.id);M.budget+=l.budget}l.bom.add(key)}))});
@@ -300,7 +314,7 @@ function compute(tier){
   const masterFiles=concepts*rounds*M.langs.size*nL;
   const LOCAL=/^(wc_|bd_|nv_)/,us=[...M.units],usE=us.filter(u=>!LOCAL.test(u));const lim={};(usE.length?usE:us).forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
   const ini=+Object.entries(M.iniB).sort((a,b)=>b[1]-a[1])[0]?.[0]||0;
-  const ad=adCopy({fmt:M.fmt,logo:M.logo,lim,ini,concepts,langs:[...M.langs]});
+  const ad=applyEdits(adCopy({fmt:M.fmt,logo:M.logo,lim,ini,concepts,langs:[...M.langs]}),'M|'+M.key);
   return {...M,id,name,nL,adapt,masterFiles,ad,iniName:S.initiatives[ini]?.name||'—',units:[...M.units],totalFiles:masterFiles*adapt,lines:[...M.lines],langs:[...M.langs],pls:[...M.pls],chs:[...M.chs],mk:[...M.mk],due:isoD(new Date(parseD(S.start)-M.lead*864e5)),
    master:M.best.size||'—'}});
  const keyToId=Object.fromEntries(masters.map(m=>[m.key,m.id]));
@@ -339,7 +353,9 @@ function utmTable(R){
  const rows=R.lines.map(l=>{const src=UTM_SRC[l.c.id]||slugU(l.channel),med=UNITS[l.units[0]].medium,cont=slugU(l.id+'_'+l.p.id),term=slugU(l.m.id+'_'+l.lang);
   const q=`utm_source=${encodeURIComponent(src)}&utm_medium=${encodeURIComponent(med)}&utm_campaign=${encodeURIComponent(camp)}&utm_content=${encodeURIComponent(cont)}&utm_term=${encodeURIComponent(term)}`;
   const lim={};l.units.forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
-  const ad=applyEdits(adCopy({fmt:UNITS[l.units[0]].fmt,lim,ini:S.initiatives[l.p.ini]?l.p.ini:0,concepts:l.concepts,langs:[l.lang]}),editKey(R.tier,l));
+  const f0=UNITS[l.units[0]].fmt,lm=l.bomIds.map(id=>R.masters.find(m=>m.id===id)).filter(m=>m&&m.ad.rows.length),same=lm.filter(m=>m.fmt===f0);
+  let ad=adCopy({fmt:f0,lim,ini:Math.max(0,iniIdx(l.p)),concepts:l.concepts,langs:[l.lang]});(same.length?same:lm.slice(0,1)).slice().reverse().forEach(m=>{ad=mvpOverlay(ad,m.ad)});
+  ad=applyEdits(ad,editKey(R.tier,l));
   const files=[...l.bom].map(k=>{const m=idByKey[k];return m?m.id+' '+m.name:''}).filter(Boolean).join('; ')+' → '+l.units.flatMap(u=>variantsOf(u).map(v=>UNITS[u].name+' '+v)).join(', ')+` (${l.concepts} concepts × ${l.rounds} rounds)`;
   return {id:l.id,channel:l.channel,placement:l.placement,market:l.market,lang:l.lang,bom:l.bomIds.join(', '),files,copy:ad.text,_ad:ad,pixel:(TAGS[l.c.id]||{}).tag||'',flight:l.flight,due:l.due,adname:[code(S.name),TIERS[R.tier].toUpperCase().slice(0,3),code(l.m.id),code(l.c.id),l.p.id.toUpperCase(),l.stage.slice(0,3).toUpperCase(),l.lang,l.id].join('_'),
    src,med,camp,cont,term,url:base+(base.includes('?')?'&':'?')+q}});
@@ -356,15 +372,32 @@ function creativeTable(R){
  const rows=R.deliverables.map(d=>({...d,unitTxt:UNITS[d.unit].platform+' '+UNITS[d.unit].name}));
  return {name:'Creative Deliverables',cols,rows};
 }
+// projected outcomes: each line's delivery spread over months like its channel's spend
+const OUTK=[['imp','Impressions','CPM'],['clk','Clicks','CPC'],['views','Video views','CPV'],['leads','Leads','CPL'],['sends','Messages sent','CPS']];
+function outcomes(R){
+ const fr=Object.fromEntries(R.flightRows.map(f=>[f.c.id,f]));const by={},mo={},flat={};
+ R.lines.forEach(l=>{const f=fr[l.c.id],k=(OUTK.find(o=>o[2]===l.p.buy)||[])[0];const share=f&&f.total?f.months.map(v=>v/f.total):R.months.map(()=>1/Math.max(1,R.months.length));
+  const c=by[l.c.id]=by[l.c.id]||{c:l.c,budget:0,kpis:new Set(),flat:{}};c.budget+=l.budget;c.kpis.add(l.kpi);
+  if(k){c[k]=(c[k]||0)+l.qty;(mo[k]=mo[k]||R.months.map(()=>0)).forEach((_,i)=>mo[k][i]+=l.qty*share[i])}
+  else{c.flat[l.qu]=(c.flat[l.qu]||0)+l.qty;(flat[l.qu]=flat[l.qu]||R.months.map(()=>0)).forEach((_,i)=>flat[l.qu][i]+=l.qty*share[i])}});
+ return {by:Object.values(by).sort((a,b)=>b.budget-a.budget),mo,flat};
+}
+function flightAOA(R){const tb=flightTable(R),O=outcomes(R);const a=tableToAOA(tb);a.push([],['Projected outcomes by month',...R.months.map(monthLabel),'Total']);
+ OUTK.forEach(([k,n])=>{if(O.mo[k])a.push([n,...O.mo[k].map(Math.round),Math.round(sum(O.mo[k]))])});
+ Object.entries(O.flat).forEach(([u,v])=>a.push(['Flat-fee '+u,...v.map(x=>+x.toFixed(1)),+sum(v).toFixed(1)]));
+ a.push([],['KPIs & projected outcomes by channel','Budget','KPIs',...OUTK.map(o=>o[1]),'Flat-fee units']);
+ O.by.forEach(c=>a.push([c.c.name,Math.round(c.budget),[...c.kpis].join('; '),...OUTK.map(([k])=>c[k]?Math.round(c[k]):''),Object.entries(c.flat).map(([u,v])=>Math.round(v*10)/10+' '+u).join(', ')]));
+ return a}
 function flightTable(R){
  const cols=[['Channel','channel'],...R.months.map(m=>[monthLabel(m),m]),['Total','total']];
  const rows=R.flightRows.map(f=>{const o={channel:f.c.name,total:Math.round(f.total)};R.months.forEach((m,i)=>o[m]=Math.round(f.months[i]));return o});
  return {name:'Flighting',cols,rows};
 }
 function assumptionTable(R){
- const cols=[['Channel','channel'],['Placement','placement'],['First version','tier'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Share of channel %','share'],['Funnel stage','stage']];
- const rows=[];CH.forEach(c=>c.pl.forEach(p=>rows.push({channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,share:p.share,stage:p.stage,_id:p.id})));
- return {name:'Assumptions',cols,rows};
+ const cols=[['Channel','channel'],['Placement','placement'],['First version','tier'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
+ const rows=[];CH.forEach(c=>c.pl.forEach(p=>{const ls=R.lines.filter(l=>l.p.id===p.id);if(!ls.length)return;
+  rows.push({channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:Math.round(sum(ls.map(l=>l.budget))),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
+ return {name:'Buy Details',cols,rows};
 }
 function summaryRows(R){
  const agg=(key)=>{const o={};R.lines.forEach(l=>o[l[key]]=(o[l[key]]||0)+l.budget);return Object.entries(o).sort((a,b)=>b[1]-a[1])};
@@ -380,16 +413,16 @@ function bindSimple(){
  TIERS.forEach(t=>{[['#b-','budgets'],['#c-','concepts'],['#r-','refresh']].forEach(([p,k])=>{const el=$(p+t);el.value=S[k][t];el.oninput=()=>{S[k][t]=+el.value;changed()}})});
 }
 function renderCopyInputs(){
- const C=S.copy;while(C.ini.length<S.initiatives.length)C.ini.push({h:'',b:''});
+ const C=S.copy;const banks=S.initiatives.length?S.initiatives:[{name:'All lines',general:true}];while(C.ini.length<banks.length)C.ini.push({h:'',b:''});
  $('#cp-voice').value=C.voice||'';$('#cp-voice').oninput=e=>{C.voice=e.target.value;changed()};
  $('#cp-cta').value=C.ctas||'';$('#cp-cta').oninput=e=>{C.ctas=e.target.value;changed()};
  $('#cp-proof').value=C.proof||'';$('#cp-proof').oninput=e=>{C.proof=e.target.value;changed()};
  const stale=C.src&&C.src!==S.name,empty=!C.ini.some(q=>q&&(q.h||q.b));
  $('#cp-src').innerHTML=empty?'No copy yet for this brief. Press “Draft copy with Claude” or write it below.':stale?`<span class="chip flag">Out of date</span> This copy was written for “${esc(C.src)}”. Redraft it for the current brief.`:`Copy written for “${esc(C.src||S.name)}”.`;
- $('#cp-ini').innerHTML=S.initiatives.map((x,i)=>`<div class="li ini" style="grid-template-columns:1fr"><div class="eyebrow">Initiative ${i+1}</div><div class="note" style="margin-top:-4px">${esc(x.name||'Untitled')}</div>
+ $('#cp-ini').innerHTML=banks.map((x,i)=>`<div class="li ini" style="grid-template-columns:1fr"><div class="eyebrow">${x.general?'Copy for all lines':'Initiative '+(i+1)}</div><div class="note" style="margin-top:-4px">${x.general?'No initiatives yet. Fill them from the doc or add them in section 5 to write copy per initiative.':esc(x.name||'Untitled')}</div>
   <label class="f">Headlines<textarea id="cp-h-${i}" rows="3">${esc(C.ini[i].h)}</textarea></label>
   <label class="f">Body copy<textarea id="cp-b-${i}" rows="3">${esc(C.ini[i].b)}</textarea></label></div>`).join('');
- S.initiatives.forEach((x,i)=>{$('#cp-h-'+i).oninput=e=>{C.ini[i].h=e.target.value;changed()};$('#cp-b-'+i).oninput=e=>{C.ini[i].b=e.target.value;changed()}});
+ banks.forEach((x,i)=>{$('#cp-h-'+i).oninput=e=>{C.ini[i].h=e.target.value;changed()};$('#cp-b-'+i).oninput=e=>{C.ini[i].b=e.target.value;changed()}});
 }
 function renderInputs(){
  bindSimple();renderCopyInputs();
@@ -398,46 +431,89 @@ function renderInputs(){
  FORMATS.forEach(f=>{$('#fm-'+f.id).onchange=e=>{S.formats[f.id]={on:e.target.checked};changed()}});
  const vl=$('#in-vlen');vl.value=S.formats._video.lengths;vl.oninput=()=>{S.formats._video.lengths=vl.value;changed()};
  // markets
- $('#mkt-list').innerHTML=`<div class="li mkt note"><span></span><span>Market</span><span>Weight %</span><span>Lang</span><span></span></div>`+S.markets.map((m,i)=>`
+ $('#mkt-list').innerHTML=`<div class="li mkt note"><span></span><span>Market</span><span>%</span><span class="bud-h">Budget $</span><span>Lang</span><span></span></div>`+S.markets.map((m,i)=>`
   <div class="li mkt"><input type="checkbox" id="mk-on-${i}" ${m.on?'checked':''} aria-label="Include ${esc(m.name)}">
   <input type="text" id="mk-n-${i}" value="${esc(m.name)}" aria-label="Market name">
-  <input type="number" id="mk-w-${i}" value="${m.weight}" min="0" max="100" aria-label="Weight">
+  <input type="number" id="mk-w-${i}" value="${m.weight}" min="0" max="100" step="any" aria-label="Weight %">
+  <input type="number" id="mk-b-${i}" min="0" step="1000" aria-label="Market budget" ${m.on?'':'disabled'}>
   <input type="text" id="mk-l-${i}" value="${esc(m.lang)}" aria-label="Language" maxlength="5">
   <button class="x" data-i="${i}" aria-label="Remove market">×</button></div>`).join('');
- S.markets.forEach((m,i)=>{$(`#mk-on-${i}`).onchange=e=>{m.on=e.target.checked;changed()};$(`#mk-n-${i}`).oninput=e=>{m.name=e.target.value;changed()};$(`#mk-w-${i}`).oninput=e=>{m.weight=+e.target.value;changed()};$(`#mk-l-${i}`).oninput=e=>{m.lang=e.target.value.toUpperCase();changed()}});
+ S.markets.forEach((m,i)=>{$(`#mk-on-${i}`).onchange=e=>{m.on=e.target.checked;$(`#mk-b-${i}`).disabled=!m.on;changed()};$(`#mk-n-${i}`).oninput=e=>{m.name=e.target.value;changed()};$(`#mk-w-${i}`).oninput=e=>{m.weight=+e.target.value;changed()};
+  $(`#mk-b-${i}`).onchange=e=>{setMarketBudget(i,+e.target.value);changed()};$(`#mk-l-${i}`).oninput=e=>{m.lang=e.target.value.toUpperCase();changed()}});
  $('#mkt-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.markets.splice(+b.dataset.i,1);renderInputs();changed()});
  // personas
- $('#per-list').innerHTML=Object.entries(S.personas).map(([k,p])=>`<div class="li per"><input type="checkbox" id="pe-on-${k}" ${p.on?'checked':''} aria-label="Include persona"><input type="text" id="pe-l-${k}" value="${esc(p.label)}" aria-label="Persona label"></div>`).join('');
+ $('#per-list').innerHTML=Object.entries(S.personas).map(([k,p])=>`<div class="li per${p.custom?' cust':''}"><input type="checkbox" id="pe-on-${k}" ${p.on?'checked':''} aria-label="Include audience"><input type="text" id="pe-l-${k}" value="${esc(p.label)}" aria-label="Audience" placeholder="${esc(PERSONA_HINT[k]||'Audience')}">${p.custom?`<button class="x" data-k="${k}" aria-label="Remove audience">×</button>`:''}</div>`).join('')
+  +`<div class="li per cust"><span class="sub2" style="width:16px;text-align:center">+</span><input type="text" id="pe-new" placeholder="Add an audience (e.g. Agency partners, Finance leads)" aria-label="New audience"><span></span></div>`;
  Object.entries(S.personas).forEach(([k,p])=>{$(`#pe-on-${k}`).onchange=e=>{p.on=e.target.checked;changed()};$(`#pe-l-${k}`).oninput=e=>{p.label=e.target.value;changed()}});
+ $('#per-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{delete S.personas[b.dataset.k];renderInputs();changed()});
+ const pn=$('#pe-new');pn.onchange=()=>{const v=pn.value.trim();pn.value='';if(!v)return;S.personas['c'+Date.now()]={label:v,on:true,custom:true};renderInputs();changed();setTimeout(()=>$('#pe-new')?.focus(),0)};
+ pn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pn.onchange()}};
  // initiatives
- $('#ini-list').innerHTML=S.initiatives.map((x,i)=>`<div class="li ini"><input type="text" id="in-n-${i}" value="${esc(x.name)}" aria-label="Initiative name">
+ $('#ini-list').innerHTML=(S.initiatives.length?'':'<div class="note">No initiatives yet. “Fill inputs from doc” pulls them from the GTM, or add your own.</div>')+S.initiatives.map((x,i)=>`<div class="li ini"><input type="text" id="in-n-${i}" value="${esc(x.name)}" aria-label="Initiative name" placeholder="Initiative name">
   <select id="in-s-${i}" aria-label="Funnel stage">${Object.keys(STAGE).map(s=>`<option ${s===x.stage?'selected':''}>${s}</option>`).join('')}</select>
   <input class="full" type="text" id="in-p-${i}" value="${esc(x.pillar)}" aria-label="Message pillar" placeholder="Message pillar">
-  <div class="full btns" style="justify-content:space-between"><span class="note">Initiative ${i+1}${[' · brand & awareness lines',' · cross-sell & conversion lines',' · data & technical lines'][i]||''}</span><button class="x" data-i="${i}" aria-label="Remove initiative">×</button></div></div>`).join('');
- S.initiatives.forEach((x,i)=>{$(`#in-n-${i}`).oninput=e=>{x.name=e.target.value;renderCopyInputs();changed()};$(`#in-s-${i}`).onchange=e=>{x.stage=e.target.value;changed()};$(`#in-p-${i}`).oninput=e=>{x.pillar=e.target.value;changed()}});
+  <div class="full btns" style="justify-content:space-between"><span class="note">Initiative ${i+1} · ${esc(x.stage)} placements</span><button class="x" data-i="${i}" aria-label="Remove initiative">×</button></div></div>`).join('');
+ S.initiatives.forEach((x,i)=>{$(`#in-n-${i}`).oninput=e=>{x.name=e.target.value;renderCopyInputs();changed()};$(`#in-s-${i}`).onchange=e=>{x.stage=e.target.value;renderInputs();changed()};$(`#in-p-${i}`).oninput=e=>{x.pillar=e.target.value;changed()}});
  $('#ini-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.initiatives.splice(+b.dataset.i,1);S.copy.ini.splice(+b.dataset.i,1);renderInputs();changed()});
  // moments
- $('#mom-list').innerHTML=S.moments.map((x,i)=>`<div class="li mom"><input class="full" type="text" id="mo-n-${i}" value="${esc(x.name)}" aria-label="Moment name">
+ $('#mom-list').innerHTML=S.moments.map((x,i)=>`<div class="li mom"><input class="full" type="text" id="mo-n-${i}" value="${esc(x.name)}" aria-label="Moment name" placeholder="Milestone, launch or event">
   <select id="mo-t-${i}" aria-label="Type">${['launch','content','event'].map(t=>`<option value="${t}" ${t===x.type?'selected':''}>${t[0].toUpperCase()+t.slice(1)}</option>`).join('')}</select>
   <input type="month" id="mo-m-${i}" value="${esc(x.month)}" aria-label="Month">
   <div class="full btns" style="justify-content:flex-end"><button class="x" data-i="${i}" aria-label="Remove moment">×</button></div></div>`).join('');
+ $('#mom-empty').textContent=S.moments.length?'':'No launch moments yet. Add the milestones from your GTM here, or they fill in from the doc when it names dates.';
  S.moments.forEach((x,i)=>{$(`#mo-n-${i}`).oninput=e=>{x.name=e.target.value;changed()};$(`#mo-t-${i}`).onchange=e=>{x.type=e.target.value;changed()};$(`#mo-m-${i}`).onchange=e=>{x.month=e.target.value;changed()}});
  $('#mom-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.moments.splice(+b.dataset.i,1);renderInputs();changed()});
  // channels
- let html='',g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
+ let html=`<div class="li ch note"><span></span><span>Channel</span><span>Weight</span><span class="bud-h">Budget $</span></div>`,g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
   const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight};const mn=Math.min(...c.pl.map(p=>p.min));
-  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LSF'[mn]}+</span></label><input type="number" id="ch-w-${c.id}" value="${st.weight}" min="0" aria-label="Weight"></div>`});
+  html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label><input type="number" id="ch-w-${c.id}" value="${st.weight}" min="0" step="any" aria-label="Weight"><input type="number" id="ch-b-${c.id}" min="0" step="1000" aria-label="${esc(c.name)} budget"></div>`});
  $('#ch-list').innerHTML=html;
- CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};$(`#ch-w-${c.id}`).oninput=e=>{S.channels[c.id].weight=+e.target.value;changed()}});
+ CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};$(`#ch-w-${c.id}`).oninput=e=>{S.channels[c.id].weight=+e.target.value;changed()};
+  $(`#ch-b-${c.id}`).onchange=e=>{setChannelBudget(c.id,+e.target.value);changed()}});
+ syncBudgetFields();
+}
+/* budget fields: show $ for the version picked on the right; typing $ rewrites the weights */
+const bTier=()=>UI.tier===3?1:UI.tier;
+function syncBudgetFields(R){
+ const t=bTier();R=R&&R.tier===t?R:compute(t);const total=+S.budgets[TIERS[t]]||0;
+ $$('.bud-h').forEach(el=>el.textContent=TIERNAME[t]+' $');
+ const on=S.markets.filter(m=>m.on&&+m.weight>0),ws=sum(on.map(m=>+m.weight));
+ S.markets.forEach((m,i)=>{const el=$('#mk-b-'+i);if(!el||el===document.activeElement)return;el.value=m.on&&ws?Math.round(total*(+m.weight||0)/ws):'';
+  const w=$('#mk-w-'+i);if(w&&w!==document.activeElement)w.value=+(+m.weight).toFixed(1)});
+ const mt=$('#mkt-tot');if(mt){mt.innerHTML=`<span>${on.length} markets on · weights total ${+ws.toFixed(1)}${Math.abs(ws-100)>0.5?' (treated as shares)':'%'}</span><span>${money(total)} ${esc(TIERNAME[t])} budget</span>`}
+ const cb={};R.lines.forEach(l=>cb[l.c.id]=(cb[l.c.id]||0)+l.budget);
+ CH.forEach(c=>{const el=$('#ch-b-'+c.id);if(!el)return;const v=cb[c.id];el.disabled=!v;el.title=v?'':(S.channels[c.id].on?'Not in the '+TIERNAME[t]+' version or its markets':'Channel is off');
+  if(el!==document.activeElement)el.value=v?Math.round(v):'';const w=$('#ch-w-'+c.id);if(w&&w!==document.activeElement)w.value=+(+S.channels[c.id].weight).toFixed(1)});
+ const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>${Object.keys(cb).length} channels running in ${esc(TIERNAME[t])}</span><span>${money(sum(Object.values(cb)))}</span>`;
+}
+function setMarketBudget(i,x){
+ const t=bTier(),total=+S.budgets[TIERS[t]]||0,m=S.markets[i];if(!total||!m.on)return;
+ const share=Math.max(0,Math.min(1,x/total)),others=S.markets.filter((q,j)=>j!==i&&q.on&&+q.weight>0),os=sum(others.map(q=>+q.weight));
+ m.weight=+(share*100).toFixed(2);
+ if(others.length&&os>0)others.forEach(q=>q.weight=+(q.weight/os*(100-share*100)).toFixed(2));
+ setStatus('#ch-status','');
+}
+function setChannelBudget(id,x){
+ const t=bTier();let got=0;
+ // the most this channel can take: its share when it dominates every market it runs in
+ const w0=S.channels[id].weight;S.channels[id].weight=w0*1e4;const cap=sum(compute(t).lines.filter(l=>l.c.id===id).map(l=>l.budget))*0.97;S.channels[id].weight=w0;x=Math.min(x,cap);
+ for(let it=0;it<10;it++){const R=compute(t);const cur={};R.lines.forEach(l=>cur[l.c.id]=(cur[l.c.id]||0)+l.budget);const tot=sum(Object.values(cur));
+  if(!cur[id]||!tot)return;const want=Math.max(0,Math.min(x,tot)),rest=tot-cur[id];got=cur[id];if(Math.abs(got-want)<Math.max(1,want*0.002))break;
+  for(const k in cur){const tg=k===id?want:(rest>0?cur[k]/rest*(tot-want):0);S.channels[k].weight=Math.max(1e-4,S.channels[k].weight*(tg||1e-4)/cur[k])}}
+ const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&S.channels[k].weight>0),s=sum(on.map(k=>S.channels[k].weight));if(s>0)on.forEach(k=>S.channels[k].weight=Math.max(0.1,+(S.channels[k].weight/s*100).toFixed(1)));
+ const R=compute(t),now=sum(R.lines.filter(l=>l.c.id===id).map(l=>l.budget));
+ const asked=+(document.getElementById('ch-b-'+id)||{}).value||x;const capped=asked>x+1;
+ setStatus('#ch-status',capped?`${CHMAP[id].name} is capped at about ${money(now)}: it only runs in ${[...new Set(R.lines.filter(l=>l.c.id===id).map(l=>l.market))].join(', ')||'some markets'}, so it can't take more than those markets' budget. Raise their share in section 3 to give it more.`:'',capped);
 }
 $('#add-mkt').onclick=()=>{S.markets.push({id:'M'+Date.now(),name:'New market',lang:'EN',on:true,weight:5});renderInputs();changed()};
-$('#add-ini').onclick=()=>{S.initiatives.push({name:'New initiative',stage:'Consideration',pillar:''});renderInputs();changed()};
-$('#add-mom').onclick=()=>{S.moments.push({name:'New moment',month:S.start.slice(0,7),type:'launch',ini:0});renderInputs();changed()};
+$('#add-ini').onclick=()=>{S.initiatives.push({name:'',stage:'Consideration',pillar:''});renderInputs();changed();setTimeout(()=>$('#in-n-'+(S.initiatives.length-1))?.focus(),0)};
+$('#add-mom').onclick=()=>{S.moments.push({name:'',month:S.start.slice(0,7),type:'launch',ini:0});renderInputs();changed();setTimeout(()=>$('#mo-n-'+(S.moments.length-1))?.focus(),0)};
+$('#btn-blank').onclick=()=>{if(!confirm('Clear every input and start a blank plan? This replaces the plan saved in this browser.'))return;S=blankState();PDF=null;renderInputs();changed();setStatus('#extract-status','Blank plan ready. Paste or upload a GTM doc, then press “Fill inputs from doc”.');$('#exampleBadge').hidden=true};
 $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus('#extract-status','Unity Acquire example reloaded.');$('#exampleBadge').hidden=false};
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(renderOut,120)}
-const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting'],['assump','Rates & assumptions'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -468,8 +544,8 @@ function renderSummary(R){
   <div class="cols">${barList('Budget by initiative',s.byIni,t.budget)}${barList('Budget by funnel stage',s.byStage,t.budget)}</div>
   ${flags.length?`<div class="note"><span class="chip flag">Check</span> ${flags.length} flat-fee line(s) get less than one unit at this budget: ${flags.map(l=>esc(l.placement+' · '+l.market)).join('; ')}. Raise the budget, lower the market weight, or switch the channel off there.</div>`:''}
   <div><h3 style="font-size:14px;margin-bottom:6px">Defaults this plan assumes</h3><ul class="assump">
-   <li>The GTM doc has no paid media budget, so the three version budgets are planning placeholders. Replace them with your real numbers.</li>
-   <li>Rates are 2026 B2B planning benchmarks, not quotes. Override any of them on the Rates &amp; assumptions tab.</li>
+   <li>Unless the GTM doc states a paid media budget, the Low, Medium and High budgets are planning placeholders. Replace them with your real numbers.</li>
+   <li>Rates are 2026 B2B planning benchmarks, not quotes. Override any of them on the Buy Details tab.</li>
    <li>Market budget is set first from the weights; each market then splits across the channels available there (LinkedIn, Google, X and YouTube are off in China, where WeChat and Baidu take over; Naver runs in Korea; X gets extra weight in Japan).</li>
    <li>Flighting runs always-on across the flight, with extra weight in launch months and the month after. Event amplification only spends in event months.</li>
    <li>The BOM is the MVP: one master per format and aspect ratio, made once per language (North America and EMEA share English) and resized for each platform.</li>
@@ -492,41 +568,47 @@ function renderMVP(R){
  const tb=mvpTable(R),t=totals(R);
  const covered=new Set(R.masters.flatMap(m=>m.lines)).size;
  const gs={};tb.rows.forEach(r=>(gs[r.fmtName]=gs[r.fmtName]||[]).push(r));
- return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed.</span>
+ return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Click any ad copy to edit it; counters turn red when a line is over its character limit, and your edits carry through to the Spec Sheet &amp; Tagging tab.</span>
   <span class="chip ${covered===t.lines?'aw':'flag'}">${covered} of ${t.lines} media lines covered</span></div>
  <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>Ad copy</th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
  ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="12">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
   <td class="m"><strong>${r.id}</strong></td><td style="min-width:170px"><strong>${esc(r.name)}</strong><div class="sub2">${esc(r.chsTxt)}</div></td>
-  <td style="min-width:320px">${adCell(R.masters.find(m=>m.id===r.id).ad)}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
+  <td style="min-width:380px">${adCellEdit(R.masters.find(m=>m.id===r.id).ad)}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
   <td class="n">${r.concepts} × ${r.rounds}${r.cuts!=='—'?' × '+R.lens.length:''}</td><td class="n">${r.masterFiles.toLocaleString()}</td><td class="n">${r.totalFiles.toLocaleString()}</td>
   <td class="sub2" style="min-width:230px">${Object.keys(R.masters.find(m=>m.id===r.id).sizes).map(esc).join('<br>')}</td><td class="n">${money(r.budget)}</td><td class="m">${r.due}</td></tr>`).join('')).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip flag">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip over">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
  </tbody></table></div>
  <div class="note" style="margin-top:8px">“Budget on lines” is the media budget of the lines that use a master. A line with several units counts toward each of them, so this column does not add up to the plan total.${R.lens.length>1?` Video masters are cut into ${R.lens.length} lengths (${esc(R.lens.join(', '))}).`:''}</div>`;
 }
 // agency edits to a line's ad copy, keyed by version + placement + market so they survive renumbering
 const editKey=(tier,l)=>TIERS[tier]+'|'+l.p.id+'|'+l.m.id;
 function applyEdits(ad,lk){
- const E=(S.copyEdits||{})[lk];ad.lk=lk;if(!E||!ad.rows.length)return ad;
- ad.rows.forEach(r=>r.parts.forEach((p,j)=>{const v=E[r.label+'|'+j];if(v!=null){p.t=v;p.edited=true;p.over=p.lim?Math.max(0,v.length-p.lim):0}}));
- ad.text=ad.rows.map(r=>r.label+': '+r.parts.map(p=>`${p.k} "${p.t}"${p.over>0?` [over ${p.lim} by ${p.over}]`:''}`).join(' | ')).join('\n')+(ad.note?'\n'+ad.note:'');
- ad.flags=ad.rows.reduce((a,r)=>a+r.parts.filter(p=>p.over>0).length,0);ad.edited=true;return ad;
+ const E=(S.copyEdits||{})[lk];ad.lk=lk;if(!E||!ad.rows.length)return ad;let any=false;
+ ad.rows.forEach(r=>r.parts.forEach((p,j)=>{const v=E[r.label+'|'+j];if(v!=null){p.t=v;p.edited=true;any=true;p.over=p.lim?Math.max(0,v.length-p.lim):0}}));
+ if(any)ad.edited=true;return finishAd(ad);
+}
+// copy edited on a BOM master flows to every trafficking line that uses that master (matched by concept + copy field)
+function mvpOverlay(ad,mad){
+ if(!mad||!ad.rows.length)return ad;
+ ad.rows.forEach(r=>{const mr=mad.rows.find(x=>x.label===r.label);if(!mr)return;
+  r.parts.forEach(p=>{const mp=mr.parts.find(x=>x.k===p.k&&x.edited);if(mp){p.t=mp.t;p.fromMvp=true;p.over=p.lim?Math.max(0,p.t.length-p.lim):0}})});
+ return finishAd(ad);
 }
 function adCellEdit(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
  return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span>${r.parts.map((p,j)=>{const long=(p.lim||0)>90||p.t.length>90;
   const attrs=`class="cp-edit" data-lk="${esc(ad.lk)}" data-key="${esc(r.label+'|'+j)}" data-lim="${p.lim||''}" aria-label="${esc(r.label+' '+p.k)}"`;
-  return `<div style="margin-top:4px"><div class="sub2" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(p.k)}${p.edited?' · edited':''}</span><span class="cp-count ${p.over>0?'over':''}">${p.lim?`${p.t.length}/${p.lim}`:p.t.length+' chars'}</span></div>
+  return `<div style="margin-top:4px"><div class="sub2" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(p.k)}${p.edited?' · edited':p.fromMvp?' · from BOM':''}</span><span class="cp-count ${p.over>0?'over':''}">${p.lim?`${p.t.length}/${p.lim}`:p.t.length+' chars'}</span></div>
    ${long?`<textarea ${attrs} rows="2">${esc(p.t)}</textarea>`:`<input type="text" ${attrs} value="${esc(p.t)}">`}</div>`}).join('')}</div>`).join('')}
-  ${ad.edited?`<button class="btn sm ghost cp-reset" data-lk="${esc(ad.lk)}">Reset to bank copy</button>`:''}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
+  ${ad.edited?`<button class="btn sm ghost cp-reset" data-lk="${esc(ad.lk)}">${ad.lk.startsWith('M|')?'Reset to bank copy':'Reset to BOM copy'}</button>`:''}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
 function adCell(ad){
  if(!ad.rows.length)return `<span class="sub2">${esc(ad.note)}</span>`;
- return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip flag">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
+ return `<div style="display:flex;flex-direction:column;gap:6px">${ad.rows.map(r=>`<div><span class="tierchip">${esc(r.label)}</span> ${r.parts.map(p=>`<div style="margin-top:2px"><span class="sub2">${esc(p.k)}${p.lim?` (${p.t.length}/${p.lim})`:''}:</span> ${esc(p.t)}${p.over>0?` <span class="chip over">over by ${p.over}</span>`:''}</div>`).join('')}</div>`).join('')}${ad.note?`<div class="sub2">${esc(ad.note)}</div>`:''}</div>`;
 }
 function renderTagging(R){
  const px=pixelTable(R),ut=utmTable(R);
- return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits (edit any line here to trim it; counters turn amber when over), the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:14px"><div class="toolbar" style="margin:0"><div><div class="eyebrow">Spec sheet &amp; tagging for agency</div><h2 style="font-size:18px">Agency trafficking sheet: every line</h2><div class="note">What each media line needs: its BOM creative masters, the exact files, the ad copy fitted to that placement's limits (it follows your BOM edits; edit a line here to override it just for that placement; counters turn red when over), the pixel, the ad name and the tracked URL. utm_content carries the line ID, so every click maps back to the BOM. Split trade and creator lines per publisher once IOs are signed.</div></div>
    <label class="f" style="min-width:260px">Landing page URL<input type="text" id="in-landing" value="${esc(S.landing)}"></label></div>
   <div class="tscroll"><table><thead><tr><th>Line</th><th>Placement · market</th><th>BOM items</th><th>Files to traffic</th><th>Ad copy</th><th>Ad name</th><th>UTMs</th><th>Tracked URL</th><th>Due</th></tr></thead><tbody>
   ${ut.rows.map(r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.channel)} · ${esc(r.market)} · ${esc(r.lang)}</div></td>
@@ -568,19 +650,33 @@ function renderCreative(R){
 function renderFlight(R){
  const tb=flightTable(R);const max=Math.max(1,...R.flightRows.flatMap(f=>f.months));
  const mm={};S.moments.forEach(x=>{(mm[x.month]=mm[x.month]||[]).push(x)});
- return `<div class="toolbar"><span class="note">Monthly spend by channel. Darker cells carry more budget. Moments are listed under each month.</span></div>
+ return `<div class="toolbar"><span class="note">Monthly spend by channel. Darker cells carry more budget. Moments are listed under each month. Projected outcomes and KPIs follow below.</span></div>
  <div class="tscroll"><table class="heat"><thead><tr><th>Channel</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr>
  <tr><td class="sub2">Moments</td>${R.months.map(m=>`<td class="sub2" style="min-width:92px;font-size:10.5px">${(mm[m]||[]).map(x=>esc(x.name)).join('<br>')}</td>`).join('')}<td></td></tr></thead><tbody>
  ${R.flightRows.map(f=>`<tr><td style="white-space:nowrap">${esc(f.c.name)}</td>${f.months.map(v=>`<td class="h" style="background:color-mix(in srgb,var(--heat1) ${(v/max*70).toFixed(0)}%,var(--heat0));color:${v/max>.55?'var(--accent-ink)':'var(--ink)'}">${v>0?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${money(f.total)}</td></tr>`).join('')}
  <tr class="tot"><td>Total</td>${R.months.map((m,i)=>`<td class="n">${compact(sum(R.flightRows.map(f=>f.months[i])))}</td>`).join('')}<td class="n">${money(sum(R.flightRows.map(f=>f.total)))}</td></tr>
- </tbody></table></div>`;
+ </tbody></table></div>
+ ${(()=>{const O=outcomes(R);const fl=Object.entries(O.flat);return `
+ <h2 style="font-size:18px;margin:18px 0 4px">Projected outcomes by month</h2>
+ <div class="note" style="margin-bottom:8px">Estimated delivery from each buy (budget ÷ rate), phased like its channel's spend. Planning estimates from benchmark rates, not guarantees.</div>
+ <div class="tscroll"><table><thead><tr><th>Outcome</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
+ ${OUTK.filter(([k])=>O.mo[k]).map(([k,n])=>`<tr><td style="white-space:nowrap">${n}</td>${O.mo[k].map(v=>`<td class="n">${v>=.5?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${compact(sum(O.mo[k]))}</strong></td></tr>`).join('')}
+ ${fl.map(([u,v])=>`<tr><td style="white-space:nowrap">Flat-fee ${esc(u)}</td>${v.map(x=>`<td class="n">${x>=.05?(+x.toFixed(1)).toLocaleString():'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${(+sum(v).toFixed(1)).toLocaleString()}</strong></td></tr>`).join('')}
+ </tbody></table></div>
+ <h2 style="font-size:18px;margin:18px 0 4px">KPIs &amp; projected outcomes by channel</h2>
+ <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Budget</th><th>KPIs to track</th>${OUTK.filter(([k])=>O.mo[k]).map(([,n])=>`<th class="n">${n}</th>`).join('')}<th>Flat-fee units</th><th class="n">Blended cost per result</th></tr></thead><tbody>
+ ${O.by.map(c=>{const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>c[k]||0));return `<tr><td style="white-space:nowrap"><strong>${esc(c.c.name)}</strong></td><td class="n">${money(c.budget)}</td><td class="sub2" style="min-width:260px">${[...c.kpis].map(esc).join('<br>')}</td>
+  ${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${c[k]?compact(c[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="sub2">${Object.entries(c.flat).map(([u,v])=>esc((Math.round(v*10)/10)+' '+u)).join('<br>')||'—'}</td><td class="n">${res?rateFmt(c.budget/res,'CPC'):'<span class="sub2">—</span>'}</td></tr>`}).join('')}
+ </tbody></table></div>
+ <div class="note" style="margin-top:8px">Blended cost per result divides the channel budget by its clicks, views, leads and messages (impressions excluded).</div>`})()}`;
 }
 function renderAssump(R){
  const tb=assumptionTable(R);
- return `<div class="toolbar"><span class="note">Edit any rate to replace the benchmark with your rate card. Changes apply to all three versions.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
- <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>First version</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Share of channel</th><th>Stage</th></tr></thead><tbody>
- ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td>${esc(r.placement)}</td><td><span class="tierchip">${esc(r.tier)}</span></td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
-  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${r.share}%</td><td>${stageChip(r.stage)}</td></tr>`).join('')}
+ return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
+ <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>From</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
+ ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td><span class="tierchip">${esc(r.tier)}</span></td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td><td></td><td></td><td></td></tr>
  </tbody></table></div>`;
 }
 function renderCompare(){
@@ -588,17 +684,17 @@ function renderCompare(){
  const metrics=[['Budget',t=>money(t.budget)],['Channels',t=>t.channels],['Placements',t=>t.placements],['Markets',t=>t.markets],['BOM line items',t=>t.lines],['Est. impressions',t=>compact(t.imp)],['Est. clicks',t=>compact(t.clk)],['Est. video views',t=>compact(t.views)],['Est. leads',t=>compact(t.leads)],['BOM creative masters',t=>t.masters],['Master files',t=>t.files.toLocaleString()]];
  const chs=CH.filter(c=>Rs.some(R=>R.lines.some(l=>l.c.id===c.id)));
  const chB=(R,c)=>sum(R.lines.filter(l=>l.c.id===c.id).map(l=>l.budget));
- return `<div class="panel" style="display:flex;flex-direction:column;gap:16px"><div><div class="eyebrow">Side by side</div><h2 style="font-size:20px">Lean vs Standard vs Full</h2>
- <div class="note">Lean runs the always-on core (LinkedIn, search, trade newsletters, China and Korea local platforms). Standard adds video, X, ABM, retargeting, lead gen and events. Full adds Reddit, Shorts, conquest search, conversation ads, sponsored articles and podcasts.</div></div>
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:16px"><div><div class="eyebrow">Side by side</div><h2 style="font-size:20px">Low vs Medium vs High</h2>
+ <div class="note">Low runs the always-on core (LinkedIn, search, trade newsletters, China and Korea local platforms). Medium adds video, X, ABM, retargeting, lead gen and events. High adds Reddit, Shorts, conquest search, conversation ads, sponsored articles and podcasts.</div></div>
  <div class="tscroll"><table><thead><tr><th>Metric</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${metrics.map(([n,f])=>`<tr><td>${n}</td>${Ts.map(t=>`<td class="n">${f(t)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
  <div class="tscroll"><table><thead><tr><th>Channel budget</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead><tbody>${chs.map(c=>`<tr><td>${esc(c.name)}</td>${Rs.map(R=>{const v=chB(R,c);return `<td class="n">${v?money(v):'<span class="sub2">—</span>'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>`;
 }
 function renderOut(){
  renderSeg();
  const v=$('#view');
- if(UI.tier===3){v.innerHTML=renderCompare();$('#x-csv').disabled=true;return}
+ if(UI.tier===3){v.innerHTML=renderCompare();$('#x-csv').disabled=true;syncBudgetFields();return}
  $('#x-csv').disabled=false;
- const R=compute(UI.tier);
+ const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
  v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tagging:renderTagging}[UI.tab](R);
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
@@ -606,7 +702,7 @@ function renderOut(){
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
- if(UI.tab==='assump'){CH.forEach(c=>c.pl.forEach(p=>{const el=$('#rt-'+p.id);el.onchange=()=>{S.rates[p.id]=el.value===''?null:+el.value;save()}}));
+ if(UI.tab==='assump'){CH.forEach(c=>c.pl.forEach(p=>{const el=$('#rt-'+p.id);if(el)el.onchange=()=>{S.rates[p.id]=el.value===''?null:+el.value;changed()}}));
   $('#rates-reset').onclick=()=>{S.rates={};save();renderOut()}}
 }
 
@@ -624,18 +720,18 @@ function workbookFor(tiers){
   addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R)),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R)),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[16,24,50,24,16,24,60,40,50,24,12,10,10]);
-  addSheet(wb,p+'Flighting',tableToAOA(flightTable(R)),[28]);
+  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
+  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R)),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
   addSheet(wb,p+'Agency Trafficking',tableToAOA(utmTable(R)),[6,22,36,14,6,14,70,80,40,40,12,16,30,22,14,90,30,11]);
  });
- addSheet(wb,'Rates & Assumptions',tableToAOA({cols:assumptionTable().cols,rows:assumptionTable().rows}),[24,44,12,8,10,12,10,13]);
  return wb;
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>flightTable(R),assump:()=>assumptionTable(R)}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R)}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
- const rows=tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
+ const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
 let DL=null;
 async function saveFile(filename,data){
@@ -679,11 +775,15 @@ function applyExtract(x){
    nm.push({id,name:r?r[2]:name,lang:r?r[3]:(m.language||'EN').toUpperCase().slice(0,5),on:true,weight:w})});
   MKT_RULES.forEach(r=>{if(!nm.find(q=>q.id===r[0]))nm.push({id:r[0],name:r[2],lang:r[3],on:false,weight:5})});
   S.markets=nm;changes.push(nm.filter(m=>m.on).length+' markets')}
- if(Array.isArray(x.personas))x.personas.forEach(p=>{if(S.personas[p.role]&&p.label){S.personas[p.role].label=p.label;S.personas[p.role].on=true}});
- if(Array.isArray(x.personas)&&x.personas.length)changes.push('personas');
- if(Array.isArray(x.initiatives)&&x.initiatives.length){S.initiatives=x.initiatives.slice(0,5).map(i=>({name:i.name||'Initiative',stage:STAGE[i.stage]?i.stage:'Consideration',pillar:i.pillar||''}));changes.push(S.initiatives.length+' initiatives')}
- if(x._clearMoments){S.moments=[];changes.push('example launch moments cleared')}
- if(Array.isArray(x.moments)&&x.moments.length){S.moments=x.moments.filter(m=>/^\d{4}-\d{2}$/.test(m.month||'')).map(m=>({name:m.name||'Moment',month:m.month,type:['launch','event','content'].includes(m.type)?m.type:'launch',ini:+m.initiative||0}));changes.push(S.moments.length+' moments')}
+ // audiences: reset to generic roles, then fill from the doc
+ S.personas=blankPersonas();
+ if(Array.isArray(x.personas))x.personas.forEach(p=>{if(!p.label)return;if(['dm','tech','user'].includes(p.role)){S.personas[p.role].label=p.label;S.personas[p.role].on=true}else S.personas['c'+Math.random().toString(36).slice(2,8)]={label:p.label,on:true,custom:true}});
+ if(Array.isArray(x.personas)&&x.personas.length)changes.push('audiences');
+ // initiatives and launch moments come only from the doc; none found leaves them blank to fill in
+ S.initiatives=(Array.isArray(x.initiatives)?x.initiatives:[]).filter(i=>i&&i.name).slice(0,6).map(i=>({name:String(i.name),stage:STAGE[i.stage]?i.stage:'Consideration',pillar:i.pillar||''}));
+ changes.push(S.initiatives.length?S.initiatives.length+' initiatives':'no initiatives found (add them in section 5)');
+ S.moments=(Array.isArray(x.moments)?x.moments:[]).filter(m=>m&&/^\d{4}-\d{2}$/.test(m.month||'')).map(m=>({name:m.name||'Milestone',month:m.month,type:['launch','event','content'].includes(m.type)?m.type:'launch',ini:+m.initiative||0}));
+ changes.push(S.moments.length?S.moments.length+' launch moments':'no dated milestones found (add them in section 6)');
  if(Array.isArray(x.channels)&&x.channels.length){CH.forEach(c=>{S.channels[c.id].on=x.channels.includes(c.id)});
   // local platforms follow their market
   if(S.markets.find(m=>m.id==='CN'&&m.on)){S.channels.wechat.on=true;S.channels.baidu.on=true}if(S.markets.find(m=>m.id==='KR'&&m.on))S.channels.naver.on=true;
@@ -693,6 +793,28 @@ function applyExtract(x){
  if(+x.budget>0){S.budgets={lean:Math.round(x.budget*0.45/1000)*1000,standard:Math.round(+x.budget),full:Math.round(x.budget*1.75/1000)*1000};changes.push('budgets')}
  return changes;
 }
+// keyword-scan helpers: numbered / bulleted items under an "initiatives" heading, and dated milestones
+function scanList(text,head){const out=[];let on=false;
+ for(const raw of text.split('\n')){const s=raw.trim();if(!s){if(out.length)on=false;continue}
+  const item=s.match(/^(?:\d+[.)]|[-•*▪●])\s*(.+)$/);
+  if(!item&&head.test(s)&&s.length<140){on=true;const after=s.split(/:\s*/).slice(1).join(': ');if(after&&/;/.test(after))after.split(/;\s*/).forEach(a=>a.trim()&&out.push(a.trim()));continue}
+  if(on){if(item)out.push(item[1]);else if(out.length)on=false}}
+ return out}
+const guessStage=t=>/brand|awareness|perception|narrative|reputation|thought leader/i.test(t)?'Awareness':/adopt|cross-sell|upsell|convert|revenue|sales|pipeline|acquisition|signup|sign-up|trial/i.test(t)?'Conversion':'Consideration';
+function scanInitiatives(text){
+ return scanList(text,/initiatives?|strategic (pillars?|priorities)|priorities|objectives|pillars/i).slice(0,6).map(t=>{
+  const [n,...rest]=t.split(/:\s+|\s+[–—-]\s+/);const name=n.replace(/["“”]/g,'').trim().slice(0,100);const pillar=rest.join(': ').split(/(?<=\.)\s|KPIs?:/i)[0].trim().slice(0,160);
+  return {name,stage:guessStage(name)!=='Consideration'?guessStage(name):guessStage(t),pillar}}).filter(i=>i.name.length>2)}
+const MONTHS_RE=/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\b/i;
+function scanMoments(text,yr){const out=[];
+ text.split('\n').filter(l=>/launch|calendar|milestone|roadmap|timeline|key dates|release|go-live|event/i.test(l)).forEach(l=>{
+  l.replace(/^[^:]{0,40}:\s*/,'').split(/;\s*|\s+·\s+/).forEach(seg=>{
+   const mm=seg.match(MONTHS_RE),q=seg.match(/\bQ([1-4])\b/i),y=(seg.match(/\b(20\d\d)\b/)||[])[1]||yr;if(!mm&&!q)return;
+   const mi=mm?['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(mm[1].toLowerCase().slice(0,3)):(+q[1]-1)*3;
+   seg=seg.split(/\.\s+(?=[A-Z])/)[0];const name=seg.replace(/\b(Q[1-4](\s*\/\s*Q[1-4])?|H[12])\b[\s\/-]*/gi,'').replace(new RegExp(MONTHS_RE.source+'(\\s*\\/\\s*'+MONTHS_RE.source.slice(2,-2)+'[a-z]*)?','gi'),'').replace(/\b20\d\d\b/g,'').replace(/^[\s:,–—-]+|[\s:,–—-]+$/g,'').replace(/\s{2,}/g,' ').trim();
+   if(name.length<3)return;
+   out.push({name:name.slice(0,90),month:`${y}-${String(mi+1).padStart(2,'0')}`,type:/summit|conference|expo|gdc|event|meetup|webinar|show\b/i.test(name)?'event':/report|video|newsletter|series|guide|ebook|whitepaper|content/i.test(name)?'content':'launch',initiative:0})})});
+ return out.slice(0,24)}
 function localExtract(text){
  const x={markets:[],channels:[]};
  MKT_RULES.forEach(r=>{const n=(text.match(new RegExp(r[1].source,'gi'))||[]).length;if(n)x.markets.push({name:r[2],weight:n})});
@@ -700,9 +822,7 @@ function localExtract(text){
  const tot=sum(x.markets.map(m=>m.weight));x.markets.forEach(m=>m.weight=Math.max(5,Math.round(m.weight/tot*100)));
  for(const k in CH_RULES)if(CH_RULES[k].test(text))x.channels.push(k);
  const first=text.split('\n').map(s=>s.trim()).find(s=>s.length>3&&s.length<90);if(first)x.campaignName=first;
- // a keyword scan cannot read initiatives or launch dates, so swap the example's for neutral placeholders
- x.initiatives=[{name:'Brand & awareness',stage:'Awareness',pillar:''},{name:'Adoption & conversion',stage:'Conversion',pillar:''},{name:'Product & technical education',stage:'Consideration',pillar:''}];
- x._clearMoments=true;
+ x.initiatives=scanInitiatives(text);x.moments=scanMoments(text,(S.start||'2026').slice(0,4));
  return x;
 }
 let SAMPLE=null;
@@ -881,15 +1001,15 @@ $('#btn-extract').onclick=async()=>{
 Reply with only JSON in exactly this shape:
 {"campaignName":string,"product":string,
  "markets":[{"name":string,"weight":number}],
- "personas":[{"role":"dm"|"tech"|"user","label":string}],
+ "personas":[{"role":"dm"|"tech"|"user"|"other","label":string}],
  "initiatives":[{"name":string,"stage":"Awareness"|"Consideration"|"Conversion","pillar":string}],
  "moments":[{"name":string,"month":"YYYY-MM","type":"launch"|"event"|"content","initiative":number}],
  "channels":[string],"flightStart":"YYYY-MM-DD"|null,"flightEnd":"YYYY-MM-DD"|null,"budget":number|null}
 Rules:
 - markets: regions or countries the doc prioritizes, using names like North America, EMEA, China, Japan, Korea, Southeast Asia, LATAM. weight = suggested % of paid budget, summing to 100.
-- personas: dm = economic decision-maker, tech = technical influencer / practitioner lead, user = day-to-day user. label = short job titles from the doc.
-- initiatives: the doc's strategic initiatives or pillars (max 5), each with a one-line message pillar. Order them brand/awareness first, then adoption/cross-sell, then data/technical.
-- moments: product launches, content drops (reports, video series) and events with a month. Convert quarters to the quarter's first month unless a month is named. Year defaults to ${yr}. initiative = 0-based index into initiatives.
+- personas: dm = economic decision-maker, tech = technical influencer / practitioner lead, user = day-to-day user, other = any further audience the doc names (partners, agencies, finance, etc.). label = the audience name plus short job titles from the doc.
+- initiatives: the doc's own strategic initiatives or pillars (max 6), named as the doc names them, each with a one-line message pillar and the funnel stage it mainly serves. Return [] if the doc has none; never invent generic ones.
+- moments: the key milestones the doc names (product launches, releases, content drops such as reports or video series, and events), each with a month. Return [] if the doc names no dated milestones. Convert quarters to the quarter's first month unless a month is named. Year defaults to ${yr}. initiative = 0-based index into initiatives.
 - channels: choose from linkedin, google, x, reddit, youtube, trade, creators, abm, events, wechat, baidu, naver, based on where the audiences learn about solutions and on the tactics in the doc.
 - budget: total paid media budget in USD only if the doc states one, else null. flightStart/flightEnd only if stated, else null.
 
