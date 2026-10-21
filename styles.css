@@ -143,7 +143,7 @@ input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px;margin:0}
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 @media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tile{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
-.tile .v{font-family:var(--f-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums lining-nums}
+.tile.warn .v{color:var(--flag)}.tile .v{font-family:var(--f-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums lining-nums}
 .tile .k{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
 .bars{display:flex;flex-direction:column;gap:7px}

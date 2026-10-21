@@ -348,6 +348,8 @@ function compute(tier){
    });});
  }
  lines.forEach((l,i)=>l.id='L'+String(i+1).padStart(3,'0'));
+ // diminishing returns: each line's results scale with its channel's total spend
+ const chSp={};lines.forEach(l=>chSp[l.c.id]=(chSp[l.c.id]||0)+l.budget);lines.forEach(l=>l.sat=satF(l.c.id,chSp[l.c.id]));
  // flighting
  const months=monthsList();
  const flightRows=[];const byCh={};lines.forEach(l=>{(byCh[l.c.id]=byCh[l.c.id]||{c:l.c,b:0}).b+=l.budget});
@@ -539,11 +541,92 @@ function lineFun(l){const q=l.qty||0,FUN=funOf(l.c.id);let imp=0,clk=0,views=0,s
  switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
   case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
   case'CPS':sends=q;imp=q*FUN.openRate;clk=q*FUN.sendCtr;break;default:return null}
- const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;return {imp,clk,lpv,eng:clk+imp*FUN.eng,views,sends,leads,opens:l.p.buy==='CPL'?clk:0}}
+ const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;leads*=l.sat||1;return {imp,clk,lpv,eng:clk+imp*FUN.eng,views,sends,leads,opens:l.p.buy==='CPL'?clk:0}}
 function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,leads:0,spend:0};
  R.lines.forEach(l=>{const f=lineFun(l);if(!f)return;for(const k in o)if(k in f)o[k]+=f[k];o.spend+=l.budget});
  const P=pipe();o.mql=o.leads*P.mql;o.sql=o.mql*P.sql;o.cust=o.sql*P.win;
  o.reach=o.imp/3.5;o.cpm=o.imp?o.spend/o.imp*1000:0;o.cpc=o.clk?o.spend/o.clk:0;o.cpl=o.leads?o.spend/o.leads:0;o.cpmql=o.mql?o.spend/o.mql:0;o.cpsql=o.sql?o.spend/o.sql:0;o.cac=o.cust?o.spend/o.cust:0;return o}
+
+/* ==================== GROWTH PLAN ==================== */
+// Revenue side, goal-back budget, scenarios, saturation, total cost, sales capacity, in-flight rules, incrementality
+const GROWTH_DEF={acv:30000,gm:75,life:3,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
+const gr=()=>({...GROWTH_DEF,...(S.growth||{})});
+// Diminishing returns: spend where a channel's results fall to ~63% of linear (planning estimate per flight)
+const SAT_CAP={linkedin:1500000,google:800000,meta:1000000,x:300000,reddit:300000,youtube:800000,trade:300000,creators:200000,abm:600000,events:300000,wechat:300000,baidu:200000,naver:200000};
+const satF=(id,x)=>{const c=SAT_CAP[id]||500000,r=x/c;return r>0?(1-Math.exp(-r))/r:1};
+function econ(R,o){const G=gr(),media=sum(R.lines.map(l=>l.budget)),fees=media*G.agency/100,total=media+fees+(+G.creative||0)+(+G.tools||0);
+ const pipeline=o.sql*G.acv,rev=o.cust*G.acv,gp=rev*G.gm/100,cacM=o.cust?media/o.cust:0,cacF=o.cust?total/o.cust:0,ltv=G.acv*G.gm/100*G.life;
+ return {G,media,fees,total,pipeline,rev,gp,cacM,cacF,ltv,ltvCac:cacF?ltv/cacF:0,payback:G.acv?cacF/(G.acv*G.gm/100/12):0,roi:total?(gp-total)/total:0,pipeRoi:total?pipeline/total:0}}
+const goalVal=(o,t)=>t==='pipe'?o.sql*gr().acv:t==='sql'?o.sql:o.cust;
+function goalBudget(tier){const G=gr(),T=TIERS[tier],keep=S.budgets[T],target=+G.goal||0;if(!target)return null;
+ const at=b=>{S.budgets[T]=b;const v=goalVal(funnel(compute(tier)),G.goalType);return v};
+ try{let lo=0,hi=Math.max(+keep||1,1)*1;let n=0;while(at(hi)<target&&n<12){lo=hi;hi*=2;n++}
+  if(at(hi)<target)return {budget:null};for(let i=0;i<22;i++){const mid=(lo+hi)/2;if(at(mid)<target)lo=mid;else hi=mid}return {budget:hi}}
+ finally{S.budgets[T]=keep}}
+function scen(o,k,pk){const P=pipe(),leads=o.leads*k,mql=leads*Math.min(1,P.mql*pk),sql=mql*Math.min(1,P.sql*pk),cust=sql*Math.min(1,P.win*pk);return {...o,leads,mql,sql,cust}}
+function renderGrowth(R){const G=gr(),o=funnel(R),E=econ(R,o),mo=outcomes(R),cap=G.sdr*G.perSdr;
+ const inp=(k,l,u,step=1,w=96)=>`<label>${l} <input class="rate g-in" style="width:${w+24}px!important" type="number" min="0" step="${step}" data-k="${k}" value="${G[k]}">${u||''}</label>`;
+ const tile=(v,k,cls='')=>`<div class="tile ${cls}"><span class="v">${v}</span><span class="k">${k}</span></div>`;
+ const gl={cust:'customers',pipe:'pipeline $',sql:'SQLs'}[G.goalType];
+ const gb=[0,1,2].map(t=>({t,o:funnel(compute(t)),b:+S.budgets[TIERS[t]]||0})),need=goalBudget(R.tier);
+ const goalTxt=v=>G.goalType==='pipe'?money(v):compact(v);
+ const S3=[['Conservative','Leads 30% under plan, pipeline rates 15% worse',0.7,0.85],['Expected','Benchmarks as planned',1,1],['Strong','Leads 25% over plan, pipeline rates 10% better',1.25,1.1]].map(([n,d,k,pk])=>{const x=scen(o,k,pk);return {n,d,x,e:econ(R,x)}});
+ const SENS=[['CPL 20% higher (fewer leads)',scen(o,1/1.2,1)],['Visit → lead 20% lower',scen(o,0.8,1)],['MQL → SQL 5 pts lower',(()=>{const P=pipe(),f=Math.max(0,P.sql-0.05)/P.sql;const mql=o.leads*P.mql,sql=mql*P.sql*f;return {...o,mql,sql,cust:sql*P.win}})()],['SQL → customer 5 pts lower',(()=>{const P=pipe(),f=Math.max(0,P.win-0.05)/P.win;return {...o,cust:o.cust*f}})()]];
+ const byC={};R.lines.forEach(l=>{const f=lineFun(l),b=byC[l.c.id]=byC[l.c.id]||{c:l.c,spend:0,leads:0};b.spend+=l.budget;if(f)b.leads+=f.leads});
+ const satRows=Object.values(byC).sort((a,b)=>b.spend-a.spend).map(b=>{const eff=satF(b.c.id,b.spend),lin=eff?b.leads/eff:0,next=b.spend+10000,nl=lin*(next/b.spend)*satF(b.c.id,next),ml=nl-b.leads;
+  return {...b,eff,cpl:b.leads?b.spend/b.leads:0,mcpl:ml>0?10000/ml:0}});
+ const lm=mo.full.leads||R.months.map(()=>0),over=lm.map(v=>v>cap);
+ const rules=satRows.filter(r=>r.spend>0).map(r=>{const lead=r.leads>0.5;const tgt=r.cpl;
+  return {ch:r.c.name,metric:lead?'Cost per lead':'CTR vs benchmark',target:lead?money(tgt):pct(funOf(r.c.id).ctr),
+   scale:lead?`CPL ≤ ${money(tgt*0.8)} and MQL rate on plan → add 20%`:`CTR ≥ ${pct(funOf(r.c.id).ctr*1.3)} → add 15%`,
+   cut:lead?`CPL ≥ ${money(tgt*1.3)} after ${money(tgt*3)} spent → cut 30%, move to best CPL`:`CTR < ${pct(funOf(r.c.id).ctr*0.5)} after 2 weeks → swap creative, then cut 30%`,
+   check:r.c.group==='Search'||/search/i.test(r.c.name)?'Weekly':'Week 2, then every 2 weeks'}});
+ const mk=S.markets.filter(m=>m.on&&+m.weight>0).sort((a,b)=>a.weight-b.weight),hold=mk.length>2?mk[0]:null,hs=hold?sum(R.lines.filter(l=>l.m.id===hold.id).map(l=>l.budget)):0,ht=sum(R.lines.map(l=>l.budget))||1;
+ const flagCap=over.some(Boolean);
+ return `<div class="panel" style="display:flex;flex-direction:column;gap:18px">
+ <div><div class="eyebrow">${esc(TIERNAME[R.tier])} version · growth view</div><h2 style="font-size:20px;margin-top:2px">${money(E.total)} all-in buys about ${compact(o.cust)} customers and ${money(E.pipeline)} of pipeline</h2>
+  <div class="note">Media plan outcomes turned into revenue, payback and ROI. Type your own numbers in the boxes; everything on this tab and the Summary updates. Planning estimates, not guarantees.</div></div>
+ <div class="pipe-set"><span class="sub2">Revenue:</span>${inp('acv','Deal size (ACV) $','',1000,110)}${inp('gm','Gross margin','%',1,64)}${inp('life','Customer lifetime','yrs',0.5,64)}</div>
+ <div class="pipe-set"><span class="sub2">Other costs:</span>${inp('agency','Agency fee','% of media',1,64)}${inp('creative','Creative production $','',1000,110)}${inp('tools','Tools &amp; data $','',1000,110)}</div>
+ <div class="tiles">${tile(money(E.pipeline),'Pipeline (SQLs × ACV)')}${tile(money(E.rev),'First-year new revenue')}${tile(money(E.total),`All-in cost · media ${compact(E.media)} + fees, creative, tools ${compact(E.total-E.media)}`)}
+  ${tile(money(E.cacF),`Fully loaded CAC (media only ${money(E.cacM)})`)}${tile(E.ltvCac?E.ltvCac.toFixed(1)+' : 1':'—',`LTV : CAC (aim for 3 : 1 or better)`,E.ltvCac&&E.ltvCac<3?'warn':'')}${tile(E.payback?Math.round(E.payback)+' mo':'—','CAC payback (aim for under 18 months)',E.payback>18?'warn':'')}
+  ${tile((E.pipeRoi).toFixed(1)+'×','Pipeline per $1 spent')}${tile(Math.round(E.roi*100)+'%','First-year ROI on gross profit')}${tile(money(E.ltv),'Lifetime gross profit per customer')}</div>
+
+ <div><h2 style="font-size:18px">Start from the goal</h2><div class="note">Pick what you need to deliver and see the budget it takes at this plan's mix, including diminishing returns.</div>
+  <div class="pipe-set" style="margin-top:8px"><label>Goal <select id="g-goaltype">${[['cust','Customers'],['sql','SQLs'],['pipe','Pipeline $']].map(([v,n])=>`<option value="${v}" ${G.goalType===v?'selected':''}>${n}</option>`).join('')}</select></label>${inp('goal','Target','',1,120)}</div>
+  <div class="tscroll"><table><thead><tr><th>Version</th><th class="n">Media budget</th><th class="n">Delivers</th><th class="n">vs goal</th></tr></thead><tbody>
+  ${gb.map(g=>{const v=goalVal(g.o,G.goalType),ok=v>=G.goal;return `<tr><td>${esc(TIERNAME[g.t])}</td><td class="n">${money(g.b)}</td><td class="n">${goalTxt(v)} ${gl}</td><td class="n"><span class="chip ${ok?'aw':'flag'}">${ok?'Hits goal':Math.round(v/Math.max(1,G.goal)*100)+'% of goal'}</span></td></tr>`}).join('')}
+  <tr class="tot"><td>Budget needed (${esc(TIERNAME[R.tier])} mix)</td><td class="n">${need&&need.budget?money(need.budget):'Not reachable with this mix'}</td><td class="n">${goalTxt(G.goal)} ${gl}</td><td class="n">${need&&need.budget?money(need.budget*(1+G.agency/100)+(+G.creative)+(+G.tools))+' all-in':''}</td></tr></tbody></table></div></div>
+
+ <div style="display:flex;flex-direction:column;gap:18px"><div><h2 style="font-size:18px">Range of outcomes</h2><div class="tscroll"><table><thead><tr><th>Case</th><th class="n">Leads</th><th class="n">SQLs</th><th class="n">Customers</th><th class="n">Pipeline</th><th class="n">CAC (all-in)</th><th class="n">Payback</th></tr></thead><tbody>
+  ${S3.map(s=>`<tr${s.n==='Expected'?' class="tot"':''}><td>${s.n}<div class="sub2">${s.d}</div></td><td class="n">${compact(s.x.leads)}</td><td class="n">${compact(s.x.sql)}</td><td class="n">${compact(s.x.cust)}</td><td class="n">${money(s.e.pipeline)}</td><td class="n">${s.x.cust?money(s.e.cacF):'—'}</td><td class="n">${s.e.payback?Math.round(s.e.payback)+' mo':'—'}</td></tr>`).join('')}</tbody></table></div></div>
+  <div><h2 style="font-size:18px">What if one number slips</h2><div class="tscroll"><table><thead><tr><th>If…</th><th class="n">Customers</th><th class="n">CAC (all-in)</th><th class="n">Change</th></tr></thead><tbody>
+  ${SENS.map(([n,x])=>{const e=econ(R,x);return `<tr><td>${n}</td><td class="n">${compact(x.cust)}</td><td class="n">${x.cust?money(e.cacF):'—'}</td><td class="n">${E.cacF&&e.cacF?'+'+Math.round((e.cacF/E.cacF-1)*100)+'% CAC':'—'}</td></tr>`}).join('')}</tbody></table></div></div></div>
+
+ <div><h2 style="font-size:18px">Diminishing returns by channel</h2><div class="note">Each extra dollar in a channel buys a bit less as you exhaust its best audiences. Efficiency is the share of straight-line results you still get at this spend; the last column is what the next $10K would cost per lead.</div>
+  <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Spend</th><th class="n">Efficiency</th><th class="n">Leads</th><th class="n">Avg cost per lead</th><th class="n">Next $10K: cost per lead</th><th>Room to grow</th></tr></thead><tbody>
+  ${satRows.map(r=>`<tr><td>${esc(r.c.name)}</td><td class="n">${money(r.spend)}</td><td class="n">${Math.round(r.eff*100)}%</td><td class="n">${r.leads>0.5?compact(r.leads):'<span class="sub2">—</span>'}</td><td class="n">${r.cpl&&r.leads>0.5?money(r.cpl):'<span class="sub2">—</span>'}</td><td class="n">${r.mcpl&&r.leads>0.5?money(r.mcpl):'<span class="sub2">—</span>'}</td><td><span class="chip ${r.eff>0.9?'aw':r.eff>0.8?'':'flag'}">${r.eff>0.9?'Plenty':r.eff>0.8?'Some':'Near saturation'}</span></td></tr>`).join('')}</tbody></table></div></div>
+
+ <div><h2 style="font-size:18px">Can sales keep up?</h2><div class="pipe-set" style="margin-top:6px">${inp('sdr','SDRs working these leads','',1,64)}${inp('perSdr','Leads each can work a month','',10,72)}<span class="chip ${flagCap?'flag':'aw'}">${flagCap?`${over.filter(Boolean).length} month${over.filter(Boolean).length>1?'s':''} over capacity`:'Capacity covers every month'}</span></div>
+  <div class="tscroll"><table><thead><tr><th>Month</th>${R.months.map(m=>`<th class="n">${esc(monthLabel(m))}</th>`).join('')}</tr></thead><tbody>
+  <tr><td>Leads</td>${lm.map((v,i)=>`<td class="n"${over[i]?' style="color:var(--flag);font-weight:600"':''}>${compact(v)}</td>`).join('')}</tr>
+  <tr><td>SDR capacity</td>${lm.map(()=>`<td class="n">${compact(cap)}</td>`).join('')}</tr></tbody></table></div>
+  <div class="note" style="margin-top:6px">Agree an SLA with sales before launch: follow up on every hand-raiser within 1 hour (5 minutes for demo requests), route by market, and send leads from months over capacity to nurture instead of letting them go cold.</div></div>
+
+ <div><h2 style="font-size:18px">In-flight rules: when to scale, hold or cut</h2><div class="note">Agree these with the agency up front so budget moves on data, not opinion. Targets come from this plan's projections.</div>
+  <div class="tscroll"><table><thead><tr><th>Channel</th><th>Watch</th><th class="n">Target</th><th>Scale if</th><th>Cut if</th><th>Check</th></tr></thead><tbody>
+  ${rules.map(r=>`<tr><td>${esc(r.ch)}</td><td>${r.metric}</td><td class="n">${r.target}</td><td class="sub2" style="min-width:200px">${r.scale}</td><td class="sub2" style="min-width:240px">${r.cut}</td><td class="sub2">${r.check}</td></tr>`).join('')}</tbody></table></div>
+  <div class="note" style="margin-top:6px">Hold everything for the first 2 weeks while platforms learn. Move at most 20–30% of a channel's budget per change, and log every move in the trafficking sheet.</div></div>
+
+ <div><h2 style="font-size:18px">Prove it's incremental</h2><div class="tscroll"><table><thead><tr><th>Method</th><th>How</th><th>Cost</th></tr></thead><tbody>
+  ${hold?`<tr><td><strong>Geo holdout</strong></td><td>Pause paid media in ${esc(hold.name)} for 6–8 weeks mid-flight and compare its pipeline with forecast and with similar markets. The gap is what media actually caused.</td><td class="n">${money(hs*8/Math.max(4,flightWeeks()))} of ${esc(hold.name)} spend held back (${Math.round(hs/ht*100)}% of plan)</td></tr>`:`<tr><td><strong>Geo holdout</strong></td><td>Add a third market to run a geo holdout; with two markets, use a time-based on/off test instead.</td><td class="n">—</td></tr>`}
+  <tr><td><strong>Platform lift studies</strong></td><td>Ask LinkedIn and Meta reps for a conversion lift study, and run Google conversion lift where eligible. Each splits the audience into exposed and holdout groups.</td><td class="n">Usually free above a spend minimum</td></tr>
+  <tr><td><strong>Brand search watch</strong></td><td>Track branded search volume and direct traffic in markets with and without upper-funnel spend.</td><td class="n">Free</td></tr>
+  <tr><td><strong>Self-reported attribution</strong></td><td>Add a required "How did you hear about us?" field to forms and demo bookings to catch dark social, podcasts and creators.</td><td class="n">Free</td></tr></tbody></table></div></div>
+ </div>`}
+function growthAOA(R){const o=funnel(R),E=econ(R,o),G=E.G;return [['GROWTH PLAN · '+TIERNAME[R.tier]],[],['Deal size (ACV)',G.acv],['Gross margin %',G.gm],['Customer lifetime (yrs)',G.life],['Agency fee % of media',G.agency],['Creative production',G.creative],['Tools & data',G.tools],[],
+ ['Media spend',Math.round(E.media)],['All-in cost',Math.round(E.total)],['Leads',Math.round(o.leads)],['SQLs',Math.round(o.sql)],['Customers',+o.cust.toFixed(1)],['Pipeline (SQLs × ACV)',Math.round(E.pipeline)],['First-year revenue',Math.round(E.rev)],
+ ['CAC (media only)',Math.round(E.cacM)],['CAC (fully loaded)',Math.round(E.cacF)],['LTV : CAC',+E.ltvCac.toFixed(2)],['Payback (months)',Math.round(E.payback)],['First-year ROI on gross profit',+(E.roi*100).toFixed(0)+'%']]}
 
 /* ==================== TEST PLAN ==================== */
 // Tests are generated from the plan's own lines. Sample per cell = 16·p(1−p)/(p·lift)² (95% confidence, 80% power).
@@ -817,7 +900,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Summary'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -850,6 +933,7 @@ function renderSummary(R){
    <div class="tile"><span class="v">${compact(o.lpv)}</span><span class="k">Est. landing page visits</span></div>
    <div class="tile"><span class="v">${compact(o.leads)}</span><span class="k">Est. leads</span></div>
    <div class="tile"><span class="v">${R.masters.length}</span><span class="k">BOM creative masters · ${t.files.toLocaleString()} files</span></div>
+   ${(()=>{const E=econ(R,o);return `<div class="tile"><span class="v">${money(E.pipeline)}</span><span class="k">Est. pipeline · ${compact(o.sql)} SQLs</span></div><div class="tile"><span class="v">${o.cust?money(E.cacF):'—'}</span><span class="k">Fully loaded CAC · ${compact(o.cust)} customers</span></div><div class="tile ${E.payback>18?'warn':''}"><span class="v">${E.payback?Math.round(E.payback)+' mo':'—'}</span><span class="k">CAC payback · see Growth Plan</span></div>`})()}
   </div>
   <div class="cols">${barList('Budget by channel',s.byChannel,t.budget)}${barList('Budget by market',s.byMarket,t.budget)}</div>
   <div class="cols">${barList('Budget by initiative',s.byIni,t.budget)}${barList('Budget by funnel stage',s.byStage,t.budget)}</div>
@@ -1274,10 +1358,12 @@ function renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
+ v.querySelectorAll('.g-in').forEach(el=>el.onchange=()=>{S.growth=S.growth||{};S.growth[el.dataset.k]=Math.max(0,+el.value||0);changed()});
+ const gt=$('#g-goaltype');if(gt)gt.onchange=()=>{S.growth=S.growth||{};S.growth.goalType=gt.value;if(gt.value==='pipe'&&gr().goal<10000)S.growth.goal=3000000;if(gt.value!=='pipe'&&gr().goal>=10000)S.growth.goal=gt.value==='sql'?300:40;changed()};
  v.querySelectorAll('.pipe-in').forEach(el=>el.onchange=()=>{S.pipe=S.pipe||{};S.pipe[el.dataset.k]=Math.min(100,Math.max(0,+el.value||0))/100;changed()});
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
  v.querySelectorAll('.tr-in').forEach(el=>el.onchange=()=>{S.traffic=S.traffic||{};S.traffic[el.dataset.k]=el.value.trim();save();setTimeout(renderOut,0)});
@@ -1314,7 +1400,7 @@ function workbookFor(tiers){
   addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
-  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
+  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);addSheet(wb,p+'Growth Plan',growthAOA(R),[34,16]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
   addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
@@ -1326,7 +1412,7 @@ function workbookFor(tiers){
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
