@@ -82,7 +82,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .li{display:grid;gap:6px;align-items:center}
 .li.mkt{grid-template-columns:auto minmax(90px,1fr) 46px 82px 40px auto}
 .li.per{grid-template-columns:auto 1fr}
-.li.ch{grid-template-columns:auto 1fr 52px 92px}
+.li.ch{grid-template-columns:auto minmax(0,1fr) repeat(3,70px);gap:4px}
+.li.ch input[type=number]{font-size:12px}
 .li.mom{grid-template-columns:1fr 128px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 .li.mom .full{grid-column:1/-1}
 .li.ini{grid-template-columns:1fr 130px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
