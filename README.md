@@ -2,7 +2,7 @@
 
 Turns a GTM strategy doc into a paid media plan: a bill of materials (BOM), a creative spec sheet, a line-by-line agency trafficking and tagging sheet, and monthly flighting. It builds Low, Medium and High versions of each, plus a side-by-side comparison.
 
-It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with a cream hero and a mulberry-to-black small-caps title). It opens pre-filled with the *One Unity · Unity Acquire* 2026 GTM strategy as a worked example.
+It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with a cream hero and a mulberry-to-black small-caps title). It opens pre-filled with a fictional sample GTM strategy (Example Co.) as a worked example.
 
 ## Run it
 
@@ -43,7 +43,7 @@ Exports: an `.xlsx` for the current version, one `.xlsx` with all versions, a CS
 - Rates are 2026 B2B planning benchmarks, not quotes. Override them on the Rates tab.
 - Specs marked "Confirm" vary by platform or publisher. Check the current spec before production.
 - When the page runs as a claude.ai Artifact, "Fill inputs from doc" and "Draft copy with Claude" use the built-in Claude on your Claude account (no key needed). PDFs are sent as text plus page images, so charts, tables and scanned pages are read too. On the standalone site, connect an AI agent (a Gemini or Anthropic API key, saved only in your browser and sent only to that provider). Gemini's free tier has daily limits, and Google may use free-tier prompts to improve its products for the same features plus full-PDF reading. With no agent, "Fill inputs from doc" falls back to a keyword scan and you write the copy by hand.
-- Inputs are saved in your browser's localStorage. Use "Reload Unity example" to reset, or "Start blank" to clear everything.
+- Inputs are saved in your browser's localStorage. Use "Reload example" to reset, or "Start blank" to clear everything.
 
 ## Files
 
