@@ -451,45 +451,61 @@ function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,lead
 const TEST_SHARE=[10,12,15],SQL_RATE=0.25;
 const needN=(p,lift)=>Math.ceil(16*p*(1-p)/Math.pow(p*lift,2));
 const UNITNAME={imp:'impressions',clk:'clicks',lpv:'visits',opens:'form opens',leads:'leads'};
-function testPlan(R){
+const isSocial=a=>a.c.group==='Paid social';
+const isVid=a=>a.p.buy==='CPV'||/vid|reel/i.test(JSON.stringify(a.p.units||''));
+const shortName=s=>s.length>30?s.slice(0,30).replace(/\s+\S*$/,'').replace(/[\s+&,–-]+$/,'')+'…':s;
+const guardOf=a=>a.p.buy==='CPL'?'SQL rate in CRM':a.p.buy+' ≤ '+rateFmt(rateOf(a.p)*(a.p.buy==='CPM'?1.1:1),a.p.buy);
+const ctrK=a=>['CTR','imp',a.p.buy==='CPC'?FUN.ctrCpc:FUN.ctr];
+// Test library: each template knows which lines can run it and how to fill in the row.
+const TEST_LIB={
+ msg:{name:'Message (claim vs proof)',fitsTxt:'CPM social, display',fits:a=>a.p.buy==='CPM',make:a=>({type:'Message',variable:'Headline lead',cells:['A product claim','B customer proof point'],
+  hyp:'If we lead with a customer result instead of a product claim, CTR improves because buyers trust peer proof over promises.',kpi:ctrK(a),guard:guardOf(a),rule:'Winner gets 70% of this line’s spend next round; retest in 6 weeks.'})},
+ pillar:{name:'Pillar (initiative A vs B)',fitsTxt:'Search, CPM lines · needs 2 initiatives',fits:(a,c)=>c.ini.length>1&&['CPC','CPM'].includes(a.p.buy),make:(a,c)=>{const x=shortName(c.ini[0].name),y=shortName(c.ini[1].name),cpc=a.p.buy==='CPC';
+  return {type:'Pillar',variable:'Headline pillar',cells:['A '+x,'B '+y],hyp:cpc?`If search ads lead with “${x}” instead of “${y}”, more visitors sign up because it matches what they searched for.`:`If ads lead with “${x}” instead of “${y}”, CTR improves because that pillar matters more to this audience.`,
+   kpi:cpc?['Sign-up CVR','lpv',FUN.cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:cpc?'Winner leads every search ad next round.':'Winning pillar leads this line’s creative next round.'}}},
+ angle:{name:'Headline angle (benefit vs feature)',fitsTxt:'Search, CPM lines',fits:a=>['CPC','CPM'].includes(a.p.buy),make:a=>{const cpc=a.p.buy==='CPC';return {type:'Message',variable:'Headline angle',cells:['A benefit-led','B feature-led'],
+  hyp:'If ads lead with the outcome instead of the feature, more visitors sign up because it answers why before how.',kpi:cpc?['Sign-up CVR','lpv',FUN.cvr]:ctrK(a),proxy:cpc?ctrK(a):null,guard:guardOf(a),rule:'Winning angle leads this line’s ads next round.'}}},
+ visual:{name:'Visual (product vs people)',fitsTxt:'Image lines bought on CPM',fits:a=>a.p.buy==='CPM'&&!isVid(a),make:a=>({type:'Creative',variable:'Visual',cells:['A product UI','B customer photo'],
+  hyp:'If the image shows a real customer instead of the product UI, CTR improves because people stop for faces.',kpi:ctrK(a),guard:guardOf(a),rule:'Winning visual style carries into the next round’s masters.'})},
+ hook:{name:'Video hook (first 5s)',fitsTxt:'Video lines',fits:isVid,make:a=>({type:'Creative',variable:'Opening hook (first 5s)',cells:['A product UI','B customer face','C headline stat'],
+  hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',kpi:['View rate','imp',FUN.viewRate],guard:guardOf(a),rule:'Winning hook opens every video cut next round.'})},
+ lp:{name:'Landing page',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'Landing page',variable:'Landing page',cells:['A product page','B ROAS calculator'],
+  hyp:'If clicks land on an interactive calculator instead of the product page, more visitors sign up because they see their own numbers.',kpi:['Visit → sign-up rate','lpv',FUN.cvr],guard:guardOf(a),rule:'Winning page becomes the default destination for this line.'})},
+ offer:{name:'Offer (demo vs report)',fitsTxt:'Lead gen lines',fits:a=>a.p.buy==='CPL',make:a=>({type:'Offer',variable:'Offer',cells:['A demo request','B gated report'],
+  hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',kpi:['Form completion','opens',FUN.leadForm],proxy:['CTR','imp',FUN.ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'})},
+ audience:{name:'Audience (ABM list vs titles)',fitsTxt:'LinkedIn, Meta, ABM, social',fits:a=>a.p.buy==='CPM'&&(isSocial(a)||/abm|account/i.test(a.c.id+a.c.name+a.p.name)),make:a=>({type:'Audience',variable:'Targeting',cells:['A ABM account list','B job-title targeting'],
+  hyp:'If we target the ABM account list instead of job titles, more clicks turn into landing page visits because every impression reaches a target account.',kpi:['Click → visit rate','imp',FUN.ctr*FUN.lpv],guard:'Target-account match ≥ 60%',rule:'Winner gets 70% of prospecting spend; retest in 6 weeks.'})},
+ cta:{name:'CTA wording',fitsTxt:'Any line that drives clicks',fits:a=>['CPM','CPC','CPV'].includes(a.p.buy),make:a=>({type:'CTA',variable:'Call to action',cells:['A “Book a demo”','B “See it in action”'],
+  hyp:'If the button says “See it in action” instead of “Book a demo”, more people click because it sounds like less of a commitment.',kpi:ctrK(a),guard:guardOf(a),rule:'Winning CTA becomes the default on this line.'})},
+ bid:{name:'Bid strategy (manual vs auto)',fitsTxt:'Search, paid social',fits:a=>a.p.buy==='CPC'||(isSocial(a)&&a.p.buy==='CPM'),make:a=>({type:'Bid strategy',variable:'Bidding',cells:['A manual bids','B maximize conversions'],
+  hyp:'If the platform bids for conversions instead of manual bids, more visitors sign up at the same spend because it finds the people likeliest to act.',kpi:['Sign-up CVR','lpv',FUN.cvr],proxy:ctrK(a),guard:guardOf(a),rule:'Winning strategy runs the line next round.'})},
+ freq:{name:'Frequency cap',fitsTxt:'CPM lines',fits:a=>a.p.buy==='CPM',make:a=>({type:'Frequency',variable:'Frequency cap',cells:['A 2 per week','B 5 per week'],
+  hyp:'If we cap at 2 ads per person per week instead of 5, CTR holds up because people don’t tune the ads out.',kpi:ctrK(a),guard:'Reach ≥ plan',rule:'Winning cap becomes the line’s default.'})}};
+function testPlan(R,edits){
  const T=TIERS[R.tier],lift=(+S.testLift||20)/100,fw=flightWeeks(),rw=Math.max(2,+S.refresh[T]||8),W=Math.max(2,Math.min(rw-1,Math.floor(fw)));
  const t0=parseD(S.start),wk=6048e5,end=parseD(S.end);
  const byP={};R.lines.forEach(l=>{(byP[l.p.id]=byP[l.p.id]||{p:l.p,c:l.c,lines:[],budget:0}).lines.push(l);byP[l.p.id].budget+=l.budget});
  const P=Object.values(byP).sort((a,b)=>b.budget-a.budget);
  const used=new Set();
  const pick=f=>{const x=P.find(a=>!used.has(a.p.id)&&f(a))||P.find(f);if(x)used.add(x.p.id);return x};
- const social=a=>['Paid social'].includes(a.c.group);
- const ini=S.initiatives.filter(x=>x.name),short=s=>s.length>30?s.slice(0,30).replace(/\s+\S*$/,'').replace(/[\s+&,–-]+$/,'')+'…':s;
- const money_=v=>money(v),rate=a=>rateOf(a.p);
- const defs=[];
- const msg=pick(a=>social(a)&&a.p.buy==='CPM')||pick(a=>a.p.buy==='CPM');
- if(msg)defs.push({a:msg,round:0,type:'Message',variable:'Headline lead',cells:['A product claim','B customer proof point'],
-  hyp:'If we lead with a customer result instead of a product claim, CTR improves because buyers trust peer proof over promises.',
-  kpi:['CTR','imp',FUN.ctr],guard:'CPM ≤ '+rateFmt(rate(msg)*1.1,'CPM'),rule:'Winner gets 70% of this line’s spend next round; retest in 6 weeks.'});
- const srch=pick(a=>a.p.buy==='CPC'&&/search/i.test(a.c.group+a.c.name));
- if(srch)defs.push({a:srch,round:0,type:ini.length>1?'Pillar':'Message',variable:ini.length>1?'Headline pillar':'Headline angle',
-  cells:ini.length>1?['A '+short(ini[0].name),'B '+short(ini[1].name)]:['A benefit-led','B feature-led'],
-  hyp:ini.length>1?`If search ads lead with “${short(ini[0].name)}” instead of “${short(ini[1].name)}”, more visitors sign up because it matches what they searched for.`:'If search ads lead with the outcome instead of the feature, more visitors sign up because it answers why before how.',
-  kpi:['Sign-up CVR','lpv',FUN.cvr],proxy:['CTR','imp',FUN.ctrCpc],guard:'CPC ≤ '+rateFmt(rate(srch),'CPC'),rule:'Winner leads every search ad next round.'});
- if(R.tier===0){const vis=pick(a=>a.p.buy==='CPM');
-  if(vis)defs.push({a:vis,round:1,type:'Creative',variable:'Visual',cells:['A product UI','B customer photo'],
-   hyp:'If the image shows a real customer instead of the product UI, CTR improves because people stop for faces.',
-   kpi:['CTR','imp',FUN.ctr],guard:'CPM ≤ '+rateFmt(rate(vis)*1.1,'CPM'),rule:'Winning visual style carries into the next round’s masters.'})}
+ const ini=S.initiatives.filter(x=>x.name),ctx={ini,R};
+ const mk=(id,a,round)=>a&&TEST_LIB[id]?{...TEST_LIB[id].make(a,ctx),a,round,tpl:id,key:id+':'+a.p.id}:null;
+ let defs=[];const push=d=>{if(d)defs.push(d)};
+ const msg=pick(a=>isSocial(a)&&a.p.buy==='CPM')||pick(a=>a.p.buy==='CPM');
+ push(mk('msg',msg,0));
+ push(mk(ini.length>1?'pillar':'angle',pick(a=>a.p.buy==='CPC'&&/search/i.test(a.c.group+a.c.name)),0));
+ if(R.tier===0)push(mk('visual',pick(a=>TEST_LIB.visual.fits(a,ctx)),1));
  if(R.tier>=1){
-  const vid=pick(a=>a.p.buy==='CPV');
-  if(vid)defs.push({a:vid,round:1,type:'Creative',variable:'Opening hook (first 5s)',cells:['A product UI','B customer face','C headline stat'],
-   hyp:'If the first 5 seconds show a customer face instead of the product UI, more people keep watching because faces hold attention.',
-   kpi:['View rate','imp',FUN.viewRate],guard:'CPV ≤ '+rateFmt(rate(vid),'CPV'),rule:'Winning hook opens every video cut next round.'});
-  const off=pick(a=>a.p.buy==='CPL');
-  if(off)defs.push({a:off,round:1,type:'Offer',variable:'Offer',cells:['A demo request','B gated report'],
-   hyp:'If the form offers the report instead of a demo, more people complete it because a report asks for less commitment.',
-   kpi:['Form completion','opens',FUN.leadForm],proxy:['CTR','imp',FUN.ctr],guard:'SQL rate in CRM',rule:'Winner becomes the default offer; keep the loser only where its SQL rate is higher.'});
+  push(mk('hook',pick(a=>a.p.buy==='CPV'),1));
+  push(mk('offer',pick(a=>a.p.buy==='CPL'),1));
   used.delete(msg&&msg.p.id);
-  const aud=pick(a=>a.c.id==='linkedin'&&a.p.buy==='CPM')||pick(a=>social(a)&&a.p.buy==='CPM');
-  if(aud)defs.push({a:aud,round:2,type:'Audience',variable:'Targeting',cells:['A ABM account list','B job-title targeting'],
-   hyp:'If we target the ABM account list instead of job titles, more clicks turn into landing page visits because every impression reaches a target account.',
-   kpi:['Click → visit rate','imp',FUN.ctr*FUN.lpv],guard:'Target-account match ≥ 60%',rule:'Winner gets 70% of prospecting spend; retest in 6 weeks.'});
+  push(mk('audience',pick(a=>a.c.id==='linkedin'&&a.p.buy==='CPM')||pick(a=>isSocial(a)&&a.p.buy==='CPM'),2));
  }
+ // the person's own changes from the builder: drop auto tests, add tests from the library
+ const ed=edits||S.testEdits?.[T]||{},drop=ed.drop||[];
+ defs=defs.filter(d=>!drop.includes(d.key));
+ (ed.add||[]).forEach(x=>{const a=byP[x.pid],L=TEST_LIB[x.tpl];if(!a||!L||!L.fits(a,ctx)||defs.some(d=>d.key===x.tpl+':'+x.pid))return;
+  const d=mk(x.tpl,a,Math.min(defs.filter(d=>d.a.p.id===x.pid).length,3));d.added=true;defs.push(d)});
  // run each line-based test
  const tests=[],total=+S.budgets[T]||0,held=(S.testShare?.[T]??TEST_SHARE[R.tier])/100;
  const topOf=a=>{const mk={};a.lines.forEach(l=>mk[l.m.id]=(mk[l.m.id]||0)+l.budget);return Object.keys(mk).sort((x,y)=>mk[y]-mk[x])};
@@ -514,16 +530,16 @@ function testPlan(R){
    kpiName:orig.k[0],kpiFinal:r.k[0]!==orig.k[0]?r.k[0]:null,status,fix,need:orig.need,have:orig.have,unit:UNITNAME[orig.k[1]],run:r.weeks,budget:r.b,cellBudget:r.b/n,
    haveFinal:r.have,needFinal:r.need,unitFinal:UNITNAME[r.k[1]]})});
  // pillar → pipeline (directional read across the program)
- if(R.tier>=1&&ini.length>1){const leads=funnel(R).leads,per=leads/ini.length,nd=needN(SQL_RATE,lift);
-  tests.push({type:'Pillar → pipeline',ch:'All channels',placement:'Leads tagged by pillar',lineIds:[],scopeName:'all markets',variable:'Message pillar',cells:ini.map((x,i)=>String.fromCharCode(65+i)+' '+short(x.name)),
+ if(R.tier>=1&&ini.length>1&&!drop.includes('pipe')){const leads=funnel(R).leads,per=leads/ini.length,nd=needN(SQL_RATE,lift);
+  tests.push({key:'pipe',type:'Pillar → pipeline',ch:'All channels',placement:'Leads tagged by pillar',lineIds:[],scopeName:'all markets',variable:'Message pillar',cells:ini.map((x,i)=>String.fromCharCode(65+i)+' '+shortName(x.name)),
    hyp:'If a pillar wins on clicks, it also wins on pipeline, because the same message carries through to sales.',kpiName:'SQL rate per lead',guard:'Lead volume per pillar',
    rule:'Shift 10 to 15% of budget toward the pillar with the most pipeline.',round:'final',need:nd,have:per,unit:'leads per pillar',run:null,budget:0,cellBudget:0,
    status:per>=nd?'ok':'no',fix:per>=nd?'':`About ${compact(per)} leads per pillar against ${compact(nd)} needed. Report it as directional with a confidence range${R.tier<2?', or move to High, which adds a lift study':''}.`})}
  // incrementality (High)
- if(R.tier===2){const li=P.filter(a=>a.c.id==='linkedin'),geo=!li.length,ls=(li.length?li:P).flatMap(a=>a.lines),wks=Math.min(Math.floor(fw),2*rw);
+ if(R.tier===2&&!drop.includes('lift')){const li=P.filter(a=>a.c.id==='linkedin'),geo=!li.length,ls=(li.length?li:P).flatMap(a=>a.lines),wks=Math.min(Math.floor(fw),2*rw);
   const conv=sum(ls.map(l=>(lineFun(l)||{}).leads||0))*wks/fw,visits=sum(ls.map(l=>(lineFun(l)||{}).lpv||0))*wks/fw,hold=geo?0.2:0.1;
   const nd=Math.ceil(7.84*(1/(1-hold)+1/hold)/Math.pow(Math.log(1+lift),2)),okL=conv>=nd,okV=visits>=nd;
-  tests.push({type:'Incrementality',ch:geo?'All channels':'LinkedIn',placement:geo?'Geo holdout':'Conversion Lift study',lineIds:ls.map(l=>l.id),scopeName:'all markets',variable:'Exposure',cells:geo?['A exposed markets','B holdout markets']:['A exposed','B '+(hold*100)+'% holdout'],
+  tests.push({key:'lift',type:'Incrementality',ch:geo?'All channels':'LinkedIn',placement:geo?'Geo holdout':'Conversion Lift study',lineIds:ls.map(l=>l.id),scopeName:'all markets',variable:'Exposure',cells:geo?['A exposed markets','B holdout markets']:['A exposed','B '+(hold*100)+'% holdout'],
    hyp:`If ${geo?'paid media':'LinkedIn'} is incremental, exposed ${geo?'markets':'accounts'} convert more than the holdout, so the spend creates leads rather than catching ones that would come anyway.`,
    kpiName:'Lead lift vs holdout',guard:'Holdout stays dark',rule:'Sets next year’s budget for the channel: cut it if lift is under 10%.',round:2,need:nd,have:conv,unit:'leads (total)',run:wks,budget:0,cellBudget:0,
    status:okL?'ok':okV?'fix':'no',kpiFinal:okL?null:'Landing page visit lift',fix:okL?'':okV?`Not enough leads for a lead-level read (${compact(conv)} of ${compact(nd)}). Measure lift on landing page visits instead (${compact(visits)} in the window).`:'Too small to read even on visits. Run it as a directional geo comparison.'})}
@@ -536,11 +552,11 @@ function testPlan(R){
   t.readoutISO=isoD(t.readout);t.month=t.readoutISO.slice(0,7)});
  const budget=sum(tests.map(t=>t.budget));
  return {tests,lift,W,rw,budget,share:total?budget/total:0,target:held,total,cellsN:sum(tests.filter(t=>t.budget).map(t=>t.cells.length)),
-  agenda:testAgenda(tests)};
+  agenda:testAgenda(tests),places:P,ctx,edits:ed};
 }
 function testAgenda(tests){const q=d=>'Q'+(Math.floor(d.getUTCMonth()/3)+1)+' '+d.getUTCFullYear();
  const G=[[['Pillar','Message'],t=>t.type==='Pillar'?'Which message pillar earns attention?':'Which message earns attention?'],[['Creative'],()=>'Which creative style holds attention?'],[['Offer'],()=>'Does a demo or a gated report turn attention into leads?'],
-  [['Audience'],()=>'Do target-account lists beat job-title targeting?'],[['Pillar → pipeline'],()=>'Which pillar drives pipeline, not just clicks?'],[['Incrementality'],()=>'Is paid media incremental, or would those leads come anyway?']];
+  [['Audience'],()=>'Do target-account lists beat job-title targeting?'],[['Landing page','CTA'],()=>'Which page and call to action turn clicks into sign-ups?'],[['Bid strategy','Frequency'],()=>'Which delivery settings get the most from each dollar?'],[['Pillar → pipeline'],()=>'Which pillar drives pipeline, not just clicks?'],[['Incrementality'],()=>'Is paid media incremental, or would those leads come anyway?']];
  let out=[];G.forEach(([types,ask])=>{const ts=tests.filter(t=>types.includes(t.type));if(!ts.length)return;const last=ts.reduce((a,b)=>b.readout>a.readout?b:a);
   out.push({k:types[0],when:q(last.readout),at:+last.readout,q:ask(ts.find(t=>t.type==='Pillar')||ts[0]),ids:ts.map(t=>t.id)})});
  const mergeQ=(a,b,q)=>{const i=out.findIndex(x=>x.k===a),j=out.findIndex(x=>x.k===b);if(i<0||j<0)return;out[i].ids.push(...out[j].ids);out[i].at=Math.max(out[i].at,out[j].at);out[i].when=out[out[i].at===out[j].at?j:i].when;if(q)out[i].q=q;out.splice(j,1)};
@@ -819,6 +835,71 @@ function renderCreative(R){
  ${renderTable(tb,{group:'lang',numeric:['concepts','variants','rounds','files'],wrapCols:['placement','markets'],totalCols:['files']})}`;
 }
 function testStatusChip(t){return t.status==='ok'?'<span class="chip aw">Reads out</span>':t.status==='fix'?'<span class="chip flag">Needs fallback</span>':'<span class="chip over">Can’t reach significance</span>'}
+const TB_UNIT={CPM:['imp','impr.'],CPC:['clk','clicks'],CPV:['views','views'],CPL:['leads','leads'],CPS:['sends','sends']};
+function testSuggest(R,TP){const ed=TP.edits,tested=new Set(TP.tests.flatMap(t=>t.a?[t.a.p.id]:[])),out=[];
+ for(const a of TP.places){if(out.length>=3)break;if(tested.has(a.p.id)||!TB_UNIT[a.p.buy])continue;
+  const use=id=>TP.tests.filter(t=>t.tpl===id).length+out.filter(x=>x.tpl===id).length;
+  for(const [id,L] of Object.entries(TEST_LIB).sort((x,y)=>use(x[0])-use(y[0]))){if(!L.fits(a,TP.ctx))continue;
+   const x=testPlan(R,{drop:ed.drop||[],add:[...(ed.add||[]),{tpl:id,pid:a.p.id}]}).tests.find(t=>t.key===id+':'+a.p.id);
+   if(x&&x.status!=='no'){out.push({tpl:id,pid:a.p.id,t:x,a});break}}}
+ return out}
+function renderTestBuilder(R,TP){
+ const sel=UI.tpSel,L=sel&&TEST_LIB[sel],ctx=TP.ctx,byPid={};TP.tests.forEach(t=>{if(t.a)(byPid[t.a.p.id]=byPid[t.a.p.id]||[]).push(t)});
+ const prog=TP.tests.filter(t=>!t.a),nFit=L?TP.places.filter(a=>L.fits(a,ctx)).length:0,sug=testSuggest(R,TP);
+ const fitsOf=id=>TP.places.filter(a=>TEST_LIB[id].fits(a,ctx)).map(a=>a.p.id).join(' ');
+ const del=a=>{const u=TB_UNIT[a.p.buy];if(!u)return 'flat fee';return compact(sum(a.lines.map(l=>(lineFun(l)||{})[u[0]]||0)))+' '+u[1]};
+ const chip=t=>`<span class="chip cv tb-chip${t.key===UI.tpNew?' tb-new':''}" title="${esc(t.type)}: ${esc(t.variable)}">${t.id} ${esc(t.type)}<button class="tb-x" data-key="${esc(t.key)}" aria-label="Remove ${t.id}">×</button></span>`;
+ const ed=TP.edits,custom=(ed.add||[]).length||(ed.drop||[]).length;
+ return `<div class="tb">
+ <div class="toolbar" style="margin:0;align-items:flex-end"><div><h3 style="font-size:16px">Build the plan</h3>
+  <div class="note">Drag a test from the library onto a media line. Lines that can run it light up, and the row below fills in the cells, budget, KPI, sample size, run time and readout. Or click a template, then click a line.</div></div>
+  <div class="btns"><button class="btn primary" id="tb-auto" title="Rebuild the recommended plan for this version">Auto-build for me</button><button class="btn ghost" id="tb-clear">Start blank</button></div></div>
+ ${custom?`<div class="note">You’ve changed the auto-built plan (${(ed.add||[]).length} added, ${(ed.drop||[]).length} removed). Auto-build puts back the recommended tests.</div>`:''}
+ ${UI.tpMsg?`<div class="tb-msg">${UI.tpMsg}</div>`:''}
+ <div class="tb-grid">
+  <div class="tb-lib"><div class="tb-h"><strong>Test library</strong><span class="sub2">${Object.keys(TEST_LIB).length} templates</span></div>
+   ${Object.entries(TEST_LIB).map(([id,t])=>{const f=fitsOf(id);return `<div class="tb-tpl${sel===id?' on':''}${f?'':' none'}" draggable="${f?'true':'false'}" tabindex="0" role="button" aria-pressed="${sel===id}" data-tpl="${id}" data-fits="${f}">
+    <svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></g></svg>
+    <span><strong>${esc(t.name)}</strong><span class="sub2">${f?'Fits: '+esc(t.fitsTxt):'No line in this version can run it'}</span></span></div>`}).join('')}
+   <div class="sub2" style="border-top:1px dashed var(--line);padding-top:8px">${R.tier===0?'Medium adds a pipeline read and High adds an incrementality study.':R.tier===1?'The pipeline read is added for you. High adds an incrementality study.':'The pipeline read and incrementality study are added for you.'}</div></div>
+  <div class="tb-lines"><div class="tb-h"><strong>Media lines</strong><span class="sub2" id="tb-hint">${L?`${esc(L.name)}: ${nFit} line${nFit===1?'':'s'} can run it. Click one, or press Esc to cancel.`:'Biggest lines first'}</span></div>
+   ${TP.places.map(a=>{const ts=byPid[a.p.id]||[],fit=L?L.fits(a,ctx):false;return `<div class="tb-line${L?fit?' fit':' nofit':''}" data-pid="${a.p.id}"${fit?' tabindex="0" role="button"':''}>
+    <span><strong>${esc(a.c.name)}</strong><span class="sub2">${esc(a.p.name)}</span></span>
+    <span class="n">${money(a.budget)}</span><span class="sub2">${del(a)}</span>
+    <span class="tb-chips">${ts.map(chip).join('')}<span class="tb-drop">Drop here</span></span></div>`}).join('')}
+   ${prog.length?`<div class="tb-line prog"><span><strong>Program-wide</strong><span class="sub2">Reads across every line</span></span><span></span><span></span><span class="tb-chips">${prog.map(chip).join('')}</span></div>`:''}
+  </div></div>
+ ${sug.length?`<div><h3 style="font-size:14px;margin-bottom:4px">Suggested next tests</h3><div class="note" style="margin-bottom:8px">Lines with no test yet that have enough volume to read out. One click adds it.</div>
+  <div class="tb-sug">${sug.map(x=>`<div class="tb-card"><div style="display:flex;justify-content:space-between;gap:6px;align-items:center"><strong>${esc(TEST_LIB[x.tpl].name)}</strong>${testStatusChip(x.t)}</div>
+   <span class="sub2">${esc(x.a.c.name)} · ${esc(x.a.p.name)}</span><span class="sub2">${compact(x.t.have)} ${esc(x.t.unit)} per cell against ${compact(x.t.need)} needed · ${money(x.t.budget)} in test cells</span>
+   <button class="btn ghost tb-add" data-tpl="${x.tpl}" data-pid="${x.a.p.id}">+ Add</button></div>`).join('')}</div></div>`:''}
+ </div>`}
+function testEdit(f){const T=TIERS[UI.tier];S.testEdits=S.testEdits||{};const e=S.testEdits[T]=S.testEdits[T]||{add:[],drop:[]};e.add=e.add||[];e.drop=e.drop||[];f(e);save();renderOut()}
+function testAdd(tpl,pid){const R=compute(UI.tier);let key=tpl+':'+pid;
+ testEdit(e=>{e.drop=e.drop.filter(k=>k!==key);const auto=testPlan(R,{drop:e.drop,add:[]}).tests.some(t=>t.key===key);if(!auto&&!e.add.some(x=>x.tpl===tpl&&x.pid===pid))e.add.push({tpl,pid})});
+ const t=testPlan(compute(UI.tier)).tests.find(t=>t.key===key);UI.tpSel=null;UI.tpNew=key;
+ UI.tpMsg=t?`Added <strong>${t.id} ${esc(t.type)}</strong> on ${esc(t.ch)} · ${esc(t.placement)}: ${t.status==='ok'?'reads out as planned':t.status==='fix'?'reads out with a fallback (see its row)':'can’t reach significance, so it runs as a directional read'}. Readout ${fmtD(t.readout)}.`:'That line already has this test.';renderOut();
+ setTimeout(()=>{const r=document.querySelector('tr.tb-new');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'})},50)}
+function testRemove(key){UI.tpMsg='';UI.tpNew=null;testEdit(e=>{const n=e.add.length;e.add=e.add.filter(x=>x.tpl+':'+x.pid!==key);if(e.add.length===n&&!e.drop.includes(key))e.drop.push(key)})}
+function wireTestBuilder(){const v=$('#view'),lines=[...v.querySelectorAll('.tb-line[data-pid]')];
+ const light=fits=>{const f=new Set((fits||'').split(' '));lines.forEach(l=>{l.classList.toggle('fit',f.has(l.dataset.pid));l.classList.toggle('nofit',!f.has(l.dataset.pid))})};
+ const clear=()=>lines.forEach(l=>l.classList.remove('fit','nofit','over'));
+ v.querySelectorAll('.tb-tpl').forEach(el=>{const pickIt=()=>{if(!el.dataset.fits)return;UI.tpSel=UI.tpSel===el.dataset.tpl?null:el.dataset.tpl;UI.tpMsg='';renderOut();if(UI.tpSel)setTimeout(()=>{const f=document.querySelector('.tb-line.fit');if(f)f.focus({preventScroll:true})},30)};
+  el.onclick=pickIt;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pickIt()}};
+  el.ondragstart=e=>{e.dataTransfer.setData('text/plain',el.dataset.tpl);e.dataTransfer.effectAllowed='copy';UI.tpDrag=el.dataset.tpl;el.classList.add('drag');light(el.dataset.fits)};
+  el.ondragend=()=>{el.classList.remove('drag');UI.tpDrag=null;clear()}});
+ lines.forEach(l=>{const ok=()=>{const id=UI.tpDrag||UI.tpSel;return id&&TEST_LIB[id]&&(v.querySelector(`.tb-tpl[data-tpl="${id}"]`)?.dataset.fits||'').split(' ').includes(l.dataset.pid)};
+  l.ondragover=e=>{if(ok()){e.preventDefault();e.dataTransfer.dropEffect='copy';l.classList.add('over')}};
+  l.ondragleave=()=>l.classList.remove('over');
+  l.ondrop=e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain')||UI.tpDrag;UI.tpDrag=null;if(id&&TEST_LIB[id]&&(v.querySelector(`.tb-tpl[data-tpl="${id}"]`)?.dataset.fits||'').split(' ').includes(l.dataset.pid))testAdd(id,l.dataset.pid);else clear()};
+  l.onclick=e=>{if(e.target.closest('.tb-x'))return;if(UI.tpSel&&ok())testAdd(UI.tpSel,l.dataset.pid)};
+  l.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&UI.tpSel&&ok()){e.preventDefault();testAdd(UI.tpSel,l.dataset.pid)}}});
+ v.querySelectorAll('.tb-x').forEach(b=>b.onclick=e=>{e.stopPropagation();testRemove(b.dataset.key)});
+ v.querySelectorAll('.tb-add').forEach(b=>b.onclick=()=>testAdd(b.dataset.tpl,b.dataset.pid));
+ const au=$('#tb-auto');if(au)au.onclick=()=>{const T=TIERS[UI.tier];if(S.testEdits)delete S.testEdits[T];UI.tpSel=null;UI.tpNew=null;UI.tpMsg='Rebuilt the recommended test plan for this version.';save();renderOut()};
+ const cl=$('#tb-clear');if(cl)cl.onclick=()=>{const R=compute(UI.tier),T=TIERS[UI.tier];const keys=testPlan(R,{add:[],drop:[]}).tests.map(t=>t.key);S.testEdits=S.testEdits||{};S.testEdits[T]={add:[],drop:keys};UI.tpSel=null;UI.tpNew=null;UI.tpMsg='Cleared every test. Drag tests in from the library, or press Auto-build.';save();renderOut()};
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.tpSel){UI.tpSel=null;renderOut()}});
 function renderTests(R){
  const TP=testPlan(R),T=TIERS[R.tier],ts=TP.tests,cnt=s=>ts.filter(t=>t.status===s).length,o=funnel(R),fw=flightWeeks();
  const winLeads=o.leads*TP.W/fw,ndV=needN(FUN.cvr,TP.lift);
@@ -839,8 +920,10 @@ function renderTests(R){
   <div class="tile"><span class="v" style="color:var(--flag)">${cnt('fix')}</span><span class="k">Read out with a fallback</span></div>
   <div class="tile"><span class="v" style="color:var(--over)">${cnt('no')}</span><span class="k">Can’t reach significance</span></div></div>
  <div class="note" style="background:var(--flag-soft);border-radius:12px;padding:10px 12px;color:var(--ink)">${esc(TIERNAME[R.tier])} projects about <strong>${compact(o.leads)} leads</strong> over the flight, about ${compact(winLeads)} in a ${TP.W}-week test window across every line. A lead-rate A/B test needs about ${compact(ndV)} visits per cell (around ${compact(ndV*FUN.cvr)} leads per cell) to see a ${Math.round(TP.lift*100)}% lift, so lead-level tests here use a proxy KPI, pool markets or run longer. The fix is shown on each row.</div>
+ ${renderTestBuilder(R,TP)}
  <div class="tscroll"><table><thead><tr><th>Test</th><th>Hypothesis</th><th>Channel · line</th><th>Variable · cells</th><th class="n">Budget / cell</th><th>Primary KPI · guardrail</th><th>Sample needed vs plan</th><th>Run · readout</th></tr></thead><tbody>
- ${ts.map(t=>`<tr><td class="m"><strong>${t.id}</strong><div class="sub2">${esc(t.type)}</div></td><td style="min-width:190px">${esc(t.hyp)}</td>
+ ${ts.length?'':`<tr><td colspan="8" class="sub2" style="text-align:center;padding:18px">No tests yet. Drag one in from the library above, or press Auto-build for me.</td></tr>`}
+ ${ts.map(t=>`<tr${t.key===UI.tpNew?' class="tb-new"':''}><td class="m"><strong>${t.id}</strong><div class="sub2">${esc(t.type)}</div></td><td style="min-width:190px">${esc(t.hyp)}</td>
   <td style="min-width:110px"><strong>${esc(t.ch)}</strong><div class="sub2">${esc(t.placement)} · ${esc(t.scopeName)}</div></td>
   <td style="min-width:110px">${esc(t.variable)}<div class="sub2">${t.cells.map(esc).join('<br>')}</div></td>
   <td class="n">${t.cellBudget?money(t.cellBudget):'<span class="sub2">uses test spend</span>'}</td>
@@ -931,6 +1014,7 @@ function renderOut(){
  v.innerHTML={summary:renderSummary,bom:renderMVP,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
+ if(UI.tab==='tests')wireTestBuilder();
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
  v.querySelectorAll('.cp-edit').forEach(el=>{const lim=+el.dataset.lim||0;const mark=()=>{const n=el.value.length,c=el.parentElement.querySelector('.cp-count');c.textContent=lim?n+'/'+lim:n+' chars';const o=lim&&n>lim;c.classList.toggle('over',!!o);el.classList.toggle('over',!!o)};mark();
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
