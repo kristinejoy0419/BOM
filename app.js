@@ -549,7 +549,7 @@ function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,lead
 
 /* ==================== GROWTH PLAN ==================== */
 // Revenue side, goal-back budget, scenarios, saturation, total cost, sales capacity, in-flight rules, incrementality
-const GROWTH_DEF={acv:30000,gm:75,life:3,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
+const GROWTH_DEF={acv:60000,gm:80,life:4,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
 const gr=()=>({...GROWTH_DEF,...(S.growth||{})});
 // Diminishing returns: spend where a channel's results fall to ~63% of linear (planning estimate per flight)
 const SAT_CAP={linkedin:1500000,google:800000,meta:1000000,x:300000,reddit:300000,youtube:800000,trade:300000,creators:200000,abm:600000,events:300000,wechat:300000,baidu:200000,naver:200000};
