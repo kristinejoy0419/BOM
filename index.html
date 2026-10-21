@@ -160,12 +160,14 @@
       <div class="bar">
         <div class="seg" role="group" aria-label="Version" id="ver-seg"></div>
         <div class="btns">
+          <button class="btn" id="x-refresh" title="Re-run every calculation and redraw the dashboard">↻ Refresh</button>
           <button class="btn primary" id="x-xlsx">Download .xlsx</button>
           <button class="btn" id="x-all">All versions .xlsx</button>
           <button class="btn" id="x-csv">CSV of this tab</button>
           <button class="btn ghost" id="x-copy">Copy table</button>
         </div>
       </div>
+      <div class="te-bar"><span class="sub2">Tip: double-click any text to edit it. Press Enter to save, Esc to cancel.</span><button class="btn sm ghost" id="te-reset" hidden>Undo my text edits on this tab</button></div>
       <div class="status" id="x-status" role="status"></div>
       <nav class="tabs" role="tablist" id="tabs"></nav>
       <section id="view"></section>
