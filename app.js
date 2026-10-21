@@ -4,22 +4,22 @@ const STAGE={Awareness:'aw',Consideration:'co',Conversion:'cv'};
 const BUYUNIT={CPM:'impressions',CPC:'clicks',CPV:'views',CPL:'leads',CPS:'sends'};
 
 const UNITS={
- li_image:{platform:'LinkedIn',name:'Single Image Ad',variants:['1.91:1 · 1200×627','1:1 · 1080×1080'],files:'JPG, PNG, GIF (static)',max:'5 MB',length:'—',copy:['Intro text ≤150 chars recommended (600 max)','Headline ≤70 chars recommended (200 max)','CTA button from LinkedIn list'],notes:'Keep logo and key claim inside the center 80%.',lead:10},
- li_video:{platform:'LinkedIn',name:'Video Ad',variants:['16:9 · 1920×1080','1:1 · 1080×1080','9:16 · 1080×1920'],files:'MP4',max:'200 MB',length:'15–30s recommended (3s–30min)',copy:['Intro text ≤150 chars recommended','Headline ≤70 chars','Burned-in captions or .srt file'],notes:'Brand and proof point in the first 3 seconds; most views are muted.',lead:21},
+ li_image:{platform:'LinkedIn',name:'Single Image Ad',variants:['1.91:1 · 1200×627','1:1 · 1080×1080'],files:'JPG, PNG, GIF (static)',max:'5 MB',length:'—',copy:['Main copy (intro text) ≤150 chars recommended (3,000 max)','Headline ≤70 chars recommended (200 max)','Description ≤100 chars recommended (300 max; shows on LinkedIn Audience Network)','CTA button from LinkedIn list'],notes:'Keep logo and key claim inside the center 80%.',lead:10},
+ li_video:{platform:'LinkedIn',name:'Video Ad',variants:['16:9 · 1920×1080','1:1 · 1080×1080','9:16 · 1080×1920'],files:'MP4',max:'200 MB',length:'15–30s recommended (3s–30min)',copy:['Main copy (intro text) ≤150 chars recommended (3,000 max)','Headline ≤70 chars recommended (200 max)','Burned-in captions or .srt file'],notes:'Brand and proof point in the first 3 seconds; most views are muted.',lead:21},
  li_tla:{platform:'LinkedIn',name:'Thought Leader Ad',variants:['Organic member post (image, video or text)'],files:'As posted by the member',max:'—',length:'—',copy:['Post up to 3,000 chars','Sponsorship approval from the member'],notes:'Post cannot be edited once promoted. Use exec and Mobile Insiders creator posts.',lead:7},
- li_doc:{platform:'LinkedIn',name:'Document Ad',variants:['PDF, 1:1 or 4:5 pages'],files:'PDF, PPT, DOCX',max:'100 MB · 300 pages',length:'≤10 pages recommended',copy:['Intro text ≤150 chars recommended','Headline ≤70 chars'],notes:'Gate after 3–5 preview pages with a Lead Gen Form.',lead:15},
+ li_doc:{platform:'LinkedIn',name:'Document Ad',variants:['PDF, 1:1 or 4:5 pages'],files:'PDF, PPT, DOCX',max:'100 MB · 300 pages',length:'≤10 pages recommended',copy:['Main copy (intro text) ≤150 chars recommended (3,000 max)','Headline ≤70 chars recommended (200 max)'],notes:'Gate after 3–5 preview pages with a Lead Gen Form.',lead:15},
  li_lgf:{platform:'LinkedIn',name:'Lead Gen Form',variants:['Form'],files:'—',max:'—',length:'—',copy:['Headline ≤60 chars','Details ≤160 chars','3–4 questions recommended (12 max)','Privacy policy URL, thank-you message ≤300 chars'],notes:'Sync to CRM / MAP before launch.',lead:5},
  li_conv:{platform:'LinkedIn',name:'Conversation Ad',variants:['Message flow','Banner 300×250 (desktop, optional)'],files:'JPG, PNG',max:'2 MB banner',length:'—',copy:['Opening message ≤500 chars recommended (8,000 max)','Up to 5 CTA buttons ≤25 chars each','Sender: real person with profile photo'],notes:'Map each button to a branch before trafficking.',lead:10},
  gs_rsa:{platform:'Google Ads',name:'Responsive Search Ad',variants:['RSA set per ad group'],files:'—',max:'—',length:'—',copy:['Up to 15 headlines ≤30 chars','Up to 4 descriptions ≤90 chars','2 path fields ≤15 chars'],notes:'Pin brand headline in position 1 for brand ad groups.',lead:5},
  gs_ext:{platform:'Google Ads',name:'Search assets',variants:['Sitelinks','Callouts','Image asset 1.91:1 · 1200×628','Image asset 1:1 · 1200×1200'],files:'JPG, PNG',max:'5 MB',length:'—',copy:['Sitelink text ≤25 chars, 2 lines ≤35 chars','Callouts ≤25 chars'],notes:'',lead:5},
- x_image:{platform:'X',name:'Image Ad',variants:['1:1 · 1200×1200','1.91:1 · 1200×628'],files:'PNG, JPG',max:'5 MB',length:'—',copy:['Post text ≤280 chars (≤100 recommended)','Website card headline ≤70 chars'],notes:'',lead:7},
+ x_image:{platform:'X',name:'Image Ad',variants:['1:1 · 1200×1200','1.91:1 · 1200×628'],files:'PNG, JPG',max:'5 MB',length:'—',copy:['Post text ≤280 chars (≤100 recommended)','Website card headline ≤70 chars (≤50 recommended; truncates after ~50)'],notes:'',lead:7},
  x_video:{platform:'X',name:'Video Ad',variants:['1:1 · 1200×1200','16:9 · 1920×1080','9:16 · 1080×1920'],files:'MP4, MOV',max:'1 GB',length:'≤15s recommended (2:20 max)',copy:['Post text ≤280 chars','Captions recommended'],notes:'',lead:14},
  rd_image:{platform:'Reddit',name:'Promoted Post · Image',variants:['1:1 · 1080×1080','4:5 · 1080×1350'],files:'JPG, PNG, GIF',max:'20 MB',length:'—',copy:['Headline ≤300 chars (≤150 recommended)','Native, practitioner tone; no hard sell'],notes:'Turn comments on and assign a community manager.',lead:7,verify:true},
  meta_feed_img:{platform:'Meta',name:'Feed image ad',covers:'Facebook Feed, Instagram Feed, Marketplace, Messenger inbox',variants:['1:1 · 1080×1080','4:5 · 1080×1350'],files:'JPG, PNG',max:'30 MB',length:'—',copy:['Primary text ≤125 chars recommended','Headline ≤40 chars recommended','Description ≤30 chars (Facebook only)'],notes:'Keep text light on the image; Advantage+ placements may crop to 1.91:1, so keep the logo and claim centered.',lead:7},
  meta_feed_vid:{platform:'Meta',name:'Feed video ad',covers:'Facebook Feed, Instagram Feed, in-stream',variants:['4:5 · 1080×1350','1:1 · 1080×1080'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (1s–241 min)',copy:['Primary text ≤125 chars recommended','Headline ≤40 chars recommended','Captions on (most views are muted)'],notes:'Product or proof point in the first 3 seconds.',lead:14},
  meta_reels:{platform:'Meta',name:'Reels & Stories video',covers:'Facebook Reels, Instagram Reels, Facebook Stories, Instagram Stories',variants:['9:16 · 1080×1920'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (Reels ≤90s, Stories ≤60s per card)',copy:['Primary text ≤72 chars shown','Keep the top 14% and bottom 35% clear of text (UI overlay)'],notes:'Shoot vertical; sound on with captions.',lead:14},
  meta_lgf:{platform:'Meta',name:'Instant Form (lead ad)',covers:'Facebook and Instagram lead ads',variants:['Form'],files:'—',max:'—',length:'—',copy:['Intro headline ≤60 chars','3–4 questions recommended (15 max)','Privacy policy URL, thank-you screen'],notes:'Sync to CRM / MAP before launch; use "Higher intent" form type for B2B.',lead:5},
- yt_instream:{platform:'YouTube',name:'Skippable In-stream',variants:['16:9 · 1920×1080'],files:'Upload to YouTube (MP4/MOV)',max:'—',length:'15–30s recommended; skippable after 5s',copy:['Headline ≤30 chars (long ≤90)','Description ≤90 chars','Companion banner auto-generated'],notes:'Logo and message inside the first 5 seconds.',lead:21},
+ yt_instream:{platform:'YouTube',name:'Skippable In-stream',variants:['16:9 · 1920×1080'],files:'Upload to YouTube (MP4/MOV)',max:'—',length:'15–30s recommended; skippable after 5s',copy:['Headline ≤40 chars (shown in-stream)','Long headline ≤90 chars (in-feed placements)','Description ≤90 chars','Companion banner auto-generated'],notes:'Logo and message inside the first 5 seconds.',lead:21},
  yt_shorts:{platform:'YouTube',name:'Shorts',variants:['9:16 · 1080×1920'],files:'Upload to YouTube',max:'—',length:'15–30s recommended (60s max)',copy:['Headline ≤40 chars'],notes:'Keep text clear of the bottom 20% and right edge (UI overlay).',lead:14},
  nl_sponsor:{platform:'Publisher',name:'Newsletter sponsorship',variants:['Hero image 600×300','Logo (PNG, transparent)'],files:'PNG, JPG',max:'Per media kit',length:'—',copy:['Headline ≤60 chars','Body 50–75 words','1 CTA with tracked URL'],notes:'Specs vary by publisher. Confirm against the media kit.',lead:10,verify:true},
  iab_display:{platform:'Programmatic / publisher',name:'IAB display set',variants:['300×250','728×90','970×250','300×600','320×50','160×600'],files:'JPG, PNG, GIF, HTML5',max:'150 KB initial load',length:'Animation ≤15s, max 3 loops',copy:['Headline ≤8 words','CTA ≤3 words'],notes:'1px border on white backgrounds. HTML5 needs clickTag.',lead:10},
@@ -129,7 +129,7 @@ const CH=[
 for(const u in UNITS){UNITS[u].fmt=UNIT_META[u][0];UNITS[u].medium=UNIT_META[u][1]}
 // copy limits used to fit the ad copy column (h = headline, b = body / primary text, cta = button)
 const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:72},meta_lgf:{h:60,b:160},li_image:{h:70,b:150},li_video:{h:70,b:150},li_tla:{b:3000},li_doc:{h:70,b:150},li_lgf:{h:60,b:160},li_conv:{b:500,cta:25},gs_rsa:{h:30,b:90},gs_ext:{h:25,b:35},
- x_image:{h:70,b:100},x_video:{b:100},rd_image:{h:150},yt_instream:{h:30,b:90},yt_shorts:{h:40},nl_sponsor:{h:60,b:450},iab_display:{h:40,cta:15},native_display:{h:50,b:90,cta:15},native_article:{h:90},
+ x_image:{h:70,b:100},x_video:{b:100},rd_image:{h:150},yt_instream:{h:40,b:90},yt_shorts:{h:40},nl_sponsor:{h:60,b:450},iab_display:{h:40,cta:15},native_display:{h:50,b:90,cta:15},native_article:{h:90},
  podcast:{},creator_post:{},event_pkg:{h:60,b:300},wc_moments:{b:40},wc_oa:{h:28,b:60},wc_channels:{b:40},bd_search:{h:25,b:80},nv_search:{h:15,b:45},nv_gfa:{h:25,b:45}};
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
@@ -290,14 +290,14 @@ function onImageCopy({fmt,logo,ini,concepts,langs}){
  if(!rows.length)return {rows,note:'Add headlines (and on-image eyebrows) in section 10.',text:'(no copy yet)'};
  return finishAd({rows,note})}
 // Platform copy: the text typed into each platform's ad fields, with that platform's own names and limits.
-const FIELD_NAMES={LinkedIn:{H:'Headline',Body:'Intro text'},Meta:{H:'Headline',Body:'Primary text'},'Google Ads':{H:'Headline',D:'Description'},'X (Twitter)':{H:'Card headline',Body:'Post text'},X:{H:'Card headline',Body:'Post text'},Reddit:{H:'Headline'},YouTube:{H:'Headline',Body:'Description'}};
+const FIELD_NAMES={LinkedIn:{H:'Headline',Body:'Main copy (intro text)'},Meta:{H:'Headline',Body:'Primary text'},'Google Ads':{H:'Headline',D:'Description'},'X (Twitter)':{H:'Card headline',Body:'Post text'},X:{H:'Card headline',Body:'Post text'},Reddit:{H:'Headline'},YouTube:{H:'Headline',Body:'Description'}};
 const LGF={li_lgf:1,meta_lgf:1},PERSONAL={li_image:1,li_video:1,li_doc:1};
 function platformAd(u,{ini,concepts,langs}){const U=UNITS[u],L=LIMS[u]||{},f=VISUAL(U.fmt)?'static':U.fmt;
  if(U.fmt==='display'&&!L.b)return {rows:[],note:'No typed fields: the copy lives on the banner (see On-image copy in the BOM tab).',text:'Copy lives on the banner'};
  const ad=adCopy({fmt:f,lim:L,ini,concepts,langs}),N=FIELD_NAMES[U.platform]||{};
  ad.rows.forEach(r=>{r.parts.forEach(p=>{if(LGF[u])p.k=p.k==='H'?'Form headline':p.k==='Body'?'Offer detail':p.k;else p.k=N[p.k]||(p.k==='H'?'Headline':p.k==='D'?'Description':p.k)});
   if(LGF[u])r.parts.push({k:'Thank-you message',lim:300,t:'Thanks! Your copy is on its way to your inbox.',over:0});
-  if(PERSONAL[u]){const b=r.parts.find(p=>p.k==='Intro text');if(b)r.parts.push({k:'Personalized intro (optional)',lim:L.b,t:'Hi %FIRSTNAME%, '+b.t.charAt(0).toLowerCase()+b.t.slice(1),over:0})}});
+  if(PERSONAL[u]){const b=r.parts.find(p=>p.k==='Main copy (intro text)');if(b)r.parts.push({k:'Personalized intro (optional)',lim:L.b,t:'Hi %FIRSTNAME%, '+b.t.charAt(0).toLowerCase()+b.t.slice(1),over:0})}});
  ad.rows.forEach(r=>r.parts.forEach(p=>{p.over=p.lim?Math.max(0,p.t.length-p.lim):0}));
  return applyEdits(finishAd(ad),'P|'+u)}
 /* ==================== ENGINE ==================== */
@@ -375,7 +375,9 @@ function compute(tier){
   const LOCAL=/^(wc_|bd_|nv_)/,us=[...M.units],usE=us.filter(u=>!LOCAL.test(u));const lim={};(usE.length?usE:us).forEach(u=>{const L=LIMS[u]||{};for(const k in L)lim[k]=Math.min(lim[k]??1e9,L[k])});
   const ini=+Object.entries(M.iniB).sort((a,b)=>b[1]-a[1])[0]?.[0]||0;
   const ad=VISUAL(M.fmt)?applyEdits(onImageCopy({fmt:M.fmt,logo:M.logo,ini,concepts,langs:[...M.langs]}),'OI|'+M.key):{rows:[],note:'Typed into the platform: see the Ad Copy tab.',text:'See Ad Copy tab',flags:0,lk:''};
-  return {...M,id,name,nL,adapt,masterFiles,ad,iniName:S.initiatives[ini]?.name||'—',units:[...M.units],totalFiles:masterFiles*adapt,lines:[...M.lines],langs:[...M.langs],pls:[...M.pls],chs:[...M.chs],mk:[...M.mk],due:isoD(new Date(parseD(S.start)-M.lead*864e5)),
+  // platform copy typed in each platform this master runs on (same edits as the Ad Copy tab)
+  const pads=[];{const seen=new Set();[...M.units].forEach(u=>{const P=UNITS[u].platform,L=LIMS[u]||{};if(seen.has(P)||!(L.b||L.h))return;seen.add(P);const pa=platformAd(u,{ini,concepts,langs:[...M.langs]});if(pa.rows.length)pads.push({platform:P,unit:u,ad:pa})})}
+  return {...M,id,name,nL,adapt,masterFiles,ad,iniName:S.initiatives[ini]?.name||'—',units:[...M.units],totalFiles:masterFiles*adapt,pads,lines:[...M.lines],langs:[...M.langs],pls:[...M.pls],chs:[...M.chs],mk:[...M.mk],due:isoD(new Date(parseD(S.start)-M.lead*864e5)),
    master:M.best.size||'—'}});
  const keyToId=Object.fromEntries(masters.map(m=>[m.key,m.id]));
  lines.forEach(l=>{l.bomIds=[...l.bom].map(k=>keyToId[k]).sort()});
@@ -387,17 +389,17 @@ function nextMonth(k){let [y,m]=k.split('-').map(Number);m++;if(m>12){m=1;y++}re
 // Round a list so the parts still add up to the rounded total (largest remainder)
 function fairRound(v){const f=v.map(Math.floor),left=Math.round(sum(v))-sum(f);v.map((x,i)=>[x-f[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,Math.max(0,left)).forEach(([,i])=>f[i]++);return f}
 function bomTable(R){
- const cols0=[['Line','id'],['Version','ver'],['Initiative','ini'],['Message pillar','pillar'],['Funnel stage','stage'],['Channel group','group'],['Channel','channel'],['Placement','placement'],['Platform / publisher','publisher'],['Market','market'],['Language','lang'],['Audience','audience'],['Targeting','targeting'],['Ad units','unitsTxt'],['Sizes / specs','sizes'],['Buy type','buy'],['Rate','rateTxt'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Flight','flight'],['KPI','kpi'],['Creative (concepts × sizes × rounds)','creative'],['Creative due','due'],['BOM items','bomIds']];
+ const cols0=[['Line','id'],['Version','ver'],['Initiative','ini'],['Message pillar','pillar'],['Funnel stage','stage'],['Channel group','group'],['Channel','channel'],['Placement','placement'],['Platform / publisher','publisher'],['Market','market'],['Language','lang'],['Audience','audience'],['Targeting','targeting'],['Ad units','unitsTxt'],['Sizes / specs','sizes'],['Buy type','buy'],['Rate','rateTxt'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Flight','flight'],['KPI','kpi'],['Creative (concepts × sizes × rounds)','creative'],['Creative due','due'],['BOM items','bomIds'],['Category','cat']];
  const cols=cols0;
  const rows=R.lines.map(l=>({id:l.id,ver:TIERNAME[l.tier],ini:l.ini.name,pillar:l.ini.pillar,stage:l.stage,group:l.group,channel:l.channel,placement:l.placement,publisher:l.publisher,market:l.market,lang:l.lang,audience:l.audience,targeting:l.targeting,
   unitsTxt:l.units.map(u=>UNITS[u].platform+' '+UNITS[u].name).join(' + '),sizes:l.units.flatMap(u=>variantsOf(u)).join(' | '),buy:l.p.buy,rateTxt:rateFmt(l.rate,l.p.buy)+(l.p.buy==='Flat'?' per '+(l.p.unit||'unit').replace(/s$/,''):l.p.buy==='CPM'?' CPM':''),
-  aud:l.aud,budget:l.budget,qty:Math.round(l.qty),qu:l.qu,flight:l.flight,kpi:l.kpi,creative:`${l.concepts} × ${l.variants} × ${l.rounds}`,due:l.due,bomIds:l.bomIds.join(', ')}));
+  aud:l.aud,budget:l.budget,qty:Math.round(l.qty),qu:l.qu,flight:l.flight,kpi:l.kpi,creative:`${l.concepts} × ${l.variants} × ${l.rounds}`,due:l.due,bomIds:l.bomIds.join(', '),cat:catOf(l.p.id)}));
  const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Line Items',cols,rows};
 }
 function mvpTable(R){
- const cols=[['BOM item','id'],['Format','fmtName'],['Creative master','name'],['On-image copy','adTxt'],['Lead initiative','iniName'],['Media lines covered','linesTxt'],['# lines','nLines'],['Master size','master'],['Languages','langsTxt'],['Concepts','concepts'],['Refresh rounds','rounds'],['Video cuts','cuts'],['Master files','masterFiles'],['Platform resizes','adapt'],['Total files incl. resizes','totalFiles'],['Platform adaptations','adaptTxt'],['Channels','chsTxt'],['Markets','mkTxt'],['Media budget on these lines','budget'],['First due','due']];
- const rows=R.masters.map(m=>({id:m.id,fmtName:FMTNAME[m.fmt]||m.fmt,name:m.name,adTxt:m.ad.text,iniName:m.iniName,master:m.master,langsTxt:m.langs.join(', '),concepts:R.concepts,rounds:R.rounds,cuts:m.fmt==='video'?R.lens.join(', '):'—',masterFiles:m.masterFiles,adapt:m.adapt,totalFiles:m.totalFiles,
+ const cols=[['BOM item','id'],['Format','fmtName'],['Creative master','name'],['On-image copy','adTxt'],['Platform copy','padTxt'],['Lead initiative','iniName'],['Media lines covered','linesTxt'],['# lines','nLines'],['Master size','master'],['Languages','langsTxt'],['Concepts','concepts'],['Refresh rounds','rounds'],['Video cuts','cuts'],['Master files','masterFiles'],['Platform resizes','adapt'],['Total files incl. resizes','totalFiles'],['Platform adaptations','adaptTxt'],['Channels','chsTxt'],['Markets','mkTxt'],['Media budget on these lines','budget'],['First due','due']];
+ const rows=R.masters.map(m=>({id:m.id,fmtName:FMTNAME[m.fmt]||m.fmt,name:m.name,adTxt:m.ad.text,padTxt:(m.pads||[]).map(x=>x.platform+'\n'+x.ad.text).join('\n\n')||'—',iniName:m.iniName,master:m.master,langsTxt:m.langs.join(', '),concepts:R.concepts,rounds:R.rounds,cuts:m.fmt==='video'?R.lens.join(', '):'—',masterFiles:m.masterFiles,adapt:m.adapt,totalFiles:m.totalFiles,
   adaptTxt:Object.keys(m.sizes).join('; '),chsTxt:m.chs.join(', '),mkTxt:m.mk.join(', '),linesTxt:m.lines.join(', '),nLines:m.lines.length,budget:Math.round(m.budget),due:m.due}));
  return {name:'BOM (MVP)',cols,rows};
 }
@@ -465,17 +467,22 @@ function creativeTable(R){
  return {name:'Creative Deliverables',cols,rows};
 }
 // projected outcomes: each line's delivery spread over months like its channel's spend
+const FULLK=[['imp','Impressions'],['clk','Clicks'],['lpv','Visits (landing page)'],['leads','Leads'],['mql','MQLs'],['sql','SQLs'],['cust','Customers (closed-won)']];
+const COSTK=[['Cost per lead','leads'],['Cost per MQL','mql'],['Cost per SQL','sql'],['CAC (media cost per customer)','cust']];
 const OUTK=[['imp','Impressions','CPM'],['clk','Clicks','CPC'],['views','Video views','CPV'],['leads','Leads','CPL'],['sends','Messages sent','CPS']];
 function outcomes(R){
- const fr=Object.fromEntries(R.flightRows.map(f=>[f.c.id,f]));const by={},mo={},flat={};
+ const fr=Object.fromEntries(R.flightRows.map(f=>[f.c.id,f]));const by={},mo={},flat={},full={},spend=R.months.map(()=>0);
  R.lines.forEach(l=>{const f=fr[l.c.id],k=(OUTK.find(o=>o[2]===l.p.buy)||[])[0];const share=f&&f.total?f.months.map(v=>v/f.total):R.months.map(()=>1/Math.max(1,R.months.length));
   const c=by[l.c.id]=by[l.c.id]||{c:l.c,budget:0,kpis:new Set(),flat:{}};c.budget+=l.budget;c.kpis.add(l.kpi);
+  const lf=lineFun(l);if(lf){const P=pipe(),v={imp:lf.imp,clk:lf.clk,lpv:lf.lpv,leads:lf.leads};v.mql=v.leads*P.mql;v.sql=v.mql*P.sql;v.cust=v.sql*P.win;for(const kk in v){c['f_'+kk]=(c['f_'+kk]||0)+v[kk];(full[kk]=full[kk]||R.months.map(()=>0)).forEach((_,i)=>full[kk][i]+=v[kk]*share[i])}}
+  (spend).forEach((_,i)=>spend[i]+=l.budget*share[i]);
   if(k){c[k]=(c[k]||0)+l.qty;(mo[k]=mo[k]||R.months.map(()=>0)).forEach((_,i)=>mo[k][i]+=l.qty*share[i])}
   else{c.flat[l.qu]=(c.flat[l.qu]||0)+l.qty;(flat[l.qu]=flat[l.qu]||R.months.map(()=>0)).forEach((_,i)=>flat[l.qu][i]+=l.qty*share[i])}});
- return {by:Object.values(by).sort((a,b)=>b.budget-a.budget),mo,flat};
+ return {by:Object.values(by).sort((a,b)=>b.budget-a.budget),mo,flat,full,spend};
 }
 function flightAOA(R){const tb=flightTable(R),O=outcomes(R);const a=tableToAOA(tb,tb.cols.slice(1).map(c=>c[1]));a.push([],['Projected outcomes by month',...R.months.map(monthLabel),'Total']);
- OUTK.forEach(([k,n])=>{if(O.mo[k])a.push([n,...O.mo[k].map(Math.round),Math.round(sum(O.mo[k]))])});
+ FULLK.forEach(([k,n])=>{if(O.full[k])a.push([n,...O.full[k].map(v=>+v.toFixed(1)),+sum(O.full[k]).toFixed(1)])});a.push(['Media spend',...O.spend.map(Math.round),Math.round(sum(O.spend))]);
+ COSTK.forEach(([n,k])=>{if(O.full[k])a.push([n,...O.full[k].map((v,i)=>v>=.05?+(O.spend[i]/v).toFixed(2):''),sum(O.full[k])?+(sum(O.spend)/sum(O.full[k])).toFixed(2):''])});
  Object.entries(O.flat).forEach(([u,v])=>a.push(['Flat-fee '+u,...v.map(x=>+x.toFixed(1)),+sum(v).toFixed(1)]));
  a.push([],['KPIs & projected outcomes by channel','Budget','KPIs',...OUTK.map(o=>o[1]),'Flat-fee units']);
  O.by.forEach(c=>a.push([c.c.name,Math.round(c.budget),[...c.kpis].join('; '),...OUTK.map(([k])=>c[k]?Math.round(c[k]):''),Object.entries(c.flat).map(([u,v])=>Math.round(v*10)/10+' '+u).join(', ')]));
@@ -502,7 +509,9 @@ function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(
 
 // Full-funnel estimate across every buy: each line's bought unit plus benchmark ratios for the rest (flat-fee buys not estimated)
 const FUN={ctr:0.005,ctrCpc:0.02,viewRate:0.3,leadForm:0.12,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
-const FUNNEL=[['imp','Impressions'],['reach','Est. reach (unique people)'],['clk','Clicks'],['lpv','Landing page visits'],['eng','Engagements (clicks, likes, shares, comments)'],['views','Video views'],['sends','Messages sent'],['leads','Leads']];
+// Pipeline rates (editable on the Flighting tab): lead → MQL → SQL → closed-won customer
+const PIPE_DEF={mql:0.35,sql:0.30,win:0.20};const pipe=()=>({...PIPE_DEF,...(S.pipe||{})});
+const FUNNEL=[['imp','Impressions'],['reach','Est. reach (unique people)'],['clk','Clicks'],['lpv','Landing page visits'],['eng','Engagements (clicks, likes, shares, comments)'],['views','Video views'],['sends','Messages sent'],['leads','Leads'],['mql','MQLs'],['sql','SQLs'],['cust','Customers (closed-won)']];
 function lineFun(l){const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
  switch(l.p.buy){case'CPM':imp=q;clk=q*FUN.ctr;break;case'CPC':clk=q;imp=q/FUN.ctrCpc;break;
   case'CPV':views=q;imp=q/FUN.viewRate;clk=imp*FUN.ctr;break;case'CPL':leads=q;clk=q/FUN.leadForm;imp=clk/FUN.ctr;break;
@@ -510,7 +519,8 @@ function lineFun(l){const q=l.qty||0;let imp=0,clk=0,views=0,sends=0,leads=0;
  const lpv=clk*FUN.lpv;if(l.p.buy!=='CPL')leads=lpv*FUN.cvr;return {imp,clk,lpv,eng:clk+imp*FUN.eng,views,sends,leads,opens:l.p.buy==='CPL'?clk:0}}
 function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,leads:0,spend:0};
  R.lines.forEach(l=>{const f=lineFun(l);if(!f)return;for(const k in o)if(k in f)o[k]+=f[k];o.spend+=l.budget});
- o.reach=o.imp/3.5;o.cpm=o.imp?o.spend/o.imp*1000:0;o.cpc=o.clk?o.spend/o.clk:0;o.cpl=o.leads?o.spend/o.leads:0;return o}
+ const P=pipe();o.mql=o.leads*P.mql;o.sql=o.mql*P.sql;o.cust=o.sql*P.win;
+ o.reach=o.imp/3.5;o.cpm=o.imp?o.spend/o.imp*1000:0;o.cpc=o.clk?o.spend/o.clk:0;o.cpl=o.leads?o.spend/o.leads:0;o.cpmql=o.mql?o.spend/o.mql:0;o.cpsql=o.sql?o.spend/o.sql:0;o.cac=o.cust?o.spend/o.cust:0;return o}
 
 /* ==================== TEST PLAN ==================== */
 // Tests are generated from the plan's own lines. Sample per cell = 16·p(1−p)/(p·lift)² (95% confidence, 80% power).
@@ -784,7 +794,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['copy','Ad Copy'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['copy','Ad Copy'],['spec','Spec Sheet for Creative Studio'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -846,15 +856,15 @@ function renderMVP(R){
  const tb=mvpTable(R),t=totals(R);
  const covered=new Set(R.masters.flatMap(m=>m.lines)).size;
  const gs={};tb.rows.forEach(r=>(gs[r.fmtName]=gs[r.fmtName]||[]).push(r));
- return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. The copy here is the on-image text (eyebrow ≤20, headline ≤35 characters), the same on every platform the master is resized for. The copy typed into each platform (LinkedIn intro text, Google headlines, Meta primary text) has its own limits and lives in the Ad Copy tab.</span>
+ return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Each master shows two kinds of copy: the on-image text designed into the image (eyebrow ≤20, headline ≤35 characters, the same on every platform it's resized for), and the copy typed into each platform with that platform's own limits (LinkedIn: main copy &lt;150 recommended and headline &lt;70; Google: headlines ≤30 and descriptions ≤90; Meta: primary text 125 and headline 40). Edits here and in the Ad Copy tab are the same copy.</span>
   <span class="chip ${covered===t.lines?'aw':'flag'}">${covered} of ${t.lines} media lines covered</span></div>
- <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
- ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="12">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
+ <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Platform copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(typed into each platform)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
+ ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="13">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
   <td class="m"><strong>${r.id}</strong></td><td style="min-width:170px"><strong>${esc(r.name)}</strong><div class="sub2">${esc(r.chsTxt)}</div></td>
-  <td style="min-width:380px">${adCellEdit(R.masters.find(m=>m.id===r.id).ad)}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
+  <td style="min-width:340px">${adCellEdit(R.masters.find(m=>m.id===r.id).ad)}</td><td style="min-width:380px">${(()=>{const pd=R.masters.find(m=>m.id===r.id).pads||[];return pd.length?pd.map(x=>`<div class="pad"><div class="pad-h">${esc(x.platform)} <span class="sub2">· ${esc(UNITS[x.unit].name)}</span></div>${adCellEdit(x.ad)}</div>`).join(''):'<span class="sub2">No typed copy for this format.</span>'})()}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
   <td class="n">${r.concepts} × ${r.rounds}${r.cuts!=='—'?' × '+R.lens.length:''}</td><td class="n">${r.masterFiles.toLocaleString()}</td><td class="n">${r.totalFiles.toLocaleString()}</td>
   <td class="sub2" style="min-width:230px">${Object.keys(R.masters.find(m=>m.id===r.id).sizes).map(esc).join('<br>')}</td><td class="n">${money(r.budget)}</td><td class="m">${r.due}</td></tr>`).join('')).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip over">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td></td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip over">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
  </tbody></table></div>
  <div class="note" style="margin-top:8px">“Budget on lines” is the media budget of the lines that use a master. A line with several units counts toward each of them, so this column does not add up to the plan total.${R.lens.length>1?` Video masters are cut into ${R.lens.length} lengths (${esc(R.lens.join(', '))}).`:''}</div>`;
 }
@@ -979,11 +989,13 @@ function renderTestBuilder(R,TP){
  return `<div class="tb">
  <div class="toolbar" style="margin:0;align-items:flex-end"><div><h3 style="font-size:16px">Build the plan</h3>
   <div class="note">Drag a test from the library onto a media line. Lines that can run it light up, and the row below fills in the cells, budget, KPI, sample size, run time and readout. Or click a template, then click a line.</div></div>
-  <div class="btns"><button class="btn primary" id="tb-auto" title="Rebuild the recommended plan for this version">Auto-build for me</button><button class="btn ghost" id="tb-clear">Start blank</button></div></div>
- <div class="tb-ai"><label class="f" style="flex:1;min-width:220px">Or describe the test and let ${aiReady()?esc(aiLabel()):'the dashboard'} set it up
+  </div>
+ <div class="tb-ai"><label class="f" style="flex:1;min-width:220px">Add one test: describe it in plain words${aiReady()?' ('+esc(aiLabel())+' sets it up)':''}
    <input type="text" id="tb-ask" placeholder="e.g. Test a demo offer vs a free trial on LinkedIn lead gen" value="${esc(UI.tpAsk||'')}"></label>
-   <button class="btn primary run" id="tb-ask-go" style="width:auto"><span class="spin" aria-hidden="true"></span><span>Set it up for me</span></button></div>
- ${custom?`<div class="note">You’ve changed the auto-built plan (${(ed.add||[]).length} added, ${(ed.drop||[]).length} removed). Auto-build puts back the recommended tests.</div>`:''}
+   <button class="btn primary run" id="tb-ask-go" style="width:auto"><span class="spin" aria-hidden="true"></span><span>Add this test</span></button>
+   <span class="sub2" style="align-self:center">or</span>
+   <button class="btn" id="tb-auto" title="Replace the plan with the recommended tests for this version">Recommend a full plan</button><button class="btn ghost" id="tb-clear">Start blank</button></div>
+ ${custom?`<div class="note">You’ve changed the auto-built plan (${(ed.add||[]).length} added, ${(ed.drop||[]).length} removed). “Recommend a full plan” puts back the recommended tests.</div>`:''}
  ${UI.tpMsg?`<div class="tb-msg">${UI.tpMsg}</div>`:''}
  <div class="tb-grid">
   <div class="tb-lib"><div class="tb-h"><strong>Test library</strong><span class="sub2">${Object.keys(TEST_LIB).length} templates</span></div>
@@ -1081,7 +1093,7 @@ function renderTests(R){
  <div class="note" style="background:var(--flag-soft);border-radius:12px;padding:10px 12px;color:var(--ink)">${esc(TIERNAME[R.tier])} projects about <strong>${compact(o.leads)} leads</strong> over the flight, about ${compact(winLeads)} in a ${TP.W}-week test window across every line. A lead-rate A/B test needs about ${compact(ndV)} visits per cell (around ${compact(ndV*FUN.cvr)} leads per cell) to see a ${Math.round(TP.lift*100)}% lift, so lead-level tests here use a proxy KPI, pool markets or run longer. The fix is shown on each row.</div>
  ${renderTestBuilder(R,TP)}
  <div class="tscroll"><table><thead><tr><th>Test</th><th>Hypothesis</th><th>Channel · line</th><th>Variable · cells</th><th class="n">Budget / cell</th><th>Primary KPI · guardrail</th><th>Sample needed vs plan</th><th>Run · readout</th></tr></thead><tbody>
- ${ts.length?'':`<tr><td colspan="8" class="sub2" style="text-align:center;padding:18px">No tests yet. Drag one in from the library above, or press Auto-build for me.</td></tr>`}
+ ${ts.length?'':`<tr><td colspan="8" class="sub2" style="text-align:center;padding:18px">No tests yet. Drag one in from the library above, or press Recommend a full plan.</td></tr>`}
  ${ts.map(t=>`<tr${t.key===UI.tpNew?' class="tb-new"':''}><td class="m"><strong>${t.id}</strong><div class="sub2">${esc(t.type)}</div></td><td style="min-width:190px">${esc(t.hyp)}</td>
   <td style="min-width:110px"><strong>${esc(t.ch)}</strong><div class="sub2">${esc(t.placement)} · ${esc(t.scopeName)}</div></td>
   <td style="min-width:110px">${esc(t.variable)}<div class="sub2">${t.cells.map(esc).join('<br>')}</div></td>
@@ -1120,33 +1132,63 @@ function renderFlight(R){
  </tbody></table></div>
  ${(()=>{const O=outcomes(R);const fl=Object.entries(O.flat);return `
  <h2 style="font-size:18px;margin:18px 0 4px">Projected outcomes by month</h2>
- <div class="note" style="margin-bottom:8px">What each buy is bought on (budget ÷ rate: impressions for CPM, clicks for CPC, and so on), phased like its channel's spend. The Summary and Compare totals also count the impressions, clicks and leads that other buys generate, so they run higher. Planning estimates from benchmark rates, not guarantees.</div>
+ <div class="note" style="margin-bottom:8px">The full funnel by month, phased like each channel's spend: impressions, clicks, landing page visits and leads from each buy plus benchmark rates, then MQLs, SQLs and customers from your pipeline rates. Cost rows divide that month's media spend by the result; CAC here is media cost only (add team and tooling cost for fully loaded CAC). Planning estimates, not guarantees.</div>
+ ${(()=>{const P=pipe();return `<div class="pipe-set"><span class="sub2">Pipeline rates (from your CRM history):</span><label>Lead → MQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="mql" value="${Math.round(P.mql*100)}">%</label><label>MQL → SQL <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="sql" value="${Math.round(P.sql*100)}">%</label><label>SQL → customer <input class="rate pipe-in" type="number" min="0" max="100" step="1" data-k="win" value="${Math.round(P.win*100)}">%</label></div>`})()}
  <div class="tscroll"><table><thead><tr><th>Outcome</th>${R.months.map(m=>`<th class="n">${monthLabel(m)}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
- ${OUTK.filter(([k])=>O.mo[k]).map(([k,n])=>`<tr><td style="white-space:nowrap">${n}</td>${O.mo[k].map(v=>`<td class="n">${v>=.5?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${compact(sum(O.mo[k]))}</strong></td></tr>`).join('')}
+ ${FULLK.filter(([k])=>O.full[k]).map(([k,n])=>`<tr${k==='leads'?' class="costrow"':''}><td style="white-space:nowrap">${n}</td>${O.full[k].map(v=>`<td class="n">${v>=.5?compact(v):v>=.05?(+v.toFixed(1)):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${sum(O.full[k])>=10?compact(sum(O.full[k])):(+sum(O.full[k]).toFixed(1))}</strong></td></tr>`).join('')}
+ <tr class="costrow"><td style="white-space:nowrap">Media spend</td>${O.spend.map(v=>`<td class="n">${v?compact(v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${money(sum(O.spend))}</strong></td></tr>
+ ${COSTK.filter(([,k])=>O.full[k]).map(([n,k])=>`<tr><td style="white-space:nowrap"><strong>${n}</strong></td>${O.full[k].map((v,i)=>`<td class="n">${v>=.05?money2(O.spend[i]/v):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${sum(O.full[k])?money2(sum(O.spend)/sum(O.full[k])):'—'}</strong></td></tr>`).join('')}
  ${fl.map(([u,v])=>`<tr><td style="white-space:nowrap">Flat-fee ${esc(u)}</td>${v.map(x=>`<td class="n">${x>=.05?(+x.toFixed(1)).toLocaleString():'<span class="sub2">—</span>'}</td>`).join('')}<td class="n"><strong>${(+sum(v).toFixed(1)).toLocaleString()}</strong></td></tr>`).join('')}
  </tbody></table></div>
  <h2 style="font-size:18px;margin:18px 0 4px">KPIs &amp; projected outcomes by channel</h2>
- <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Budget</th><th>KPIs to track</th>${OUTK.filter(([k])=>O.mo[k]).map(([,n])=>`<th class="n">${n}</th>`).join('')}<th>Flat-fee units</th><th class="n">Blended cost per result</th></tr></thead><tbody>
+ <div class="tscroll"><table><thead><tr><th>Channel</th><th class="n">Budget</th><th>KPIs to track</th>${OUTK.filter(([k])=>O.mo[k]).map(([,n])=>`<th class="n">${n}</th>`).join('')}<th>Flat-fee units</th><th class="n">Blended cost per result</th><th class="n">Leads</th><th class="n">SQLs</th><th class="n">CAC</th></tr></thead><tbody>
  ${O.by.map(c=>{const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>c[k]||0));return `<tr><td style="white-space:nowrap"><strong>${esc(c.c.name)}</strong></td><td class="n">${money(c.budget)}</td><td class="sub2" style="min-width:260px">${[...c.kpis].map(esc).join('<br>')}</td>
-  ${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${c[k]?compact(c[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="sub2">${Object.entries(c.flat).map(([u,v])=>esc((Math.round(v*10)/10)+' '+u)).join('<br>')||'—'}</td><td class="n">${res?rateFmt(c.budget/res,'CPC'):'<span class="sub2">—</span>'}</td></tr>`}).join('')}
+  ${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${c[k]?compact(c[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="sub2">${Object.entries(c.flat).map(([u,v])=>esc((Math.round(v*10)/10)+' '+u)).join('<br>')||'—'}</td><td class="n">${res?rateFmt(c.budget/res,'CPC'):'<span class="sub2">—</span>'}</td><td class="n">${c.f_leads>=.5?compact(c.f_leads):'—'}</td><td class="n">${c.f_sql>=.05?(c.f_sql>=10?compact(c.f_sql):+c.f_sql.toFixed(1)):'—'}</td><td class="n">${c.f_cust>=.01?money(c.budget/c.f_cust):'—'}</td></tr>`}).join('')}
  ${(()=>{const T={budget:sum(O.by.map(c=>c.budget))};OUTK.forEach(([k])=>T[k]=sum(O.by.map(c=>c[k]||0)));const res=sum(OUTK.filter(([k])=>k!=='imp').map(([k])=>T[k]));
   return `<tr class="tot"><td>Total</td><td class="n">${money(T.budget)}</td><td></td>${OUTK.filter(([k])=>O.mo[k]).map(([k])=>`<td class="n">${T[k]?compact(T[k]):'—'}</td>`).join('')}<td></td><td class="n">${res?rateFmt(T.budget/res,'CPC'):'—'}</td></tr>`})()}
  </tbody></table></div>
  <div class="note" style="margin-top:8px">Blended cost per result divides the channel budget by its clicks, views, leads and messages (impressions excluded).</div>`})()}`;
 }
+// Buy Details: every buy, by placement or by line (market), grouped and categorized the way you want
+const CAT_SUGGEST=['Always-on','Launch burst','Event support','Retargeting','Brand','Demand gen','Test & learn','Local market'];
+const catOf=pid=>(S.cats||{})[pid]||'';
 function renderAssump(R){
- const tb=assumptionTable(R);
- return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Click a budget to type your own: that placement gets exactly that amount, its channel's total moves with it and the rest of the plan rebalances to stay on the ${money(+S.budgets[TIERS[R.tier]]||0)} total. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions. Projections use each buy's own delivery plus the benchmark funnel (CTR, landing page rate, lead rate) shown on the Compare view.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="rates-reset">Reset to benchmarks</button><button class="btn sm" id="pb-reset" ${Object.keys(S.plPin?.[TIERS[R.tier]]||{}).length?'':'disabled'}>Clear typed budgets</button></div></div>
- <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
- ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
-  <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(tb.rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(tb.rows.map(r=>r.leads));return L?money2(sum(tb.rows.map(r=>r.budget))/L):'—'})()}</td><td></td><td></td><td></td></tr>
+ const tb=assumptionTable(R),view=UI.bdView||'pl';let grp=UI.bdGroup||'none';if(grp==='market'&&view==='pl')grp='none';
+ const cats=[...new Set([...CAT_SUGGEST,...Object.values(S.cats||{}).filter(Boolean)])];
+ const plan=+S.budgets[TIERS[R.tier]]||0,lb=bomTable(R).rows;
+ const rowsPl=tb.rows.map(r=>{const p=PLMAP[r._id];return {...r,_g:{channel:r.channel,stage:r.stage,ini:iniOf(p).name,buy:r.buy,cat:catOf(r._id)||'Uncategorized'}}});
+ const rowsLn=R.lines.map((l,i)=>({...lb[i],_id:l.p.id,rate:rateOf(l.p),qty:Math.round(l.qty),_g:{channel:l.channel,market:l.market,stage:l.stage,ini:l.ini.name,buy:l.p.buy,cat:catOf(l.p.id)||'Uncategorized'}}));
+ const rows=view==='pl'?rowsPl:rowsLn;
+ const groups=grp==='none'?[['',rows]]:Object.entries(rows.reduce((o,r)=>{(o[r._g[grp]]=o[r._g[grp]]||[]).push(r);return o},{})).sort((a,b)=>a[0]==='Uncategorized'?1:b[0]==='Uncategorized'?-1:sum(b[1].map(r=>r.budget))-sum(a[1].map(r=>r.budget)));
+ const catCell=pid=>`<td><input class="cat-in" list="cat-list" data-pid="${pid}" value="${esc(catOf(pid))}" placeholder="Add category" aria-label="Category"></td>`;
+ const rateCell=r=>`<td class="n"><input class="rate" type="number" step="any" min="0" data-rt="${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td>`;
+ const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
+ const lnHead=`<th>Line</th><th>Channel</th><th>Placement</th><th>Category</th><th>Market</th><th>Lang</th><th>Audience</th><th>Stage</th><th>Buy</th><th class="n">Rate</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Flight</th><th>Initiative</th><th>KPI</th><th>BOM items</th>`;
+ const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+  ${rateCell(r)}<td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`;
+ const lnRow=r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="white-space:nowrap">${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.publisher)}</div></td>${catCell(r._id)}<td>${esc(r.market)}</td><td class="m">${esc(r.lang)}</td><td class="sub2" style="min-width:160px">${esc(r.aud||'')}</td><td>${stageChip(r.stage)}</td><td class="m">${esc(r.buy)}</td>
+  ${rateCell(r)}<td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.flight)}</td><td class="sub2">${esc(r.ini)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td><td class="m">${esc(r.bomIds)}</td></tr>`;
+ const subtotal=(name,rs)=>view==='pl'?`<tr class="grp"><td colspan="6">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} placements</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rs.map(r=>r[k]||0)))}</td>`).join('')}<td colspan="4"></td></tr>`
+  :`<tr class="grp"><td colspan="10">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} lines</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td colspan="5"></td></tr>`;
+ const total=sum(rows.map(r=>r.budget)),ok=Math.abs(total-plan)<1;
+ const opt=(v,n,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${n}</option>`;
+ return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version, with the line items folded in. <strong>By placement</strong> sums each buy across markets: click a budget to type your own (that placement gets exactly that amount, its channel total moves with it, and the rest rebalances to stay on ${money(plan)}). <strong>By line</strong> shows every placement × market line the agency books. Edit a rate to replace the benchmark with your rate card (it applies to all versions). Type a category on any row, then group by it.</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="rates-reset">Reset rates</button><button class="btn sm" id="pb-reset" ${Object.keys(S.plPin?.[TIERS[R.tier]]||{}).length?'':'disabled'}>Clear typed budgets</button></div></div>
+ <div class="toolbar"><div class="left" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+  <div style="display:flex;gap:6px" role="group" aria-label="View"><button class="btn sm ${view==='pl'?'primary':''}" data-bdview="pl">By placement</button><button class="btn sm ${view==='line'?'primary':''}" data-bdview="line">By line (each market)</button></div>
+  <label class="note" style="display:flex;gap:6px;align-items:center">Group by <select id="bd-grp">${opt('none','No grouping',grp)}${opt('cat','My categories',grp)}${opt('channel','Channel',grp)}${view==='line'?opt('market','Market',grp):''}${opt('stage','Funnel stage',grp)}${opt('ini','Initiative',grp)}${opt('buy','Buy type',grp)}</select></label></div>
+  <span class="chip ${ok?'aw':'flag'}">Total ${money(total)} ${ok?'matches':'vs'} the ${money(plan)} budget</span></div>
+ <datalist id="cat-list">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+ <div class="tscroll"><table><thead><tr>${view==='pl'?plHead:lnHead}</tr></thead><tbody>
+ ${groups.map(([g,rs])=>(g?subtotal(g,rs):'')+rs.map(view==='pl'?plRow:lnRow).join('')).join('')}
+ ${view==='pl'?`<tr class="tot"><td>Total</td><td>${rows.length} placements</td><td></td><td></td><td></td><td></td><td class="n">${money(total)}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(rows.map(r=>r.leads));return L?money2(total/L):'—'})()}</td><td></td><td></td><td></td></tr>`
+  :`<tr class="tot"><td>Total</td><td colspan="9">${rows.length} lines</td><td class="n">${money(total)}</td><td colspan="5"></td></tr>`}
  </tbody></table></div>`;
 }
 function renderCompare(){
  const Rs=[0,1,2].map(compute),Ts=Rs.map(totals),Fs=Rs.map(funnel);
  const plan=[['Budget',t=>money(t.budget)],['Channels',t=>t.channels],['Placements',t=>t.placements],['Markets',t=>t.markets],['BOM line items',t=>t.lines],['BOM creative masters',t=>t.masters],['Master files',t=>t.files.toLocaleString()]];
- const cost=[['Blended CPM','cpm'],['Blended cost per click','cpc'],['Blended cost per lead','cpl']];
+ const cost=[['Blended CPM','cpm'],['Blended cost per click','cpc'],['Blended cost per lead','cpl'],['Cost per MQL','cpmql'],['Cost per SQL','cpsql'],['CAC (media cost per customer)','cac']];
  const chs=CH.filter(c=>Rs.some(R=>R.lines.some(l=>l.c.id===c.id)));
  const chB=(R,c)=>sum(R.lines.filter(l=>l.c.id===c.id).map(l=>l.budget));
  const head=t=>`<thead><tr><th>${t}</th>${TIERNAME.map(n=>`<th class="n">${n}</th>`).join('')}</tr></thead>`;
@@ -1174,13 +1216,17 @@ function renderOut(){
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
+ v.querySelectorAll('.pipe-in').forEach(el=>el.onchange=()=>{S.pipe=S.pipe||{};S.pipe[el.dataset.k]=Math.min(100,Math.max(0,+el.value||0))/100;changed()});
  const ld=$('#in-landing');if(ld)ld.onchange=()=>{S.landing=ld.value;save();renderOut()};
  v.querySelectorAll('.tr-in').forEach(el=>el.onchange=()=>{S.traffic=S.traffic||{};S.traffic[el.dataset.k]=el.value.trim();save();setTimeout(renderOut,0)});
  v.querySelectorAll('.cp-edit').forEach(el=>{const lim=+el.dataset.lim||0;const mark=()=>{const n=el.value.length,c=el.parentElement.querySelector('.cp-count');c.textContent=lim?n+'/'+lim:n+' chars';const o=lim&&n>lim;c.classList.toggle('over',!!o);el.classList.toggle('over',!!o)};mark();
   el.oninput=()=>{S.copyEdits=S.copyEdits||{};(S.copyEdits[el.dataset.lk]=S.copyEdits[el.dataset.lk]||{})[el.dataset.key]=el.value;mark();save()}});
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
- if(UI.tab==='assump'){CH.forEach(c=>c.pl.forEach(p=>{const el=$('#rt-'+p.id);if(el)el.onchange=()=>{S.rates[p.id]=el.value===''?null:+el.value;changed()}}));
+ if(UI.tab==='assump'){v.querySelectorAll('input[data-rt]').forEach(el=>el.onchange=()=>{S.rates[el.dataset.rt]=el.value===''?null:+el.value;changed()});
+  v.querySelectorAll('[data-bdview]').forEach(b=>b.onclick=()=>{UI.bdView=b.dataset.bdview;save();renderOut()});
+  const bg=$('#bd-grp');if(bg)bg.onchange=()=>{UI.bdGroup=bg.value;save();renderOut()};
+  v.querySelectorAll('.cat-in').forEach(el=>el.onchange=()=>{S.cats=S.cats||{};const x=el.value.trim();if(x)S.cats[el.dataset.pid]=x;else delete S.cats[el.dataset.pid];save();setTimeout(renderOut,0)});
   $('#rates-reset').onclick=()=>{S.rates={};save();renderOut()};
   const R0=compute(UI.tier===3?1:UI.tier),T0=TIERS[R0.tier];
   CH.forEach(c=>c.pl.forEach(p=>{const el=$('#pb-'+p.id);if(!el)return;el.onchange=()=>{
@@ -1193,7 +1239,7 @@ function renderOut(){
 /* ==================== EXPORTS ==================== */
 function tableToAOA(tb,tot){const a=[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];
  if(tot&&tb.rows.length)a.push(tb.cols.map(([,k],i)=>tot.includes(k)?Math.round(sum(tb.rows.map(r=>+r[k]||0))):i===0?'Total':''));return a}
-function summaryAOA(R){const t=totals(R),s=summaryRows(R),o=funnel(R);const a=[[S.name],[S.product],['Version',TIERNAME[R.tier]],['Flight',S.start+' to '+S.end],['Total budget',Math.round(t.budget)],['Line items',t.lines],['BOM creative masters',R.masters.length],['Master files',t.files],[],['OUTCOMES (estimated)'],...FUNNEL.map(([k,n])=>[n,Math.round(o[k])]),['Blended CPM',+o.cpm.toFixed(2)],['Blended cost per click',+o.cpc.toFixed(2)],['Blended cost per lead',+o.cpl.toFixed(2)],[]];
+function summaryAOA(R){const t=totals(R),s=summaryRows(R),o=funnel(R);const a=[[S.name],[S.product],['Version',TIERNAME[R.tier]],['Flight',S.start+' to '+S.end],['Total budget',Math.round(t.budget)],['Line items',t.lines],['BOM creative masters',R.masters.length],['Master files',t.files],[],['OUTCOMES (estimated)'],...FUNNEL.map(([k,n])=>[n,Math.round(o[k])]),['Blended CPM',+o.cpm.toFixed(2)],['Blended cost per click',+o.cpc.toFixed(2)],['Blended cost per lead',+o.cpl.toFixed(2)],['Cost per MQL',+o.cpmql.toFixed(2)],['Cost per SQL',+o.cpsql.toFixed(2)],['CAC (media cost per customer)',+o.cac.toFixed(2)],['Pipeline rates','Lead→MQL '+pct(pipe().mql)+', MQL→SQL '+pct(pipe().sql)+', SQL→won '+pct(pipe().win)],[]];
  [['By channel',s.byChannel],['By market',s.byMarket],['By initiative',s.byIni],['By funnel stage',s.byStage]].forEach(([n,e])=>{a.push([n,'Budget','Share']);e.forEach(([k,v])=>a.push([k,Math.round(v),+(v/t.budget).toFixed(4)]));a.push(['Total',Math.round(sum(e.map(x=>x[1]))),+(sum(e.map(x=>x[1]))/t.budget).toFixed(4)],[])});return a}
 function addSheet(wb,name,aoa,widths){const ws=XLSX.utils.aoa_to_sheet(aoa);if(widths)ws['!cols']=widths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31))}
 function workbookFor(tiers){
@@ -1202,7 +1248,7 @@ function workbookFor(tiers){
  if(many){const Rs=[0,1,2].map(compute),Ts=Rs.map(totals),Fs=Rs.map(funnel);addSheet(wb,'Compare',[['PLAN',...TIERNAME],['Budget',...Ts.map(t=>Math.round(t.budget))],['Channels',...Ts.map(t=>t.channels)],['Placements',...Ts.map(t=>t.placements)],['Markets',...Ts.map(t=>t.markets)],['Line items',...Ts.map(t=>t.lines)],['BOM creative masters',...Rs.map(R=>R.masters.length)],['Master files',...Ts.map(t=>t.files)],[],['OUTCOMES (estimated)',...TIERNAME],...FUNNEL.map(([k,n])=>[n,...Fs.map(o=>Math.round(o[k]))]),['Blended CPM',...Fs.map(o=>+o.cpm.toFixed(2))],['Blended cost per click',...Fs.map(o=>+o.cpc.toFixed(2))],['Blended cost per lead',...Fs.map(o=>+o.cpl.toFixed(2))]],[34,14,14,14])}
  tiers.forEach(ti=>{const R=compute(ti),p=many?TIERNAME[ti]+' ':'';
   addSheet(wb,p+'Summary',summaryAOA(R),[40,14,10]);
-  addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
+  addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
   addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
@@ -1218,7 +1264,7 @@ function workbookFor(tiers){
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>assumptionTable(R),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
