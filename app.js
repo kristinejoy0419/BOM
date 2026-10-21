@@ -852,19 +852,57 @@ function renderTable(tb,{group=null,numeric=[],money_=[],wrapCols=[],totalCols=[
  if(totalCols.length){body+=`<tr class="tot">${cols.map(([,k],i)=>i===0?'<td>Total</td>':totalCols.includes(k)?`<td class="n">${money_.includes(k)?money(sum(tb.rows.map(r=>r[k]))):sum(tb.rows.map(r=>r[k])).toLocaleString()}</td>`:'<td></td>').join('')}</tr>`}
  return `<div class="tscroll"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
+// Ad preview per BOM master: a small mock of the ad with lettered callouts showing where each piece of copy sits
+function adPreview(M){
+ const pick=(ad,re)=>{const r=(ad&&ad.rows||[])[0];const p=r&&r.parts.find(x=>re.test(x.k));return p?p.t:''};
+ const oi=M.ad,pa=(M.pads||[])[0],ad=pa&&pa.ad;
+ const brand=esc(String(S.name||'Brand').split(/[·|–-]/)[0].trim()||'Brand'),ini=esc((brand.match(/[A-Za-z0-9]/)||['B'])[0]);
+ const eye=pick(oi,/eyebrow/i),oh=pick(oi,/headline|super/i),octa=pick(oi,/cta/i);
+ const main=pick(ad,/main copy|primary|post text|intro|description|body/i),hl=pick(ad,/headline/i),cta=pick(ad,/cta/i)||octa||'Learn more';
+ const b=(l,c)=>`<span class="pvb pv-${c}">${l}</span>`,cut=(t,n)=>esc(t.length>n?t.slice(0,n-1)+'…':t);
+ const ratio=(M.ratio||'').match(/(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)/),ar=ratio?`${ratio[1]}/${ratio[2]}`:'1.91/1';
+ const tall=ratio&&+ratio[1]<+ratio[2];
+ const head=`<div class="pv-hd"><span class="pv-av">${ini}</span><div><strong>${brand}</strong><div class="pv-sub">Promoted</div></div></div>`;
+ const art=(inner,extra='')=>`<div class="pv-art" style="aspect-ratio:${ar};${tall?'max-height:220px;':''}${extra}">${inner}</div>`;
+ const oiBlock=`${b('D','d')}${eye?`<div class="pv-eye">${cut(eye,24)}</div>`:''}<div class="pv-h">${cut(oh||hl||'On-image headline',40)}</div>`;
+ let body='',legend=[];
+ if(M.logo){body=`<div class="pv-card">${art(`<div class="pv-logo">${brand}</div>`)}</div>`;legend=[['D','d','Logo lockup only']]}
+ else if(M.fmt==='static'||M.fmt==='document'){
+  body=`<div class="pv-card">${head}${main?`<div class="pv-main">${b('A','a')} ${cut(main,110)}</div>`:''}${art(`<div class="pv-oi">${oiBlock}${M.fmt==='document'?'<div class="pv-doc">PDF · 1 / 8</div>':''}</div>`)}
+   <div class="pv-ft">${hl?`<span class="pv-hl">${b('B','b')} ${cut(hl,48)}</span>`:'<span></span>'}<span class="pv-cta">${b('C','c')} ${cut(cta,18)}</span></div></div>`;
+  legend=[main&&['A','a','Main copy (typed in platform)'],hl&&['B','b','Headline (typed in platform)'],['C','c','CTA button'],['D','d','On-image copy (designed into the image)']].filter(Boolean)}
+ else if(M.fmt==='video'){
+  const sup=pick(oi,/super/i)||oh,end=pick(oi,/end card|cta/i)||cta;
+  body=`<div class="pv-card">${head}${main?`<div class="pv-main">${b('A','a')} ${cut(main,110)}</div>`:''}${art(`<div class="pv-play">▶</div><div class="pv-oi pv-sup">${b('D','d')}<div class="pv-h">${cut(sup||'Super',40)}</div></div><div class="pv-end">${b('E','e')} End card: ${cut(end,18)}</div>`)}
+   <div class="pv-ft">${hl?`<span class="pv-hl">${b('B','b')} ${cut(hl,48)}</span>`:'<span></span>'}<span class="pv-cta">${b('C','c')} ${cut(cta,18)}</span></div></div>`;
+  legend=[main&&['A','a','Main copy (typed in platform)'],hl&&['B','b','Headline (typed in platform)'],['C','c','CTA button'],['D','d','Super (on-screen text)'],['E','e','End card CTA']].filter(Boolean)}
+ else if(M.fmt==='display'){
+  body=`<div class="pv-ban">${b('D','d')}<div class="pv-blogo">${brand}</div><div class="pv-h">${cut(oh||'Headline on the banner',36)}</div><span class="pv-bcta">${b('C','c')} ${cut(octa||'Learn more',16)}</span></div>`;
+  legend=[['D','d','Headline designed into the banner'],['C','c','CTA button on the banner']]}
+ else if(M.fmt==='text'){
+  const d=pick(ad,/description/i)||main;
+  body=`<div class="pv-card pv-srch"><div class="pv-sub">Sponsored · ${brand.toLowerCase().replace(/[^a-z0-9]+/g,'')}.com</div><div class="pv-sh">${b('B','b')} ${cut(hl||'Headline 1 | Headline 2',60)}</div><div class="pv-sd">${b('A','a')} ${cut(d||'Description line',110)}</div></div>`;
+  legend=[['B','b','Headlines (≤30 each)'],['A','a','Descriptions (≤90 each)']]}
+ else if(M.fmt==='messaging'){
+  const fh=pick(ad,/form headline|headline/i),od=pick(ad,/offer|detail|main|body/i),ty=pick(ad,/thank/i);
+  body=`<div class="pv-card">${head}<div class="pv-form"><div class="pv-fh">${b('A','a')} ${cut(fh||'Form headline',48)}</div><div class="pv-od">${b('B','b')} ${cut(od||'Offer detail',90)}</div><div class="pv-field">Work email</div><div class="pv-field">Company</div><div class="pv-sub2">Submit</div></div>${ty?`<div class="pv-ty">${b('C','c')} ${cut(ty,70)}</div>`:''}</div>`;
+  legend=[['A','a','Form headline'],['B','b','Offer detail'],ty&&['C','c','Thank-you message']].filter(Boolean)}
+ else{body=`<div class="pv-card">${head}<div class="pv-main">${b('A','a')} ${cut(main||oh||'Copy from the brief',110)}</div></div>`;legend=[['A','a','Copy']]}
+ return `<div class="pv">${body}<div class="pv-lg">${legend.map(([l,c,t])=>`<div>${b(l,c)} ${t}</div>`).join('')}</div>${pa?`<div class="pv-note">Shown as it runs on ${esc(pa.platform)}</div>`:''}</div>`;
+}
 function renderMVP(R){
  const tb=mvpTable(R),t=totals(R);
  const covered=new Set(R.masters.flatMap(m=>m.lines)).size;
  const gs={};tb.rows.forEach(r=>(gs[r.fmtName]=gs[r.fmtName]||[]).push(r));
  return `<div class="toolbar"><span class="note">The minimum creative set: every ad unit on every media line is grouped into one master per format and aspect ratio (or per unit for copy-led formats). Resize each master for the platforms listed. Each master shows two kinds of copy: the on-image text designed into the image (eyebrow ≤20, headline ≤35 characters, the same on every platform it's resized for), and the copy typed into each platform with that platform's own limits (LinkedIn: main copy &lt;150 recommended and headline &lt;70; Google: headlines ≤30 and descriptions ≤90; Meta: primary text 125 and headline 40). Edits here and in the Ad Copy tab are the same copy.</span>
   <span class="chip ${covered===t.lines?'aw':'flag'}">${covered} of ${t.lines} media lines covered</span></div>
- <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Platform copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(typed into each platform)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
- ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="13">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
-  <td class="m"><strong>${r.id}</strong></td><td style="min-width:170px"><strong>${esc(r.name)}</strong><div class="sub2">${esc(r.chsTxt)}</div></td>
+ <div class="tscroll"><table><thead><tr><th>BOM</th><th>Creative master</th><th>Preview</th><th>On-image copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(designed into the image)</span></th><th>Platform copy <span class="sub2" style="font-weight:400;text-transform:none;letter-spacing:0">(typed into each platform)</span></th><th>Media lines covered</th><th>Master size</th><th>Lang</th><th class="n">Concepts × rounds${R.lens.length>1?' × cuts':''}</th><th class="n">Master files</th><th class="n">Incl. resizes</th><th>Platform adaptations</th><th class="n">Budget on lines</th><th>First due</th></tr></thead><tbody>
+ ${Object.entries(gs).map(([g,rs])=>`<tr class="grp"><td colspan="14">${esc(g)} <span class="sub2" style="font-weight:400">· ${rs.length} masters · ${sum(rs.map(r=>r.masterFiles)).toLocaleString()} master files</span></td></tr>`+rs.map(r=>`<tr>
+  <td class="m"><strong>${r.id}</strong></td><td style="min-width:170px"><strong>${esc(r.name)}</strong><div class="sub2">${esc(r.chsTxt)}</div></td><td style="min-width:280px">${adPreview(R.masters.find(m=>m.id===r.id))}</td>
   <td style="min-width:340px">${adCellEdit(R.masters.find(m=>m.id===r.id).ad)}</td><td style="min-width:380px">${(()=>{const pd=R.masters.find(m=>m.id===r.id).pads||[];return pd.length?pd.map(x=>`<div class="pad"><div class="pad-h">${esc(x.platform)} <span class="sub2">· ${esc(UNITS[x.unit].name)}</span></div>${adCellEdit(x.ad)}</div>`).join(''):'<span class="sub2">No typed copy for this format.</span>'})()}</td><td class="m" style="min-width:220px"><span class="chip">${r.nLines} lines</span> ${esc(r.linesTxt)}</td><td class="m">${esc(r.master)}</td><td class="m" style="white-space:nowrap">${esc(r.langsTxt)}</td>
   <td class="n">${r.concepts} × ${r.rounds}${r.cuts!=='—'?' × '+R.lens.length:''}</td><td class="n">${r.masterFiles.toLocaleString()}</td><td class="n">${r.totalFiles.toLocaleString()}</td>
   <td class="sub2" style="min-width:230px">${Object.keys(R.masters.find(m=>m.id===r.id).sizes).map(esc).join('<br>')}</td><td class="n">${money(r.budget)}</td><td class="m">${r.due}</td></tr>`).join('')).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td></td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip over">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} masters</td><td></td><td></td><td>${(()=>{const f=sum(R.masters.map(m=>m.ad.flags||0));return f?`<span class="chip over">${f} copy lines over limit</span>`:'<span class="chip aw">All copy within limits</span>'})()}</td><td>${covered} / ${t.lines} lines</td><td></td><td></td><td></td><td class="n">${sum(tb.rows.map(r=>r.masterFiles)).toLocaleString()}</td><td class="n">${sum(tb.rows.map(r=>r.totalFiles)).toLocaleString()}</td><td></td><td class="n">${money(t.budget)}</td><td></td></tr>
  </tbody></table></div>
  <div class="note" style="margin-top:8px">“Budget on lines” is the media budget of the lines that use a master. A line with several units counts toward each of them, so this column does not add up to the plan total.${R.lens.length>1?` Video masters are cut into ${R.lens.length} lengths (${esc(R.lens.join(', '))}).`:''}</div>`;
 }
@@ -970,7 +1008,7 @@ function renderCreative(R){
  return `<div class="toolbar"><span class="note">Files = concepts × sizes × refresh rounds, counted once per language. First round is due before the flight starts, using each unit's production lead time.</span></div>
  ${renderTable(tb,{group:'lang',numeric:['concepts','variants','rounds','files'],wrapCols:['placement','markets'],totalCols:['files']})}`;
 }
-function testStatusChip(t){return t.status==='ok'?'<span class="chip aw">Reads out</span>':t.status==='fix'?'<span class="chip flag">Needs fallback</span>':'<span class="chip over">Can’t reach significance</span>'}
+function testStatusChip(t){return t.status==='ok'?'<span class="chip aw">Reads out</span>':t.status==='fix'?'<span class="chip flag" title="Too little volume on the main KPI in time, so it reads out on a backup metric (CTR or visits), pooled markets, or a longer run. The row says which.">Backup metric</span>':'<span class="chip over">Can’t reach significance</span>'}
 const TB_UNIT={CPM:['imp','impr.'],CPC:['clk','clicks'],CPV:['views','views'],CPL:['leads','leads'],CPS:['sends','sends']};
 function testSuggest(R,TP){const ed=TP.edits,tested=new Set(TP.tests.flatMap(t=>t.a?[t.a.p.id]:[])),out=[];
  for(const a of TP.places){if(out.length>=3)break;if(tested.has(a.p.id)||!TB_UNIT[a.p.buy])continue;
@@ -1048,7 +1086,7 @@ function testAdd(tpl,pid,ov){const R=compute(UI.tier);let key=tpl+':'+pid;
   if(ov){e.add=e.add.filter(x=>!(x.tpl===tpl&&x.pid===pid));if(auto)e.drop.push(key);e.add.push({tpl,pid,...ov})}
   else if(!auto&&!e.add.some(x=>x.tpl===tpl&&x.pid===pid))e.add.push({tpl,pid})});
  const t=testPlan(compute(UI.tier)).tests.find(t=>t.key===key);UI.tpSel=null;UI.tpNew=key;
- UI.tpMsg=t?`Added <strong>${t.id} ${esc(t.type)}</strong> on ${esc(t.ch)} · ${esc(t.placement)}: ${t.status==='ok'?'reads out as planned':t.status==='fix'?'reads out with a fallback (see its row)':'can’t reach significance, so it runs as a directional read'}. Readout ${fmtD(t.readout)}.`:'That line already has this test.';renderOut();
+ UI.tpMsg=t?`Added <strong>${t.id} ${esc(t.type)}</strong> on ${esc(t.ch)} · ${esc(t.placement)}: ${t.status==='ok'?'reads out as planned':t.status==='fix'?'reads out on a backup metric (see its row)':'can’t reach significance, so it runs as a directional read'}. Readout ${fmtD(t.readout)}.`:'That line already has this test.';renderOut();
  setTimeout(()=>{const r=document.querySelector('tr.tb-new');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'})},50)}
 function testRemove(key){UI.tpMsg='';UI.tpNew=null;testEdit(e=>{const n=e.add.length;e.add=e.add.filter(x=>x.tpl+':'+x.pid!==key);if(e.add.length===n&&!e.drop.includes(key))e.drop.push(key)})}
 function wireTestBuilder(){const v=$('#view'),lines=[...v.querySelectorAll('.tb-line[data-pid]')];
@@ -1088,7 +1126,7 @@ function renderTests(R){
   <div class="tile"><span class="v">${ts.length}</span><span class="k">Tests in ${esc(TIERNAME[R.tier])}</span></div>
   <div class="tile"><span class="v">${compact(TP.budget).replace(/^/,'$')}</span><span class="k">In test cells · ${(TP.share*100).toFixed(0)}% of budget</span></div>
   <div class="tile"><span class="v" style="color:var(--green)">${cnt('ok')}</span><span class="k">Read out as planned</span></div>
-  <div class="tile"><span class="v" style="color:var(--flag)">${cnt('fix')}</span><span class="k">Read out with a fallback</span></div>
+  <div class="tile"><span class="v" style="color:var(--flag)">${cnt('fix')}</span><span class="k" title="Too little volume on the main KPI in time, so these read out on a backup metric (CTR or visits), pooled markets, or a longer run. Each row says which.">Read out on a backup metric</span></div>
   <div class="tile"><span class="v" style="color:var(--over)">${cnt('no')}</span><span class="k">Can’t reach significance</span></div></div>
  <div class="note" style="background:var(--flag-soft);border-radius:12px;padding:10px 12px;color:var(--ink)">${esc(TIERNAME[R.tier])} projects about <strong>${compact(o.leads)} leads</strong> over the flight, about ${compact(winLeads)} in a ${TP.W}-week test window across every line. A lead-rate A/B test needs about ${compact(ndV)} visits per cell (around ${compact(ndV*FUN.cvr)} leads per cell) to see a ${Math.round(TP.lift*100)}% lift, so lead-level tests here use a proxy KPI, pool markets or run longer. The fix is shown on each row.</div>
  ${renderTestBuilder(R,TP)}
@@ -1117,7 +1155,7 @@ function renderTests(R){
  </div></div></div>`;
 }
 function testAOA(R){const TP=testPlan(R);const a=[['Test','Type','Hypothesis','Channel','Line / placement','Scope','Variable','Cells','Budget per cell','Primary KPI','KPI after fallback','Guardrail','Sample needed','Sample in plan','Unit','Status','Fallback','Run','Readout','Decision rule','Media lines']];
- TP.tests.forEach(t=>a.push([t.id,t.type,t.hyp,t.ch,t.placement,t.scopeName,t.variable,t.cells.join(' | '),Math.round(t.cellBudget),t.kpiName,t.kpiFinal||'',t.guard,Math.round(t.need),Math.round(t.have),t.unit,{ok:'Reads out',fix:'Needs fallback',no:'Can’t reach significance'}[t.status],t.fix,t.runTxt,t.readoutISO,t.rule,t.lineIds.join(', ')]));
+ TP.tests.forEach(t=>a.push([t.id,t.type,t.hyp,t.ch,t.placement,t.scopeName,t.variable,t.cells.join(' | '),Math.round(t.cellBudget),t.kpiName,t.kpiFinal||'',t.guard,Math.round(t.need),Math.round(t.have),t.unit,{ok:'Reads out',fix:'Backup metric',no:'Can’t reach significance'}[t.status],t.fix,t.runTxt,t.readoutISO,t.rule,t.lineIds.join(', ')]));
  a.push(['Total','',TP.tests.length+' tests','','','','',TP.cellsN+' cells',Math.round(TP.budget)]);
  a.push([],['LEARNING AGENDA'],...TP.agenda.map(x=>[x.when,x.ids.join(', '),x.q]));return a}
 function renderFlight(R){
