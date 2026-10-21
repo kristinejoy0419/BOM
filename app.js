@@ -596,17 +596,24 @@ function renderInputs(){
  const grpsOf=us=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));return Object.values(by)};
  UI.ug=UI.ug||{};
  $('#fmt-list').innerHTML=UNIT_GROUPS.map(([g,us],gi)=>{const G=grpsOf(us),on=G.filter(grp=>grp.every(u=>variantsOf(u).length)).length;
-  return `<details class="ugrp" data-g="${gi}" ${UI.ug[gi]?'open':''}><summary><span>${esc(g)}</span><span class="note">${on} of ${G.length} unit${G.length>1?'s':''} on</span></summary><div class="ugbody">`+G.map(grp=>{const U=UNITS[grp[0]],id=grp.join('+'),pls=[...new Set(grp.flatMap(u=>[...(plU[u]||[])]))],n=pls.length,nv=U.variants.length,von=U.variants.filter(v=>sizeOn(grp[0],v)).length;
-   return `<div class="li per unit"><input type="checkbox" id="un-${id}" ${grp.every(unitOn)?'checked':''} aria-label="Include ${esc(grp.map(u=>UNITS[u].name).join(', '))}"><div style="display:flex;flex-direction:column;min-width:0;gap:2px">
+  return `<details class="ugrp" data-g="${gi}" ${UI.ug[gi]?'open':''}><summary><span>${esc(g)}</span><span class="note">${on} of ${G.length} unit${G.length>1?'s':''} on</span></summary><div class="ugbody">`+G.map(grp=>{const U=UNITS[grp[0]],id=grp.join('+'),pls=[...new Set(grp.flatMap(u=>[...(plU[u]||[])]))],n=pls.length,nv=U.variants.length,uon=grp.every(unitOn),von=uon?U.variants.filter(v=>sizeOn(grp[0],v)).length:0;
+   return `<div class="li per unit"><input type="checkbox" id="un-${id}" ${uon?'checked':''} data-partial="${uon&&nv>1&&von<nv?1:''}" title="${nv>1?'Select the whole package (all sizes)':''}" aria-label="Include ${esc(grp.map(u=>UNITS[u].name).join(', '))}"><div style="display:flex;flex-direction:column;min-width:0;gap:2px">
     <label for="un-${id}"><strong style="font-weight:600">${grp.map(u=>esc(UNITS[u].name)).join(' + ')}</strong></label>
     <span class="note">${nv>1?`${von} of ${nv} sizes · `:''}${n?`<span title="${esc(pls.join('; '))}">used in ${n} media placement${n>1?'s':''}</span>`:'not bought in any version'}</span>
     ${U.covers?`<span class="note">Runs on: ${esc(U.covers)}</span>`:''}
-    ${nv>1?`<div class="sizes">${U.variants.map((v,vi)=>`<label class="sz"><input type="checkbox" id="sz-${id}-${vi}" ${sizeOn(grp[0],v)?'checked':''} ${grp.every(unitOn)?'':'disabled'}>${esc(v)}</label>`).join('')}</div>`:`<span class="note spec">${esc(U.variants[0])}</span>`}
+    ${nv>1?`<div class="sizes">${U.variants.map((v,vi)=>`<label class="sz"><input type="checkbox" id="sz-${id}-${vi}" ${uon&&sizeOn(grp[0],v)?'checked':''}>${esc(v)}</label>`).join('')}</div>`:`<span class="note spec">${esc(U.variants[0])}</span>`}
     <span class="note spec">${[U.files,U.max!=='—'&&U.max?'max '+U.max:'',U.length!=='—'?U.length:''].filter(x=>x&&x!=='—').map(esc).join(' · ')}</span></div></div>`}).join('')+'</div></details>'}).join('');
  $$('#fmt-list details.ugrp').forEach(d=>d.ontoggle=()=>{UI.ug[d.dataset.g]=d.open;save()});
  UNIT_GROUPS.forEach(([,us])=>grpsOf(us).forEach(grp=>{const id=grp.join('+');
-  document.getElementById('un-'+id).onchange=e=>{S.units=S.units||{};grp.forEach(u=>S.units[u]=e.target.checked);renderInputs();changed()};
-  UNITS[grp[0]].variants.forEach((v,vi)=>{const el=document.getElementById(`sz-${id}-${vi}`);if(el)el.onchange=e=>{S.vOff=S.vOff||{};grp.forEach(u=>{if(e.target.checked)delete S.vOff[u+'|'+v];else S.vOff[u+'|'+v]=true});renderInputs();changed()}})}));
+  // the unit box picks the whole package (every size); size chips pick sizes one by one
+  const ub=document.getElementById('un-'+id),V=UNITS[grp[0]].variants;if(ub.dataset.partial)ub.indeterminate=true;
+  const allSizes=on=>{S.vOff=S.vOff||{};grp.forEach(u=>V.forEach(v=>{if(on)delete S.vOff[u+'|'+v];else S.vOff[u+'|'+v]=true}))};
+  ub.onchange=()=>{S.units=S.units||{};const on=ub.dataset.partial?true:ub.checked;grp.forEach(u=>S.units[u]=on);if(on)allSizes(true);renderInputs();changed()};
+  V.forEach((v,vi)=>{const el=document.getElementById(`sz-${id}-${vi}`);if(el)el.onchange=e=>{S.vOff=S.vOff||{};S.units=S.units||{};
+   if(e.target.checked&&!grp.every(unitOn)){grp.forEach(u=>S.units[u]=true);allSizes(false)}
+   grp.forEach(u=>{if(e.target.checked)delete S.vOff[u+'|'+v];else S.vOff[u+'|'+v]=true});
+   if(!V.some(x=>sizeOn(grp[0],x))){grp.forEach(u=>S.units[u]=false);allSizes(true)}
+   renderInputs();changed()}})}));
  $('#un-all').onclick=()=>{S.units={};S.vOff={};renderInputs();changed()};$('#un-none').onclick=()=>{S.units=Object.fromEntries(Object.keys(UNITS).map(u=>[u,false]));renderInputs();changed()};
  $('#un-open').onclick=()=>{const open=![...$$('#fmt-list details.ugrp')].every(d=>d.open);UNIT_GROUPS.forEach((_,i)=>UI.ug[i]=open);save();renderInputs()};
  const vl=$('#in-vlen');vl.value=S.formats._video.lengths;vl.oninput=()=>{S.formats._video.lengths=vl.value;changed()};
