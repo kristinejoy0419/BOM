@@ -397,9 +397,10 @@ function flightTable(R){
  return {name:'Flighting',cols,rows};
 }
 function assumptionTable(R){
- const cols=[['Channel','channel'],['Placement','placement'],['First version','tier'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
+ const cols=[['Channel','channel'],['Placement','placement'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
  const rows=[];CH.forEach(c=>c.pl.forEach(p=>{const ls=R.lines.filter(l=>l.p.id===p.id);if(!ls.length)return;
-  rows.push({channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:Math.round(sum(ls.map(l=>l.budget))),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
+  rows.push({channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id})}));
+ const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Buy Details',cols,rows};
 }
 function summaryRows(R){
@@ -695,10 +696,10 @@ function renderFlight(R){
 function renderAssump(R){
  const tb=assumptionTable(R);
  return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version: ${tb.rows.length} placements, ${money(sum(tb.rows.map(r=>r.budget)))}. Switch Low / Medium / High above to see each version's buys. Edit a rate to replace the benchmark with your rate card; rates apply to all three versions.</span><button class="btn sm" id="rates-reset">Reset to benchmarks</button></div>
- <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>From</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
- ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td><span class="tierchip">${esc(r.tier)}</span></td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+ <div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Markets</th><th>Stage</th><th>KPI</th></tr></thead><tbody>
+ ${tb.rows.map(r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td><td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
   <td class="n"><input class="rate" type="number" step="any" min="0" id="rt-${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td><td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`).join('')}
- <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td><td></td><td></td><td></td></tr>
+ <tr class="tot"><td>Total</td><td>${tb.rows.length} placements</td><td></td><td></td><td></td><td class="n">${money(sum(tb.rows.map(r=>r.budget)))}</td><td></td><td></td><td></td><td></td></tr>
  </tbody></table></div>`;
 }
 function renderCompare(){
