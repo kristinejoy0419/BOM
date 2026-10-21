@@ -21,7 +21,7 @@ It's a static site with no build step.
 6. **Launch moments:** key milestones from the GTM doc (blank if none), which drive the monthly bursts.
 7. **Channels:** turn each on or off and set its weight or its budget $. L/M/H shows the first version a channel appears in.
 8. **Creative volume:** concepts per placement and refresh cadence for each version.
-9. **Creative formats:** video, static, display, document, search text, messaging, posts, articles, audio and events. Also sets the video cut-down lengths.
+9. **Creative units:** every ad unit, grouped by platform (search, display, LinkedIn, Meta, X, Reddit, YouTube, WeChat, publishers, creators, events) with its specs. Ticked units feed the Spec Sheet and BOM. Also sets the video cut-down lengths.
 10. **Messaging & ad copy:** voice, headlines and body copy per initiative, CTAs and proof points.
 
 ## Outputs (tabs)

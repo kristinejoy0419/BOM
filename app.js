@@ -15,6 +15,10 @@ const UNITS={
  x_image:{platform:'X',name:'Image Ad',variants:['1:1 · 1200×1200','1.91:1 · 1200×628'],files:'PNG, JPG',max:'5 MB',length:'—',copy:['Post text ≤280 chars (≤100 recommended)','Website card headline ≤70 chars'],notes:'',lead:7},
  x_video:{platform:'X',name:'Video Ad',variants:['1:1 · 1200×1200','16:9 · 1920×1080','9:16 · 1080×1920'],files:'MP4, MOV',max:'1 GB',length:'≤15s recommended (2:20 max)',copy:['Post text ≤280 chars','Captions recommended'],notes:'',lead:14},
  rd_image:{platform:'Reddit',name:'Promoted Post · Image',variants:['1:1 · 1080×1080','4:5 · 1080×1350'],files:'JPG, PNG, GIF',max:'20 MB',length:'—',copy:['Headline ≤300 chars (≤150 recommended)','Native, practitioner tone; no hard sell'],notes:'Turn comments on and assign a community manager.',lead:7,verify:true},
+ meta_feed_img:{platform:'Meta',name:'Feed image ad',covers:'Facebook Feed, Instagram Feed, Marketplace, Messenger inbox',variants:['1:1 · 1080×1080','4:5 · 1080×1350'],files:'JPG, PNG',max:'30 MB',length:'—',copy:['Primary text ≤125 chars recommended','Headline ≤40 chars recommended','Description ≤30 chars (Facebook only)'],notes:'Keep text light on the image; Advantage+ placements may crop to 1.91:1, so keep the logo and claim centered.',lead:7},
+ meta_feed_vid:{platform:'Meta',name:'Feed video ad',covers:'Facebook Feed, Instagram Feed, in-stream',variants:['4:5 · 1080×1350','1:1 · 1080×1080'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (1s–241 min)',copy:['Primary text ≤125 chars recommended','Headline ≤40 chars recommended','Captions on (most views are muted)'],notes:'Product or proof point in the first 3 seconds.',lead:14},
+ meta_reels:{platform:'Meta',name:'Reels & Stories video',covers:'Facebook Reels, Instagram Reels, Facebook Stories, Instagram Stories',variants:['9:16 · 1080×1920'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (Reels ≤90s, Stories ≤60s per card)',copy:['Primary text ≤72 chars shown','Keep the top 14% and bottom 35% clear of text (UI overlay)'],notes:'Shoot vertical; sound on with captions.',lead:14},
+ meta_lgf:{platform:'Meta',name:'Instant Form (lead ad)',covers:'Facebook and Instagram lead ads',variants:['Form'],files:'—',max:'—',length:'—',copy:['Intro headline ≤60 chars','3–4 questions recommended (15 max)','Privacy policy URL, thank-you screen'],notes:'Sync to CRM / MAP before launch; use "Higher intent" form type for B2B.',lead:5},
  yt_instream:{platform:'YouTube',name:'Skippable In-stream',variants:['16:9 · 1920×1080'],files:'Upload to YouTube (MP4/MOV)',max:'—',length:'15–30s recommended; skippable after 5s',copy:['Headline ≤30 chars (long ≤90)','Description ≤90 chars','Companion banner auto-generated'],notes:'Logo and message inside the first 5 seconds.',lead:21},
  yt_shorts:{platform:'YouTube',name:'Shorts',variants:['9:16 · 1080×1920'],files:'Upload to YouTube',max:'—',length:'15–30s recommended (60s max)',copy:['Headline ≤40 chars'],notes:'Keep text clear of the bottom 20% and right edge (UI overlay).',lead:14},
  nl_sponsor:{platform:'Publisher',name:'Newsletter sponsorship',variants:['Hero image 600×300','Logo (PNG, transparent)'],files:'PNG, JPG',max:'Per media kit',length:'—',copy:['Headline ≤60 chars','Body 50–75 words','1 CTA with tracked URL'],notes:'Specs vary by publisher. Confirm against the media kit.',lead:10,verify:true},
@@ -44,13 +48,20 @@ const FORMATS=[
  {id:'audio',name:'Audio',note:'Podcast host-reads'},
  {id:'event',name:'Event packages',note:'Organizer banners, attendee email'}];
 const FMTNAME=Object.fromEntries(FORMATS.map(f=>[f.id,f.name]));
+// creative units grouped by platform for the inputs panel and the spec sheet
+const UNIT_GROUPS=[['Search',['gs_rsa','gs_ext','bd_search','nv_search']],['Display & programmatic',['iab_display','native_display','nv_gfa']],['LinkedIn',['li_image','li_video','li_doc','li_lgf','li_conv','li_tla']],
+ ['Meta',['meta_feed_img','meta_feed_vid','meta_reels','meta_lgf']],['X',['x_image','x_video']],['Reddit',['rd_image']],['YouTube',['yt_instream','yt_shorts']],['WeChat',['wc_moments','wc_oa','wc_channels']],
+ ['Publishers & newsletters',['nl_sponsor','native_article']],['Creators & podcasts',['creator_post','podcast']],['Events',['event_pkg']]];
+const UNIT_GROUP=Object.fromEntries(UNIT_GROUPS.flatMap(([g,us])=>us.map(u=>[u,g])));
+const specSig=u=>{const U=UNITS[u];return [U.variants.join('|'),U.files,U.max,U.length,U.copy.join('|')].join('#')};
 const UNIT_META={li_image:['static','paid_social'],li_video:['video','paid_social'],li_tla:['social_post','paid_social'],li_doc:['document','paid_social'],li_lgf:['messaging','paid_social'],li_conv:['messaging','paid_messaging'],
- gs_rsa:['text','cpc'],gs_ext:['text','cpc'],x_image:['static','paid_social'],x_video:['video','paid_social'],rd_image:['static','paid_social'],yt_instream:['video','paid_video'],yt_shorts:['video','paid_video'],
+ gs_rsa:['text','cpc'],gs_ext:['text','cpc'],meta_feed_img:['static','paid_social'],meta_feed_vid:['video','paid_social'],meta_reels:['video','paid_social'],meta_lgf:['messaging','paid_social'],x_image:['static','paid_social'],x_video:['video','paid_social'],rd_image:['static','paid_social'],yt_instream:['video','paid_video'],yt_shorts:['video','paid_video'],
  nl_sponsor:['article','newsletter'],iab_display:['display','display'],native_display:['static','native'],native_article:['article','sponsored_content'],podcast:['audio','audio'],creator_post:['social_post','influencer'],
  event_pkg:['event','event'],wc_moments:['static','paid_social'],wc_oa:['display','display'],wc_channels:['video','paid_social'],bd_search:['text','cpc'],nv_search:['text','cpc'],nv_gfa:['static','display']};
 const TAGS={
  linkedin:{tag:'LinkedIn Insight Tag (site-wide) + Conversions API',events:'Page view, sign-up start, account created, report download, webinar registration',click:'li_fat_id (auto) + UTMs; Lead Gen Forms synced to CRM / MAP with hidden field = line ID',extra:'Matched audiences from CRM lists; Insight Tag retargeting audiences'},
  google:{tag:'Google tag (gtag.js) + Google Ads conversion actions; enhanced conversions; GA4 conversion import',events:'Sign-up start, account created, first campaign created',click:'Auto-tagging (gclid) on; ValueTrack {campaignid} {adgroupid} {keyword} in final URL suffix',extra:'Customer Match lists for brand exclusions'},
+ meta:{tag:'Meta Pixel + Conversions API',events:'PageView, Lead, CompleteRegistration, sign-up start',click:'fbclid (auto) + UTMs; Instant Form leads synced to CRM / MAP',extra:'Custom audiences from CRM lists; exclude active customers'},
  x:{tag:'X Pixel (base code + event codes) + X Conversions API',events:'Page view, sign-up start, account created',click:'twclid (auto) + UTMs',extra:'Website activity audiences'},
  reddit:{tag:'Reddit Pixel + Reddit Conversions API',events:'Page view, sign-up start, lead',click:'rdt_cid (auto) + UTMs',extra:''},
  youtube:{tag:'Google Ads conversion actions (shared Google tag); view-through conversions on',events:'Engaged view, site visit, sign-up start',click:'Auto-tagging (gclid) + UTMs',extra:'Video viewer remarketing lists'},
@@ -62,7 +73,7 @@ const TAGS={
  baidu:{tag:'Baidu Tongji (百度统计) + Baidu Ads OCPC conversion tracking',events:'Page view, form submit',click:'bd_vid (auto) + UTMs',extra:'ICP-licensed, China-hosted landing page'},
  naver:{tag:'Naver Premium Log Analysis (wcs script) + Naver Ads conversion tracking',events:'Page view, sign-up start, form submit',click:'Naver auto parameters + UTMs',extra:'PIPA consent on Korean landing page'},
 };
-const UTM_SRC={linkedin:'linkedin',google:'google',x:'x',reddit:'reddit',youtube:'youtube',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
+const UTM_SRC={linkedin:'linkedin',google:'google',meta:'meta',x:'x',reddit:'reddit',youtube:'youtube',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
 const TRADE_PUB={NA:'PocketGamer.biz, GamesIndustry.biz, AdExchanger, Mobile Dev Memo',EMEA:'PocketGamer.biz, GamesIndustry.biz, Mobile Dev Memo',CN:'GameLook, Youxituoluo (游戏陀螺)',JP:'Social Game Info, Gamebiz',KR:'ThisIsGame, GameMeca',SEA:'PocketGamer.biz Asia, Tech in Asia',LATAM:'PocketGamer.biz, local gaming trades'};
 
 // ini = index of initiative (0 brand / 1 cross-sell / 2 data), min = first tier (0 lean, 1 standard, 2 full)
@@ -79,6 +90,10 @@ const CH=[
   {id:'gs_brand',name:'Brand + product terms',units:['gs_rsa','gs_ext'],min:0,share:35,buy:'CPC',rate:4,stage:'Conversion',ini:1,tgt:'Exact / phrase: brand, product and feature names',kpi:'Impression share ≥ 90%; sign-up CVR'},
   {id:'gs_cat',name:'Category terms (UA platform, ROAS campaigns)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “user acquisition platform”, “ROAS campaign”, “mobile game UA”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
   {id:'gs_comp',name:'Competitor conquest',units:['gs_rsa'],min:2,share:20,buy:'CPC',rate:12,stage:'Consideration',ini:0,tgt:'Competitor brand + “alternative” terms (no trademark in ad copy)',kpi:'CTR ≥ 3%; assisted sign-ups'}]},
+ {id:'meta',name:'Meta (Facebook + Instagram)',group:'Paid social',weight:8,markets:{exclude:['CN']},personas:['user','tech'],pl:[
+  {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (marketing, advertising, growth); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
+  {id:'mt_vid',name:'Reels, Stories & feed video',units:['meta_reels','meta_feed_vid'],min:1,share:35,buy:'CPM',rate:10,stage:'Awareness',ini:0,tgt:'Same as feed + video viewer retargeting',kpi:'ThruPlay rate ≥ 20%; cost per ThruPlay'},
+  {id:'mt_lead',name:'Lead ads · Instant Form (gated report)',units:['meta_feed_img','meta_lgf'],min:2,share:20,buy:'CPL',rate:60,stage:'Consideration',ini:0,tgt:'Lookalikes of SQLs; site and video retargeting',kpi:'CPL ≤ $60; SQL rate'}]},
  {id:'x',name:'X (Twitter)',group:'Paid social',weight:7,markets:{exclude:['CN']},boost:{JP:2.5},personas:['tech','user'],pl:[
   {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of UA / AdTech thought leaders; keywords',kpi:'Engagement ≥ 1%'},
   {id:'x_vid',name:'Promoted video · proof-point clips',units:['x_video'],min:1,share:50,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as image + conference hashtags',kpi:'VTR ≥ 20%'}]},
@@ -113,7 +128,7 @@ const CH=[
 ];
 for(const u in UNITS){UNITS[u].fmt=UNIT_META[u][0];UNITS[u].medium=UNIT_META[u][1]}
 // copy limits used to fit the ad copy column (h = headline, b = body / primary text, cta = button)
-const LIMS={li_image:{h:70,b:150},li_video:{h:70,b:150},li_tla:{b:3000},li_doc:{h:70,b:150},li_lgf:{h:60,b:160},li_conv:{b:500,cta:25},gs_rsa:{h:30,b:90},gs_ext:{h:25,b:35},
+const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:72},meta_lgf:{h:60,b:160},li_image:{h:70,b:150},li_video:{h:70,b:150},li_tla:{b:3000},li_doc:{h:70,b:150},li_lgf:{h:60,b:160},li_conv:{b:500,cta:25},gs_rsa:{h:30,b:90},gs_ext:{h:25,b:35},
  x_image:{h:70,b:100},x_video:{b:100},rd_image:{h:150},yt_instream:{h:30,b:90},yt_shorts:{h:40},nl_sponsor:{h:60,b:450},iab_display:{h:40,cta:15},native_display:{h:50,b:90,cta:15},native_article:{h:90},
  podcast:{},creator_post:{},event_pkg:{h:60,b:300},wc_moments:{b:40},wc_oa:{h:28,b:60},wc_channels:{b:40},bd_search:{h:25,b:80},nv_search:{h:15,b:45},nv_gfa:{h:25,b:45}};
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
@@ -221,8 +236,8 @@ function vinfo(u,v){const U=UNITS[u];let fmt=U.fmt,logo=false;
  const sz=v.match(/(\d{2,4})×(\d{2,4})/);let ratio=null;const rm=v.match(/(\d+(?:\.\d+)?:\d+)/);
  if(rm)ratio=rm[1];else if(sz){const r=sz[1]/sz[2],K=[['1.91:1',1.91],['1:1',1],['4:5',.8],['9:16',.5625],['16:9',1.778],['2:1',2],['3:4',.75],['4:3',1.333]];const k=K.find(k=>Math.abs(k[1]-r)<.03);ratio=k?k[0]:null}
  return {fmt,logo,size:sz?sz[1]+'×'+sz[2]:null,area:sz?sz[1]*sz[2]:0,ratio,label:v}}
-const fmtOn=f=>S.formats[f]?.on!==false;
-function variantsOf(u){return UNITS[u].variants.filter(v=>fmtOn(vinfo(u,v).fmt))}
+const unitOn=u=>S.units?.[u]!==false;
+function variantsOf(u){return unitOn(u)?UNITS[u].variants:[]}
 function videoLengths(){const a=String(S.formats._video?.lengths||'').split(/[,;/]+/).map(x=>x.trim()).filter(Boolean);return a.length?a:['1 length']}
 function unitsFor(p,m){const a=typeof p.units==='function'?p.units(m):p.units;return a.filter(u=>variantsOf(u).length)}
 function rateOf(p){const r=S.rates[p.id];return r!=null&&r!==''&&!isNaN(r)?+r:p.rate}
@@ -369,9 +384,13 @@ function utmTable(R){
 }
 function specTable(R){
  const used={};R.lines.forEach(l=>l.units.forEach(u=>{(used[u]=used[u]||{pl:new Set(),mk:new Set(),lg:new Set()});used[u].pl.add(l.channel+' · '+l.placement);used[u].mk.add(l.market);used[u].lg.add(l.lang)}));
- const cols=[['Platform','platform'],['Ad unit','name'],['Sizes / aspect ratios','sizes'],['File types','files'],['Max file size','max'],['Length / duration','length'],['Copy limits','copy'],['Notes','notes'],['Used in','usedIn'],['Markets','mk'],['Languages','lg'],['Production lead (days)','lead'],['Confirm with platform','verify']];
- const rows=Object.keys(used).map(u=>{const s=UNITS[u];return{platform:s.platform,name:s.name,sizes:variantsOf(u).join(' | '),files:s.files,max:s.max,length:s.length,copy:s.copy.join(' | '),notes:s.notes,usedIn:[...used[u].pl].join('; '),mk:[...used[u].mk].join(', '),lg:[...used[u].lg].join(', '),lead:s.lead,verify:s.verify?'Yes':''}});
- return {name:'Spec Sheet',cols,rows,raw:Object.keys(used)};
+ const cols=[['Platform','group'],['Ad unit','name'],['Runs on','covers'],['Sizes / aspect ratios','sizes'],['File types','files'],['Max file size','max'],['Length / duration','length'],['Copy limits','copy'],['Notes','notes'],['Used in','usedIn'],['Markets','mk'],['Languages','lg'],['Production lead (days)','lead'],['Confirm with platform','verify']];
+ const rows=[];UNIT_GROUPS.forEach(([g,us])=>{const by={};us.filter(unitOn).forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
+  Object.values(by).forEach(grp=>{const s=UNITS[grp[0]],U=k=>[...new Set(grp.flatMap(u=>used[u]?[...used[u][k]]:[]))];const pl=U('pl');
+   rows.push({group:g,units:grp,name:grp.map(u=>UNITS[u].name).join(' + '),covers:grp.map(u=>UNITS[u].covers).filter(Boolean).join('; '),sizes:s.variants.join(' | '),files:s.files,max:s.max,length:s.length,
+    copy:[...new Set(grp.flatMap(u=>UNITS[u].copy))].join(' | '),notes:[...new Set(grp.map(u=>UNITS[u].notes).filter(Boolean))].join(' '),usedIn:pl.length?pl.join('; '):'Selected · not bought in '+TIERNAME[R.tier],bought:pl.length>0,
+    mk:U('mk').join(', '),lg:U('lg').join(', '),lead:Math.max(...grp.map(u=>UNITS[u].lead)),verify:grp.some(u=>UNITS[u].verify)?'Yes':''})})});
+ return {name:'Spec Sheet',cols,rows};
 }
 function creativeTable(R){
  const cols=[['Channel','channel'],['Placement','placement'],['Ad unit','unitTxt'],['Language','lang'],['Markets served','markets'],['Concepts','concepts'],['Sizes','variants'],['Refresh rounds','rounds'],['Total files','files'],['First round due','due']];
@@ -547,9 +566,15 @@ function renderCopyInputs(){
 }
 function renderInputs(){
  bindSimple();renderCopyInputs();
- const uc={};Object.keys(UNITS).forEach(u=>UNITS[u].variants.forEach(v=>{const f=vinfo(u,v).fmt;(uc[f]=uc[f]||new Set()).add(UNITS[u].platform+' '+UNITS[u].name)}));
- $('#fmt-list').innerHTML=FORMATS.map(f=>`<div class="li per" title="${esc([...(uc[f.id]||[])].join(', '))}"><input type="checkbox" id="fm-${f.id}" ${fmtOn(f.id)?'checked':''} aria-label="Include ${esc(f.name)}"><label for="fm-${f.id}" style="display:flex;flex-direction:column;min-width:0"><span>${esc(f.name)} <span class="tierchip">${(uc[f.id]||new Set()).size} units</span></span><span class="note">${esc(f.note)}</span></label></div>`).join('');
- FORMATS.forEach(f=>{$('#fm-'+f.id).onchange=e=>{S.formats[f.id]={on:e.target.checked};changed()}});
+ const plU={};CH.forEach(c=>c.pl.forEach(p=>{const us=typeof p.units==='function'?[...new Set(S.markets.flatMap(m=>p.units(m)))]:p.units;us.forEach(u=>(plU[u]=plU[u]||new Set()).add(c.name+' · '+p.name))}));
+ $('#fmt-list').innerHTML=UNIT_GROUPS.map(([g,us])=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));
+  return `<div class="chgroup">${esc(g)}</div>`+Object.values(by).map(grp=>{const U=UNITS[grp[0]],id=grp.join('+'),n=new Set(grp.flatMap(u=>[...(plU[u]||[])])).size;
+   return `<div class="li per unit"><input type="checkbox" id="un-${id}" ${grp.every(unitOn)?'checked':''} aria-label="Include ${esc(grp.map(u=>UNITS[u].name).join(', '))}"><label for="un-${id}" style="display:flex;flex-direction:column;min-width:0;gap:1px">
+    <span>${grp.map(u=>esc(UNITS[u].name)).join(' + ')} ${n?`<span class="tierchip" title="${esc([...new Set(grp.flatMap(u=>[...(plU[u]||[])]))].join('; '))}">${n} placement${n>1?'s':''}</span>`:'<span class="tierchip" style="background:var(--sunk);color:var(--muted)">not bought</span>'}</span>
+    ${U.covers?`<span class="note">Runs on: ${esc(U.covers)}</span>`:''}<span class="note spec">${esc(U.variants.join(' · '))}${U.files&&U.files!=='—'?' · '+esc(U.files):''}${U.max&&U.max!=='—'?' · max '+esc(U.max):''}${U.length&&U.length!=='—'?' · '+esc(U.length):''}</span></label></div>`}).join('')}).join('');
+ UNIT_GROUPS.forEach(([,us])=>{const by={};us.forEach(u=>(by[specSig(u)]=by[specSig(u)]||[]).push(u));Object.values(by).forEach(grp=>{const el=document.getElementById('un-'+grp.join('+'));
+  el.onchange=e=>{S.units=S.units||{};grp.forEach(u=>S.units[u]=e.target.checked);changed()}})});
+ $('#un-all').onclick=()=>{S.units={};renderInputs();changed()};$('#un-none').onclick=()=>{S.units=Object.fromEntries(Object.keys(UNITS).map(u=>[u,false]));renderInputs();changed()};
  const vl=$('#in-vlen');vl.value=S.formats._video.lengths;vl.oninput=()=>{S.formats._video.lengths=vl.value;changed()};
  // markets
  $('#mkt-list').innerHTML=`<div class="li mkt note"><span></span><span>Market</span><span>%</span><span class="bud-h">Budget $</span><span>Lang</span><span></span></div>`+S.markets.map((m,i)=>`
@@ -760,15 +785,15 @@ function renderBOM(R){
   ${renderTable(view,{group:gk,numeric:['qty'],money_:['budget'],wrapCols:['placement','aud','sizes','flight','kpi','publisher'],totalCols:['budget']})}`;
 }
 function renderSpec(R){
- const tb=specTable(R);
- return `<div class="toolbar"><span class="note">${tb.rows.length} ad units in the ${TIERNAME[R.tier]} version. Units marked “Confirm” change often or vary by publisher; check the current platform spec before production.</span></div>
+ const tb=specTable(R);let g='';
+ return `<div class="toolbar"><span class="note">${tb.rows.length} creative units selected, grouped by platform (units that share a spec are listed once). ${tb.rows.filter(r=>r.bought).length} are bought in the ${TIERNAME[R.tier]} version. Units marked “Confirm” change often or vary by publisher; check the current platform spec before production. Change the selection in section 9.</span></div>
  <div class="tscroll"><table><thead><tr><th>Ad unit</th><th>Sizes / ratios</th><th>Files · max size · length</th><th>Copy limits</th><th>Notes</th><th>Used in</th><th class="n">Lead (days)</th></tr></thead><tbody>
- ${tb.raw.map((u,i)=>{const s=UNITS[u],r=tb.rows[i];return `<tr><td style="min-width:160px"><strong>${esc(s.name)}</strong><div class="sub2">${esc(s.platform)}</div>${s.verify?'<span class="chip flag">Confirm</span>':''}</td>
-  <td class="m" style="min-width:150px"><ul class="spec-list">${variantsOf(u).map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
-  <td style="min-width:160px">${esc(s.files)}<div class="sub2">${esc(s.max)}${s.length!=='—'?' · '+esc(s.length):''}</div></td>
-  <td style="min-width:220px"><ul class="spec-list">${s.copy.map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
-  <td style="min-width:180px" class="sub2">${esc(s.notes)}</td>
-  <td style="min-width:200px" class="sub2">${esc(r.usedIn)}<div>${esc(r.lg)}</div></td><td class="n">${s.lead}</td></tr>`}).join('')}
+ ${tb.rows.map(r=>{const s=UNITS[r.units[0]];const head=r.group!==g?(g=r.group,`<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`):'';return head+`<tr${r.bought?'':' style="opacity:.7"'}><td style="min-width:170px"><strong>${esc(r.name)}</strong>${r.covers?`<div class="sub2">${esc(r.covers)}</div>`:`<div class="sub2">${esc(s.platform)}</div>`}${r.verify?'<span class="chip flag">Confirm</span>':''}</td>
+  <td class="m" style="min-width:150px"><ul class="spec-list">${s.variants.map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
+  <td style="min-width:160px">${esc(r.files)}<div class="sub2">${esc(r.max)}${r.length!=='—'?' · '+esc(r.length):''}</div></td>
+  <td style="min-width:220px"><ul class="spec-list">${r.copy.split(' | ').map(v=>`<li>${esc(v)}</li>`).join('')}</ul></td>
+  <td style="min-width:180px" class="sub2">${esc(r.notes)}</td>
+  <td style="min-width:200px" class="sub2">${r.bought?esc(r.usedIn):`<span class="chip">Not bought in ${esc(TIERNAME[R.tier])}</span>`}<div>${esc(r.lg)}</div></td><td class="n">${r.lead}</td></tr>`}).join('')}
  </tbody></table></div>`;
 }
 function renderCreative(R){
@@ -912,7 +937,7 @@ function workbookFor(tiers){
   addSheet(wb,p+'Summary',summaryAOA(R),[40,14,10]);
   addSheet(wb,p+'BOM (MVP)',tableToAOA(mvpTable(R),['masterFiles','adapt','totalFiles']),[8,22,26,80,30,60,8,12,12,9,9,12,10,10,12,60,36,30,14,11]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
-  addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[16,24,50,24,16,24,60,40,50,24,12,10,10]);
+  addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
   addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
   addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
@@ -956,7 +981,7 @@ $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatu
  catch(err){setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
-const CH_RULES={linkedin:/linkedin/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
+const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
 function applyExtract(x){
  const changes=[];
  if(x.campaignName){S.name=x.campaignName;changes.push('name')}
@@ -1204,7 +1229,7 @@ Rules:
 - personas: dm = economic decision-maker, tech = technical influencer / practitioner lead, user = day-to-day user, other = any further audience the doc names (partners, agencies, finance, etc.). label = the audience name plus short job titles from the doc.
 - initiatives: the doc's own strategic initiatives or pillars (max 6), named as the doc names them, each with a one-line message pillar and the funnel stage it mainly serves. Return [] if the doc has none; never invent generic ones.
 - moments: the key milestones the doc names (product launches, releases, content drops such as reports or video series, and events), each with a month. Return [] if the doc names no dated milestones. Convert quarters to the quarter's first month unless a month is named. Year defaults to ${yr}. initiative = 0-based index into initiatives.
-- channels: choose from linkedin, google, x, reddit, youtube, trade, creators, abm, events, wechat, baidu, naver, based on where the audiences learn about solutions and on the tactics in the doc.
+- channels: choose from linkedin, google, meta, x, reddit, youtube, trade, creators, abm, events, wechat, baidu, naver, based on where the audiences learn about solutions and on the tactics in the doc.
 - budget: total paid media budget in USD only if the doc states one, else null. flightStart/flightEnd only if stated, else null.
 
 GTM STRATEGY TEXT:
