@@ -636,12 +636,12 @@ function renderInputs(){
  S.moments.forEach((x,i)=>{$(`#mo-n-${i}`).oninput=e=>{x.name=e.target.value;changed()};$(`#mo-t-${i}`).onchange=e=>{x.type=e.target.value;changed()};$(`#mo-m-${i}`).onchange=e=>{x.month=e.target.value;changed()}});
  $('#mom-list').querySelectorAll('.x').forEach(b=>b.onclick=()=>{S.moments.splice(+b.dataset.i,1);renderInputs();changed()});
  // channels
- let html=`<div class="li ch note"><span></span><span>Channel</span>${TIERNAME.map(n=>`<span class="n">${n} $</span>`).join('')}</div>`,g='';CH.forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
+ let html=`<div class="li ch note"><span></span><span>Channel</span>${TIERNAME.map(n=>`<span class="n">${n} $</span>`).join('')}</div>`,g='';const GO=[...new Set(CH.map(c=>c.group))];CH.slice().sort((x,y)=>GO.indexOf(x.group)-GO.indexOf(y.group)).forEach(c=>{if(c.group!==g){g=c.group;html+=`<div class="chgroup">${esc(g)}</div>`}
   const st=S.channels[c.id]=S.channels[c.id]||{on:true,weight:c.weight};const mn=Math.min(...c.pl.map(p=>p.min));
   html+=`<div class="li ch"><input type="checkbox" id="ch-on-${c.id}" ${st.on?'checked':''} aria-label="Include ${esc(c.name)}"><label for="ch-on-${c.id}" style="display:flex;gap:6px;align-items:center;min-width:0"><span>${esc(c.name)}</span><span class="tierchip">${'LMH'[mn]}+</span></label>${[0,1,2].map(t=>`<input type="number" id="ch-b-${c.id}-${t}" min="0" step="1000" aria-label="${esc(c.name)} ${TIERNAME[t]} budget">`).join('')}</div>`});
  $('#ch-list').innerHTML=html+`<div class="li ch sumrow"><span></span><span>Total</span>${[0,1,2].map(t=>`<span class="n" id="ch-tot-b-${t}"></span>`).join('')}</div>`;
- CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;changed()};
-  [0,1,2].forEach(t=>{$(`#ch-b-${c.id}-${t}`).onchange=e=>{setChannelBudget(c.id,+e.target.value,t);changed()}})});
+ CH.forEach(c=>{$(`#ch-on-${c.id}`).onchange=e=>{S.channels[c.id].on=e.target.checked;solveAllPins();changed()};
+  [0,1,2].forEach(t=>{$(`#ch-b-${c.id}-${t}`).onchange=e=>{setChannelBudget(c.id,e.target.value===''?null:+e.target.value,t);changed()}})});
  syncBudgetFields();
 }
 /* budget fields: show $ for the version picked on the right; typing $ rewrites the weights */
@@ -657,8 +657,8 @@ function syncBudgetFields(R){
  if(mw){mw.textContent=(+ws.toFixed(1))+'%';mw.className='n'+(Math.abs(ws-100)>0.5?' bad':'');mw.title=Math.abs(ws-100)>0.5?'Weights don\'t add to 100%, so they are treated as shares':''}
  if(mbe){mbe.textContent=money(mb);mbe.className='n'+(Math.abs(mb-total)>on.length?' bad':'');mbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
  const Rs=[0,1,2].map(i=>R&&R.tier===i?R:compute(i)),tots=[0,1,2].map(i=>+S.budgets[TIERS[i]]||0),cbs=Rs.map(Ri=>{const o={};Ri.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o});
- CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id];el.disabled=!v;
-  el.title=v?'':(S.channels[c.id].on?'Not in the '+TIERNAME[i]+' version or its markets':'Channel is off');if(el!==document.activeElement)el.value=v?Math.round(v):''}));
+ CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id],mn=Math.min(...c.pl.map(p=>p.min)),pin=pinOf(c.id,i);el.disabled=mn>i;el.classList.toggle('pinned',pin!=null&&S.channels[c.id].on);
+  el.placeholder=mn>i?'—':'0';el.title=mn>i?'Starts in '+TIERNAME[mn]+' (see the '+'LMH'[mn]+'+ tag)':pin!=null?'You set this. Clear it to let it share the rest.':!S.channels[c.id].on?'Type a budget to turn this channel on':v?'Shares what’s left after the channels you typed':'Not in this version’s markets yet';if(el!==document.activeElement)el.value=v?Math.round(v):''}));
  [0,1,2].forEach(i=>{const e=$('#ch-tot-b-'+i);if(!e)return;const cs=sum(Object.values(cbs[i]));e.textContent=compact(cs).replace(/^/,'$');e.className='n'+(Math.abs(cs-tots[i])>1?' bad':'');e.title=money(cs)+' · should equal the '+TIERNAME[i]+' budget: '+money(tots[i])});
  const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`;
 }
@@ -669,19 +669,33 @@ function setMarketBudget(i,x){
  if(others.length&&os>0)others.forEach(q=>q.weight=+(q.weight/os*(100-share*100)).toFixed(2));
  setStatus('#ch-status','');
 }
+// Channel $ typed in section 7 are pinned per version. Pinned channels hold their dollars; the rest share what's left.
+const pinOf=(id,t)=>{const v=S.channels[id]?.pin?.[TIERS[t]];return v==null||v===''?null:+v};
+const chByCh=R=>{const o={};R.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o};
+function solvePins(t){
+ const ids=Object.keys(S.channels).filter(k=>S.channels[k].on&&pinOf(k,t)!=null);if(!ids.length)return null;
+ ids.forEach(k=>{if(!(chW(k,t)>0))setChW(k,t,1)});
+ let R;for(let it=0;it<14;it++){R=compute(t);const cur=chByCh(R),tot=sum(Object.values(cur));if(!tot)break;
+  const pins=ids.filter(k=>cur[k]>0),ps=sum(pins.map(k=>pinOf(k,t))),free=Object.keys(cur).filter(k=>!pins.includes(k)),fs=sum(free.map(k=>cur[k]));
+  const sc=ps>tot||!free.length?tot/Math.max(ps,1):1,left=Math.max(0,tot-ps*sc);
+  let off=0;for(const k in cur){const tg=pins.includes(k)?pinOf(k,t)*sc:fs>0?cur[k]/fs*left:0;off=Math.max(off,Math.abs(tg-cur[k]));setChW(k,t,Math.max(1e-6,chW(k,t)*Math.max(tg,1e-6)/cur[k]))}
+  if(off<1)break}
+ const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&chW(k,t)>0),s=sum(on.map(k=>chW(k,t)));if(s>0)on.forEach(k=>setChW(k,t,chW(k,t)/s*100));
+ return compute(t)}
+function solveAllPins(){[0,1,2].forEach(solvePins)}
+function pinNote(t){const tot=+S.budgets[TIERS[t]]||0,ids=Object.keys(S.channels).filter(k=>S.channels[k].on&&pinOf(k,t)!=null);if(!ids.length)return '';
+ const ps=sum(ids.map(k=>pinOf(k,t))),R=compute(t),cur=chByCh(R),miss=ids.filter(k=>Math.abs((cur[k]||0)-pinOf(k,t))>Math.max(2,pinOf(k,t)*0.01));
+ const room=sum(Object.values(cur));
+ if(ps>room+1)return room<tot-1?`The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, but only ${money(room)} of its ${money(tot)} budget is in markets where they run (the rest sits in markets with no channel on), so they were scaled down to fit. Turn on a channel for those markets, or lower a channel.`:`The channels you typed add to ${money(ps)} in ${TIERNAME[t]}, more than its ${money(tot)} budget, so they were scaled down to fit. Raise the ${TIERNAME[t]} budget in section 1 or lower a channel.`;
+ if(miss.length)return `${miss.map(k=>CHMAP[k].name).join(', ')} can’t take the full amount in ${TIERNAME[t]}: ${miss.length>1?'they only run':'it only runs'} in some markets, so ${miss.length>1?'they’re':'it’s'} capped by those markets’ budget. Raise their share in section 3 to give more.`;
+ const free=Object.keys(cur).filter(k=>!ids.includes(k)).length;
+ return Math.abs(ps-tot)>1&&!free?`Typed channels add to ${money(ps)} in ${TIERNAME[t]}, less than its ${money(tot)} budget; turn on another channel or lower the budget in section 1.`:''}
 function setChannelBudget(id,x,t){
- if(t==null)t=bTier();
- // the most this channel can take: its share when it dominates every market it runs in
- const w0=chW(id,t);setChW(id,t,Math.max(w0,1)*1e4);const cap=sum(compute(t).lines.filter(l=>l.c.id===id).map(l=>l.budget))*0.97;setChW(id,t,w0);x=Math.min(x,cap);
- for(let it=0;it<10;it++){const R=compute(t);const cur={};R.lines.forEach(l=>cur[l.c.id]=(cur[l.c.id]||0)+l.budget);const tot=sum(Object.values(cur));
-  if(!cur[id]||!tot)return;const want=Math.max(0,Math.min(x,tot)),rest=tot-cur[id];if(Math.abs(cur[id]-want)<Math.max(1,want*0.002))break;
-  for(const k in cur){const tg=k===id?want:(rest>0?cur[k]/rest*(tot-want):0);setChW(k,t,Math.max(1e-4,chW(k,t)*(tg||1e-4)/cur[k]))}}
- const on=Object.keys(S.channels).filter(k=>S.channels[k].on&&chW(k,t)>0),s=sum(on.map(k=>chW(k,t)));if(s>0)on.forEach(k=>setChW(k,t,Math.max(0.1,+(chW(k,t)/s*100).toFixed(2))));
- const R=compute(t),now=sum(R.lines.filter(l=>l.c.id===id).map(l=>l.budget));
- const asked=+(document.getElementById(`ch-b-${id}-${t}`)||{}).value||x;const capped=asked>x+1;
- setStatus('#ch-status',capped?`${CHMAP[id].name} is capped at about ${money(now)} in ${TIERNAME[t]}: it only runs in ${[...new Set(R.lines.filter(l=>l.c.id===id).map(l=>l.market))].join(', ')||'some markets'}, so it can't take more than those markets' budget. Raise their share in section 3 to give it more.`:'',capped);
+ if(t==null)t=bTier();const c=S.channels[id];c.pin=c.pin||{};
+ if(x==null||isNaN(x))delete c.pin[TIERS[t]];else{c.pin[TIERS[t]]=Math.max(0,x);if(!c.on){c.on=true;const cb=$('#ch-on-'+id);if(cb)cb.checked=true}}
+ solvePins(t);const n=[0,1,2].map(pinNote).filter(Boolean);setStatus('#ch-status',n.join(' '),n.length>0);
 }
-function autoChannels(){Object.values(S.channels).forEach(c=>delete c.tw)}
+function autoChannels(){Object.values(S.channels).forEach(c=>{delete c.tw;delete c.pin})}
 
 $('#ch-auto').onclick=()=>{autoChannels();setStatus('#ch-status','Channel budgets refilled from each version\'s total.');renderInputs();changed()};
 $('#add-mkt').onclick=()=>{S.markets.push({id:'M'+Date.now(),name:'New market',lang:'EN',on:true,weight:5});renderInputs();changed()};
@@ -691,7 +705,7 @@ $('#btn-blank').onclick=()=>{if(!confirm('Clear every input and start a blank pl
 $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus('#extract-status','Example reloaded.');$('#exampleBadge').hidden=false};
 
 /* ==================== OUTPUT RENDERING ==================== */
-let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(renderOut,120)}
+let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{if(Object.values(S.channels).some(c=>c.pin&&Object.keys(c.pin).length)){solveAllPins();save()}renderOut()},120)}
 const TABS=[['summary','Summary'],['bom','BOM (MVP)'],['lines','Line items'],['spec','Spec Sheet for Creative'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
