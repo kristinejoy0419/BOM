@@ -45,7 +45,7 @@ header.top .hero-side{display:flex;flex-direction:column;align-items:flex-end;ga
 .cheer{position:relative;border-radius:26px;padding:12px 14px 12px 18px;margin-bottom:46px}
 .cheer .dot{position:absolute;background:rgba(255,255,255,.85);border:1px solid var(--hero-line);border-radius:50%;box-shadow:0 2px 6px rgba(90,61,43,.08)}
 .cheer .d1{width:14px;height:14px;right:22px;bottom:-18px}.cheer .d2{width:9px;height:9px;right:6px;bottom:-32px}.cheer .d3{width:6px;height:6px;right:-6px;bottom:-42px}
-.spider{width:92px;height:78px;flex:none;cursor:pointer;transform-origin:50% 100%;animation:hop 3.2s ease-in-out infinite}
+.spider{width:112px;height:94px;flex:none;cursor:pointer;transform-origin:50% 100%;animation:hop 3.2s ease-in-out infinite}
 .spider:hover{animation-duration:1.1s}
 @keyframes hop{0%,62%,100%{transform:translateY(0) scale(1,1)}68%{transform:translateY(2px) scale(1.06,.92)}78%{transform:translateY(-14px) scale(.96,1.05)}88%{transform:translateY(0) scale(1.04,.95)}}
 .spider .eyes{animation:blink 5s infinite;transform-origin:50% 50%;transform-box:fill-box}
