@@ -168,6 +168,10 @@ tbody tr:not(.grp):hover td{background:var(--bg)}
 .tb-sug{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .tb-card{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}.tb-card .btn{align-self:flex-start}
 tr.tb-new>td{background:var(--green-soft)}
+.li.ch input.pinned{font-weight:700;border-color:var(--accent)}
+.li.ch input[type=number]{padding-left:7px;padding-right:5px;-moz-appearance:textfield;appearance:textfield}.li.ch input[type=number]::-webkit-inner-spin-button,.li.ch input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.li.ch .tierchip{flex-shrink:0}
+.li.ch input:disabled{background:var(--sunk);border-style:dashed;cursor:not-allowed}
 .chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
 .chip.aw{background:var(--green-soft);color:var(--green)}
 .chip.co{background:var(--accent-soft);color:var(--accent)}
