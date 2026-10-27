@@ -523,10 +523,10 @@ function flightTable(R){
  return {name:'Flighting',cols,rows};
 }
 function assumptionTable(R){
- const cols=[['Channel','channel'],['Placement','placement'],['Audience','aud'],['Targeting','tmethod'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Proj. impressions','imp'],['Proj. clicks','clk'],['Proj. landing page visits','lpv'],['Proj. video views','views'],['Proj. leads','leads'],['Cost per lead','cpl'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
+ const cols=[['Channel','channel'],['Placement','placement'],['Role','role'],['Audience','aud'],['Targeting','tmethod'],['Buy type','buy'],['Rate used','rate'],['Benchmark rate','bench'],['Budget','budget'],['Est. delivery','qty'],['Delivery unit','qu'],['Proj. impressions','imp'],['Proj. clicks','clk'],['Proj. landing page visits','lpv'],['Proj. video views','views'],['Proj. leads','leads'],['Cost per lead','cpl'],['Markets','mk'],['Lines','n'],['Share of channel %','share'],['Funnel stage','stage'],['KPI','kpi']];
  const rows=[];CH.forEach(c=>c.pl.forEach(p=>{const ls=R.lines.filter(l=>l.p.id===p.id);if(!ls.length)return;
   const F_={imp:0,clk:0,lpv:0,views:0,leads:0};ls.forEach(l=>{const f=lineFun(l);if(f)for(const k in F_)F_[k]+=f[k]});for(const k in F_)F_[k]=Math.round(F_[k]);
-  rows.push({...F_,cpl:F_.leads?+(sum(ls.map(l=>l.budget))/F_.leads).toFixed(2):'',channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,kpi:p.kpi,_id:p.id,aud:audLabel(c,p),tmethod:tgtOf(c,p)})}));
+  rows.push({...F_,cpl:F_.leads?+(sum(ls.map(l=>l.budget))/F_.leads).toFixed(2):'',channel:c.name,placement:p.name,tier:TIERNAME[p.min],buy:p.buy,rate:rateOf(p),bench:p.rate,budget:sum(ls.map(l=>l.budget)),qty:Math.round(sum(ls.map(l=>l.qty))),qu:ls[0].qu,mk:ls.map(l=>l.market).join(', '),n:ls.length,share:p.share,stage:p.stage,role:ROLENAME[roleOf(p)],kpi:p.kpi,_id:p.id,aud:audLabel(c,p),tmethod:tgtOf(c,p)})}));
  const fb=fairRound(rows.map(r=>r.budget));rows.forEach((r,i)=>r.budget=fb[i]);
  return {name:'Buy Details',cols,rows};
 }
@@ -658,6 +658,185 @@ function growthAOA(R){const o=funnel(R),E=econ(R,o),G=E.G;return [['GROWTH PLAN 
 
 /* ==================== AUDIENCE, TARGETING & ASSETS ==================== */
 // Per-placement audience (from the personas in section 4) and targeting method, editable on Buy Details; flows to the agency sheet
+/* ==================== MEDIA MIX OUTCOMES ==================== */
+// Brand vs demand. Each Buy Details placement has a role (Awareness placements start as Brand). The tab chains brand spend → lift →
+// demand signals → pipeline → payback, lets you try another brand share, and compares the mix with putting the whole budget into demand.
+const MIX_DEF={studyLift:9,studySpend:0,ex:0.6,consLift:4,recLift:12,baseAw:18,baseCons:9,el:3.5,bl:900,sh:65,cu:35,ou:20,freq:4,geo:''};
+const mixOf=()=>({...MIX_DEF,...(S.mix||{})});
+const ROLENAME={brand:'Brand',demand:'Demand'};
+const roleOf=p=>(S.plRole||{})[p.id]||(p.stage==='Awareness'?'brand':'demand');
+const isBrandL=l=>roleOf(l.p)==='brand';
+const roleSelect=pid=>{const r=roleOf(PLMAP[pid]);return `<select class="role-in" data-pid="${pid}" aria-label="Role for ${esc(PLMAP[pid].name)}">${['brand','demand'].map(k=>`<option value="${k}" ${r===k?'selected':''}>${ROLENAME[k]}</option>`).join('')}</select>`};
+function plBudgets(R){const b={};R.lines.forEach(l=>b[l.p.id]=(b[l.p.id]||0)+l.budget);return b}
+// Budgets a brand share would give: brand placements scale together, demand placements share the rest
+function mixPins(R,share){const b=plBudgets(R),ids=Object.keys(b),T=sum(ids.map(id=>b[id])),isB=id=>roleOf(PLMAP[id])==='brand';
+ const sB=sum(ids.filter(isB).map(id=>b[id])),sD=T-sB,want=T*share;if((want>0&&!sB)||(want<T&&!sD))return null;
+ const pl={},ch={};ids.forEach(id=>{const v=isB(id)?b[id]*want/sB:b[id]*(T-want)/sD,c=PLMAP[id].ch.id;pl[id]=v;ch[c]=(ch[c]||0)+v});return {pl,ch}}
+// Write pins the same way typing a placement budget in Buy Details does
+function applyPins(St,tier,pins){const T=TIERS[tier];St.plPin=St.plPin||{};St.plPin[T]={...(St.plPin[T]||{}),...pins.pl};St.plPinCh=St.plPinCh||{};St.plPinCh[T]=St.plPinCh[T]||{};
+ for(const id in pins.ch){const c=St.channels[id];(c.pin=c.pin||{})[T]=pins.ch[id];St.plPinCh[T][id]=1}}
+// A version as if Buy Details held these budgets, without touching the saved plan
+function computeWith(tier,pins){if(!pins)return compute(tier);const keep=S;
+ S={...keep,plPin:JSON.parse(JSON.stringify(keep.plPin||{})),plPinCh:JSON.parse(JSON.stringify(keep.plPinCh||{})),channels:JSON.parse(JSON.stringify(keep.channels))};
+ try{applyPins(S,tier,pins);return compute(tier)}finally{S=keep}}
+const brandSpendOf=R=>sum(R.lines.filter(isBrandL).map(l=>l.budget));
+function mixStudySpend(M){return +M.studySpend||brandSpendOf(compute(1))||1}
+function mixStats(R,M,studySpend){const G=gr(),P=pipe();
+ const agg=ls=>{const o={spend:0,imp:0,clk:0,lpv:0,views:0,leads:0};ls.forEach(l=>{o.spend+=l.budget;const f=lineFun(l);if(f)['imp','clk','lpv','views','leads'].forEach(k=>o[k]+=f[k])});return o};
+ const B=R.lines.filter(isBrandL),D=R.lines.filter(l=>!isBrandL(l)),b=agg(B),d=agg(D),T=b.spend+d.spend;
+ const aw=b.spend>0?M.studyLift*Math.pow(b.spend/studySpend,Math.max(.05,M.ex)):0,k=M.studyLift?aw/M.studyLift:0;
+ const bs=aw*M.el/100,brandLeads=M.bl*bs,sh=b.spend>0?M.sh/100:0,cu=M.cu/100,ou=M.ou/100,r=P.mql*P.sql;
+ const dLeads=d.leads*(1+sh*cu),leads=dLeads+b.leads+brandLeads,opps=dLeads*r*(1+sh*ou)+(b.leads+brandLeads)*r,cust=opps*P.win;
+ const allIn=T*(1+G.agency/100)+(+G.creative||0)+(+G.tools||0),gpm=G.acv*G.gm/100/12,cac=cust?allIn/cust:0;
+ return {R,B,D,b,d,T,aw,k,cons:M.consLift*k,rec:M.recLift*k,bs,brandLeads,dLeads,leads,opps,cust,allIn,cac,pay:gpm&&cac?cac/gpm:0,gpm,r,sh,cu,ou,
+  rev:cust*G.acv,pipe:opps*G.acv,perfCPA:dLeads?d.spend/dLeads:0,baseCPA:d.leads?d.spend/d.leads:0,bCPA:leads?T/leads:0,cpo:opps?T/opps:0,
+  reach:b.imp/Math.max(1,+M.freq||1),cpm:b.imp?b.spend/b.imp*1000:0}}
+// Saved split, the scenario the slider asks for, and the all-demand comparison
+function mixModel(R0){const t=R0.tier,M=mixOf(),T=sum(R0.lines.map(l=>l.budget)),sB=brandSpendOf(R0),saved=T?sB/T:0,eps=Math.max(1,T*0.0005);
+ const ask=UI.mixShare?.[TIERS[t]],want=ask==null?saved:Math.max(0,Math.min(0.9,ask));
+ const pins=Math.abs(want*T-sB)<eps?null:mixPins(R0,want),share=pins||Math.abs(want*T-sB)<eps?want:saved;
+ const ss=mixStudySpend(M),X=mixStats(pins?computeWith(t,pins):R0,M,ss);
+ const zero=sB>0?mixPins(R0,0):null,A=zero?mixStats(computeWith(t,zero),M,ss):(sB>0?null:X);
+ return {t,M,T,sB,saved,share,pins,X,A,ss,dirty:!!pins,R0}}
+const pct0=v=>Math.round(v*100)+'%';
+const sgn=v=>(v>=0?'+':'−');
+const n1=v=>v>=10?compact(v):(+v.toFixed(1)).toString();
+function renderMix(R0){const Z=mixModel(R0),{M,X,A,T}=Z,G=gr(),P=pipe(),b0=plBudgets(R0),bN=plBudgets(X.R),VN=TIERNAME[Z.t];
+ const fa=(f,src)=>` data-f="${esc(f)}"${src?` data-fs="${esc(src)}"`:''} tabindex="0"`;
+ const inp=(k,l,u,step=1,w=64)=>`<div class="mx-field"><label for="mx-${k}">${l}</label><input class="rate mx-in" id="mx-${k}" type="number" min="0" step="${step}" data-k="${k}" value="${esc(M[k])}" style="width:${w}px!important"><span class="mx-u">${u}</span></div>`;
+ const li=(k,v,f,src,cls='')=>`<li${fa(f,src)}><span>${k}</span><b class="${cls}">${v}</b></li>`;
+ const chip=(c,t)=>`<span class="mx-ev ${c}">${t}</span>`;
+ const sh=x=>Math.round(x*100),split=s=>`${sh(s)}/${100-sh(s)}`;
+ const d=A?A.pay-X.pay:0,cheaper=X.baseCPA?1-X.perfCPA/X.baseCPA:0;
+ const head=!X.b.spend?`No placements are labeled Brand in the ${VN} version yet`:!A?`Add a Demand placement to compare this mix with all demand`:
+  d>=0?`A ${split(Z.share)} brand and demand mix makes demand leads ${pct0(cheaper)} cheaper and pays back ${d.toFixed(1)} months sooner than all demand`
+  :`At these assumptions, the ${split(Z.share)} brand and demand mix pays back ${(-d).toFixed(1)} months slower than all demand`;
+ const geo=M.geo===''||M.geo==null?null:(+M.geo)/100,gap=geo==null?0:Math.abs(X.bs-geo);
+ const fmtCh=v=>Math.abs(v)<1?'—':sgn(v)+money(Math.abs(v));
+ // sync prompt
+ const sB=Z.sB,diff=X.b.spend-sB,moved=Object.keys(bN).filter(id=>Math.abs((bN[id]||0)-(b0[id]||0))>=1).length;
+ const sync=Z.dirty?`<div class="mx-sync" role="status"><p><b>Buy Details needs updating.</b> It still holds a ${split(Z.saved)} split. This scenario is ${split(Z.share)}: brand placements ${sgn(diff)}${money(Math.abs(diff))}, demand ${sgn(-diff)}${money(Math.abs(diff))}, across ${moved} placements. Updating writes these as typed budgets in Buy Details, so the line items, agency sheet and flighting follow. Check platform minimums and flat-fee buys after.</p><button class="btn primary sm" id="mx-apply">Update Buy Details</button><button class="btn sm" id="mx-revert">Back to Buy Details split</button></div>`
+  :`<div class="mx-sync ok" role="status"><p>Buy Details matches this ${split(Z.share)} split.</p></div>`;
+ const cards=`<div class="mx-scroll"><div class="mx-stages" aria-hidden="true"><span>Spend</span><span>Upper funnel</span><span>Mid funnel</span><span>Lower funnel</span><span>Revenue</span></div>
+ <div class="mx-chain">
+  <article class="mx-node"><div class="mx-hd"><span class="eyebrow">1 · Brand buys</span><div class="mx-big"${fa(`${X.B.length?new Set(X.B.map(l=>l.p.id)).size:0} Brand placements in Buy Details${Z.dirty?', scaled to the scenario share':''}. ${money(X.b.spend)} of ${money(T)}.`,'Buy Details')}>${money(X.b.spend)}<small>${sh(Z.share)}% of ${money(T)} ${VN}</small></div></div>
+   <div class="mx-link"><div class="mx-lt">Source${chip('bom','Buy Details')}</div>${inp('freq','Planned frequency','×',0.5)}<p class="mx-src">Spend, rates and delivery come from placements labeled Brand in Buy Details.</p></div>
+   <ul class="mx-kv">${li('Impressions',compact(X.b.imp),'Σ brand placement delivery from Buy Details (CPM buys: budget ÷ rate × 1,000; other buys convert through the channel funnel)','Buy Details')}
+   ${li('Est. reach',compact(X.reach),`${compact(X.b.imp)} impressions ÷ ${M.freq} planned frequency`,'Planning assumption')}
+   ${li('Blended CPM',X.b.imp?money2(X.cpm):'—',`${money(X.b.spend)} ÷ ${compact(X.b.imp)} impressions × 1,000`)}
+   ${li('Clicks',compact(X.b.clk),'Impressions × channel CTR benchmark','Benchmarks tab')}
+   ${li('Landing page visits',compact(X.b.lpv),'Clicks × channel landing rate','Benchmarks tab')}
+   ${li('Video views',X.b.views?compact(X.b.views):'—','CPV buys: budget ÷ rate','Buy Details')}</ul></article>
+  <article class="mx-node"><div class="mx-hd"><span class="eyebrow">2 · Brand lift</span><div class="mx-big"${fa(`${M.studyLift} pts × (${money(X.b.spend)} ÷ ${money(Z.ss)}) ^ ${M.ex}. Type a target lift and the brand share moves to buy it: spend = ${money(Z.ss)} × (lift ÷ ${M.studyLift}) ^ (1 ÷ ${M.ex}).`,'Lift study read; response is a benchmark')}>+${X.aw.toFixed(1)} pts<small>aided awareness, exposed vs control</small></div></div>
+   <div class="mx-link"><div class="mx-lt">Link: spend → lift${chip('measured','Lift study')}</div>
+    <div class="mx-field"><label for="mx-target">Target awareness lift</label><input class="rate" id="mx-target" type="number" min="0" step="0.5" value="${X.aw.toFixed(1)}" style="width:64px!important"><span class="mx-u">pts</span></div>
+    ${inp('studyLift','Study read','pts',0.5)}<div class="mx-field"><label for="mx-studySpend">at brand spend of</label><input class="rate mx-in" id="mx-studySpend" type="number" min="0" step="10000" data-k="studySpend" value="${+M.studySpend?esc(M.studySpend):''}" placeholder="${Math.round(Z.ss)}" style="width:96px!important"><span class="mx-u">$</span></div>${inp('ex','Lift response to spend','exp',0.05)}
+    <p class="mx-src">Enter the latest brand lift readout and the brand spend it ran on (blank uses the Medium version's brand spend).</p></div>
+   <ul class="mx-kv">${li('Consideration lift','+'+X.cons.toFixed(1)+' pts',`${M.consLift} pts study read × ${X.k.toFixed(2)} (moves with awareness)`,'Lift study')}
+   ${li('Ad recall lift','+'+X.rec.toFixed(1)+' pts',`${M.recLift} pts study read × ${X.k.toFixed(2)}`,'Lift study')}
+   ${li('Aided awareness',`${M.baseAw}% → ${(+M.baseAw+X.aw).toFixed(1)}%`,`${M.baseAw}% baseline + ${X.aw.toFixed(1)} pts lift`,'Brand tracker')}
+   ${li('Awareness per $100K',X.b.spend?'+'+(X.aw/(X.b.spend/1e5)).toFixed(2)+' pts':'—',`${X.aw.toFixed(1)} pts ÷ (${money(X.b.spend)} ÷ $100K)`)}</ul>
+   <div class="mx-row2">${inp('consLift','Consideration read','pts',0.5)}${inp('recLift','Ad recall read','pts',0.5)}${inp('baseAw','Awareness baseline','%',1)}</div></article>
+  <article class="mx-node"><div class="mx-hd"><span class="eyebrow">3 · Demand signals</span><div class="mx-big"${fa(`${X.aw.toFixed(1)} pts awareness × ${M.el}% branded search per point`,'Benchmark until a geo holdout reads out')}>${sgn(X.bs)}${pct0(Math.abs(X.bs))}<small>branded search volume</small></div></div>
+   <div class="mx-link"><div class="mx-lt">Link: lift → demand${chip('bench','Benchmark')}</div>${inp('el','Branded search per awareness pt','%',0.1)}${inp('bl','Brand-driven leads today','/flight',50,80)}${inp('geo','Geo holdout read (blank if not run)','%',1)}
+    <p class="mx-src">Brand-driven leads are the leads that come in from branded search and direct traffic in a normal flight, from your CRM.</p></div>
+   <ul class="mx-kv">${li('Branded search',sgn(X.bs)+pct0(Math.abs(X.bs)),`${X.aw.toFixed(1)} × ${M.el}%`,'Benchmark','up')}
+   ${li('Direct traffic',sgn(X.bs)+pct0(Math.abs(X.bs*0.6)),'Branded search lift × 0.6','Planning ratio','up')}
+   ${li('Organic sign-ups',sgn(X.bs)+pct0(Math.abs(X.bs*0.45)),'Branded search lift × 0.45','Planning ratio','up')}
+   ${li('Extra brand-driven leads','+'+compact(X.brandLeads),`${compact(+M.bl)} brand-driven leads × ${pct0(X.bs)}`,'CRM')}</ul>
+   ${geo==null?`<div class="mx-check">Run a geo holdout to check this link. Enter its branded search read above.</div>`:`<div class="mx-check ${gap<=0.05?'ok':'warn'}">${gap<=0.05?`Geo holdout read +${Math.round(geo*100)}% branded search. The model is within 5 pts.`:`Geo holdout read +${Math.round(geo*100)}%; the model says ${pct0(X.bs)}. Recheck the benchmark.`}</div>`}</article>
+  <article class="mx-node"><div class="mx-hd"><span class="eyebrow">4 · Pipeline</span><div class="mx-big"${fa(`${money(X.d.spend)} demand spend ÷ ${compact(X.dLeads)} demand leads. Demand leads = ${compact(X.d.leads)} projected in Buy Details × (1 + ${M.sh}% reached by brand × ${M.cu}% exposed uplift).`,'Buy Details projections')}>${X.perfCPA?money(X.perfCPA):'—'}<small>demand CPL, ${X.baseCPA?money(X.baseCPA):'—'} without brand</small></div></div>
+   <div class="mx-link"><div class="mx-lt">Link: demand → pipeline${chip('assumed','Assumed')}</div>${inp('sh','Demand audience also reached by brand','%',5)}${inp('cu','Exposed conversion uplift','%',1)}${inp('ou','Exposed lead → SQL uplift','%',1)}
+    <p class="mx-src">Exposed vs unexposed from a CRM match. Confirm with a conversion lift test.</p></div>
+   <ul class="mx-kv">${li('Leads',compact(X.leads),`${compact(X.dLeads)} demand + ${compact(X.b.leads)} from brand placements + ${compact(X.brandLeads)} brand-driven`)}
+   ${li('Blended CPL (all media)',X.leads?money(X.bCPA):'—',`${money(X.T)} media ÷ ${compact(X.leads)} leads`)}
+   ${li('SQLs',n1(X.opps),`Demand leads × ${pct0(X.r)} × (1 + ${M.sh}% × ${M.ou}%) + other leads × ${pct0(X.r)}. ${pct0(X.r)} = lead → MQL ${pct0(P.mql)} × MQL → SQL ${pct0(P.sql)}`,'Flighting pipeline rates')}
+   ${li('Cost per SQL',X.opps?money(X.cpo):'—',`${money(X.T)} media ÷ ${n1(X.opps)} SQLs`)}</ul></article>
+  <article class="mx-node"><div class="mx-hd"><span class="eyebrow">5 · Revenue &amp; payback</span><div class="mx-big"${fa(`${money(X.cac)} CAC ÷ ${money(X.gpm)} gross profit a month. CAC = ${money(X.allIn)} all-in ÷ ${n1(X.cust)} customers.`,'Growth Plan inputs')}>${X.pay?X.pay.toFixed(1)+' mo':'—'}<small>CAC payback</small></div></div>
+   <div class="mx-link"><div class="mx-lt">Link: pipeline → revenue${chip('bom','Growth Plan')}</div><p class="mx-src">ACV ${money(G.acv)}, gross margin ${G.gm}%, SQL → customer ${pct0(P.win)}, agency fee, creative and tools all come from the Growth Plan and Flighting tabs.</p></div>
+   <ul class="mx-kv">${li('Customers',n1(X.cust),`${n1(X.opps)} SQLs × ${pct0(P.win)}`,'Flighting pipeline rates')}
+   ${li('Pipeline',money(X.pipe),`${n1(X.opps)} SQLs × ${money(G.acv)} ACV`,'Growth Plan')}
+   ${li('First-year revenue',money(X.rev),`${n1(X.cust)} customers × ${money(G.acv)} ACV`,'Growth Plan')}
+   ${li('Payback vs all demand',A&&A!==X?(d>=0?d.toFixed(1)+' mo faster':(-d).toFixed(1)+' mo slower'):'—',A?`${A.pay.toFixed(1)} mo all demand − ${X.pay.toFixed(1)} mo this mix`:'Needs at least one Demand placement','Comparison below',d>=0?'up':'dn')}</ul></article>
+ </div></div>`;
+ const row=(n,a,b,fmt,better)=>{if(!A)return '';const df=b-a,good=better==='low'?df<0:df>0;return `<tr><td>${n}</td><td class="n">${fmt(a)}</td><td class="n">${fmt(b)}</td><td class="n ${a?good?'mx-up':'mx-dn':''}">${a?sgn(df)+Math.abs(Math.round(df/a*100))+'%':'—'}</td></tr>`};
+ const tile=(v,k,f)=>`<div class="tile"${fa(f)}><span class="v">${v}</span><span class="k">${k}</span></div>`;
+ const cmp=A&&A!==X?`<div class="tiles mx-tiles">${tile(pct0(cheaper),'Cheaper demand leads',`1 − ${money(X.perfCPA)} ÷ ${money(X.baseCPA)} demand CPL without brand`)}${tile(pct0(1-X.cpo/A.cpo),'Lower cost per SQL vs all demand',`1 − ${money(X.cpo)} ÷ ${money(A.cpo)}`)}${tile((d>=0?'':'−')+Math.abs(d).toFixed(1)+' mo','Faster CAC payback',`${A.pay.toFixed(1)} mo all demand − ${X.pay.toFixed(1)} mo this mix`)}${tile(money(X.rev-A.rev),'More first-year revenue',`${money(X.rev)} − ${money(A.rev)}`)}</div>
+  <div class="tscroll"><table><thead><tr><th>Outcome</th><th class="n">100% demand</th><th class="n">${split(Z.share)} brand / demand</th><th class="n">Difference</th></tr></thead><tbody>
+  <tr><td>Demand spend</td><td class="n">${money(A.d.spend)}</td><td class="n">${money(X.d.spend)}</td><td class="n">—</td></tr><tr><td>Brand spend</td><td class="n">${money(A.b.spend)}</td><td class="n">${money(X.b.spend)}</td><td class="n">—</td></tr>
+  ${row('Leads',A.leads,X.leads,compact,'high')}${row('Blended CPL (all media)',A.bCPA,X.bCPA,money,'low')}${row('SQLs',A.opps,X.opps,n1,'high')}${row('Cost per SQL',A.cpo,X.cpo,money,'low')}${row('Customers',A.cust,X.cust,n1,'high')}${row('CAC (all-in)',A.cac,X.cac,money,'low')}${row('CAC payback (months)',A.pay,X.pay,v=>v.toFixed(1),'low')}${row('First-year revenue',A.rev,X.rev,money,'high')}</tbody></table></div>`
+  :`<div class="note">${X.b.spend?'Label at least one placement Demand in Buy Details to compare.':'Label at least one placement Brand in Buy Details to compare.'}</div>`;
+ // compact Buy Details: role, saved vs scenario budget, and what each placement returns
+ const pls=[];CH.forEach(c=>c.pl.forEach(p=>{if(b0[p.id]==null&&bN[p.id]==null)return;const ls=X.R.lines.filter(l=>l.p.id===p.id),o={imp:0,clk:0,lpv:0,leads:0};
+  ls.forEach(l=>{const f=lineFun(l);if(f)for(const k in o)o[k]+=f[k]});if(roleOf(p)!=='brand')o.leads*=1+X.sh*X.cu;pls.push({c,p,o,sv:b0[p.id]||0,nw:bN[p.id]||0})}));
+ const ot={imp:sum(pls.map(r=>r.o.imp)),clk:sum(pls.map(r=>r.o.clk)),lpv:sum(pls.map(r=>r.o.lpv)),leads:sum(pls.map(r=>r.o.leads))};
+ const bd=`<div class="tscroll"><table><thead><tr><th>Channel</th><th>Placement</th><th>Stage</th><th>Buy</th><th>Role</th><th class="n">In Buy Details</th><th class="n">Scenario</th><th class="n">Change</th><th class="n">Impr.</th><th class="n">Clicks</th><th class="n">LP visits</th><th class="n">Leads</th><th class="n">CPL</th></tr></thead><tbody>
+  ${pls.map(r=>{const ch=r.nw-r.sv;return `<tr><td>${esc(r.c.name)}</td><td style="min-width:180px">${esc(r.p.name)}</td><td>${stageChip(r.p.stage)}</td><td class="m">${esc(r.p.buy)}</td><td>${roleSelect(r.p.id)}</td><td class="n">${money(r.sv)}</td><td class="n">${money(r.nw)}</td><td class="n ${Math.abs(ch)<1?'':ch>0?'mx-up':'mx-dn'}">${fmtCh(ch)}</td><td class="n">${compact(r.o.imp)}</td><td class="n">${compact(r.o.clk)}</td><td class="n">${compact(r.o.lpv)}</td><td class="n">${r.o.leads>=0.5?compact(r.o.leads):'—'}</td><td class="n">${r.o.leads>=0.5?money(r.nw/r.o.leads):'—'}</td></tr>`}).join('')}
+  <tr class="tot"><td>Total</td><td>${pls.length} placements</td><td></td><td></td><td>${split(Z.share)}</td><td class="n">${money(sum(pls.map(r=>r.sv)))}</td><td class="n">${money(sum(pls.map(r=>r.nw)))}</td><td></td><td class="n">${compact(ot.imp)}</td><td class="n">${compact(ot.clk)}</td><td class="n">${compact(ot.lpv)}</td><td class="n">${compact(ot.leads)}</td><td class="n">${ot.leads?money(sum(pls.map(r=>r.nw))/ot.leads):'—'}</td></tr>
+  <tr><td colspan="11">Brand-driven leads (branded search and direct, card 3)</td><td class="n">+${compact(X.brandLeads)}</td><td></td></tr></tbody></table></div>`;
+ // brand delivery and exposed vs unexposed
+ const byP={};X.B.forEach(l=>{const f=lineFun(l)||{},o=byP[l.p.id]=byP[l.p.id]||{c:l.c,p:l.p,spend:0,imp:0,clk:0,lpv:0,views:0};o.spend+=l.budget;['imp','clk','lpv','views'].forEach(k=>o[k]+=f[k]||0)});
+ const dl=Object.values(byP);
+ const dlv=`<div class="tscroll"><table><thead><tr><th>Brand placement</th><th class="n">Spend</th><th class="n">Impr.</th><th class="n">Est. reach</th><th class="n">CPM</th><th class="n">Clicks</th><th class="n">LP visits</th><th class="n">Video views</th></tr></thead><tbody>
+  ${dl.map(o=>`<tr><td>${esc(o.c.name)} · ${esc(o.p.name)}</td><td class="n">${money(o.spend)}</td><td class="n">${compact(o.imp)}</td><td class="n">${compact(o.imp/Math.max(1,+M.freq||1))}</td><td class="n">${o.imp?money2(o.spend/o.imp*1000):'—'}</td><td class="n">${compact(o.clk)}</td><td class="n">${compact(o.lpv)}</td><td class="n">${o.views?compact(o.views):'—'}</td></tr>`).join('')||`<tr><td colspan="8" class="note">No Brand placements in this version.</td></tr>`}
+  ${dl.length?`<tr class="tot"><td>Total</td><td class="n">${money(X.b.spend)}</td><td class="n">${compact(X.b.imp)}</td><td class="n">${compact(X.reach)}</td><td class="n">${X.b.imp?money2(X.cpm):'—'}</td><td class="n">${compact(X.b.clk)}</td><td class="n">${compact(X.b.lpv)}</td><td class="n">${X.b.views?compact(X.b.views):'—'}</td></tr>`:''}</tbody></table></div>`;
+ const er=(n,a,b,f,better)=>{const g=better==='low'?b<a:b>a;return `<tr><td>${n}</td><td class="n">${f(a)}</td><td class="n">${f(b)}</td><td class="n ${g?'mx-up':'mx-dn'}">${a?sgn(b/a-1)+Math.abs(Math.round((b/a-1)*100))+'%':'—'}</td></tr>`};
+ const lpCvr=X.d.lpv?X.d.leads/X.d.lpv:0,p1=v=>(v*100).toFixed(1)+'%';
+ const exp=`<div class="tscroll"><table><thead><tr><th>Metric</th><th class="n">Unexposed</th><th class="n">Exposed</th><th class="n">Change</th></tr></thead><tbody>
+  ${X.d.leads?er('Landing page → lead',lpCvr,lpCvr*(1+X.cu),p1,'high')+er('Demand CPL',X.baseCPA,X.baseCPA/(1+X.cu),money,'low'):''}${er('Lead → SQL',X.r,X.r*(1+X.ou),p1,'high')}${X.d.leads?er('Cost per SQL',X.baseCPA/X.r,X.baseCPA/(1+X.cu)/(X.r*(1+X.ou)),money,'low'):''}${er('Aided awareness',M.baseAw/100,(+M.baseAw+X.aw)/100,v=>Math.round(v*100)+'%','high')}</tbody></table></div>`;
+ const studies=[['Platform brand lift (YouTube, LinkedIn, Meta)','1 → 2','Ad recall, awareness, consideration','Platform exposed vs held-out control, in-feed survey','±2–3 pts','Weeks 2–8'],
+  ['Geo holdout','2 → 3','Branded search, direct traffic, organic sign-ups','Matched test and control markets, brand dark in control','About 8% branded search','8 weeks mid-flight'],
+  ['Conversion lift','3 → 4','Conversion rate, CPL, lead → SQL rate','CRM match of exposed vs unexposed accounts, 90-day window','About 10% conversion rate','Rolling, from week 6'],
+  ['Brand tracker','Baseline','Aided awareness in the target audience','Quarterly survey of the ICP (n ≈ 400)','±4 pts','Before launch, mid-flight, after']];
+ return `<div class="panel mx" style="display:flex;flex-direction:column;gap:16px">
+ <div><div class="eyebrow">${esc(VN)} version · media mix outcomes</div><h2 style="font-size:20px;margin-top:2px">${esc(head)}</h2>
+  <div class="note">How the brand share of the mix makes the demand share work harder: brand placements build lift, lift shows up as demand, and demand converts better into pipeline and payback. Type over any box and everything updates. Hover or tap a number with a dotted label to see how it's calculated. Planning estimates, not guarantees.</div></div>
+ <div class="mx-mix"><label for="mx-sp">Brand share of budget</label><input id="mx-sp" type="range" min="0" max="90" step="1" value="${sh(Z.share)}" aria-label="Brand share slider"><input class="rate" id="mx-spn" type="number" min="0" max="90" step="1" value="${sh(Z.share)}" aria-label="Brand share percent" style="width:64px!important"><span class="mx-u">%</span><span class="mx-split" id="mx-split">Brand ${money(X.b.spend)} · Demand ${money(X.d.spend)}</span></div>
+ ${sync}
+ <div class="mx-legend"><span>Evidence for each link:</span>${chip('bom','From the plan')}${chip('measured','Measured')}${chip('bench','Benchmark')}${chip('assumed','Assumed')}</div>
+ ${cards}
+ <div><h2 style="font-size:18px">Same ${money(T)}, two mixes</h2><div class="note">Brand earns its place only if the mix beats putting those dollars into the demand placements. The 100% demand column reruns the plan with every Brand placement at $0 and the Demand placements scaled up, so diminishing returns come from the channel saturation curves.</div></div>
+ ${cmp}
+ <div><h2 style="font-size:18px">Buy Details by role</h2><div class="note">Role, saved budget and what each placement returns at the scenario spend. Rates, audience, targeting, markets and KPIs stay in Buy Details. Brand placement leads are their own direct-response leads; brand's wider effect shows up in the demand rows and the brand-driven row.</div>
+  <div class="btns" style="margin:8px 0 10px"><button class="btn sm" id="mx-open-bd">Open full Buy Details</button><button class="btn sm" data-mx-x="x-xlsx">Download .xlsx</button><button class="btn sm" data-mx-x="x-csv">CSV</button><button class="btn sm" data-mx-x="x-copy">Copy for Sheets</button></div>${bd}</div>
+ <div class="mx-two"><div><h2 style="font-size:18px">Upper funnel delivery</h2><div class="note">Brand placements at the scenario spend. Reach uses the planned frequency in card 1 until platform reach reporting is in.</div>${dlv}</div>
+  <div><h2 style="font-size:18px">Exposed vs unexposed</h2><div class="note">Unexposed is the plan's projected rates. Exposed applies the uplifts in card 4.</div>${exp}</div></div>
+ <div><h2 style="font-size:18px">Lift study plan</h2><div class="note">Each study replaces one assumption in the chain. When a readout lands, type it into its card.</div>
+  <div class="tscroll"><table><thead><tr><th>Study</th><th>Proves link</th><th>Metrics</th><th>Design</th><th>Detectable effect</th><th>Timing</th></tr></thead><tbody>${studies.map(r=>`<tr><td><strong>${r[0]}</strong></td>${r.slice(1).map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+ </div>`}
+function wireMix(R0){const v=$('#view'),Z=mixModel(R0),T=TIERS[Z.t];
+ const setShare=x=>{UI.mixShare=UI.mixShare||{};UI.mixShare[T]=Math.max(0,Math.min(90,+x||0))/100;changed()};
+ v.querySelectorAll('.mx-in').forEach(el=>el.onchange=()=>{S.mix=S.mix||{};const k=el.dataset.k;S.mix[k]=k==='geo'&&el.value===''?'':Math.max(0,+el.value||0);if(k==='studySpend'&&!+el.value)delete S.mix.studySpend;changed()});
+ const sp=$('#mx-sp'),spn=$('#mx-spn');
+ if(sp){sp.oninput=()=>{spn.value=sp.value;$('#mx-split').textContent=`Brand ${money(Z.T*sp.value/100)} · Demand ${money(Z.T*(100-sp.value)/100)}`};sp.onchange=()=>setShare(sp.value);spn.onchange=()=>setShare(spn.value)}
+ const tg=$('#mx-target');if(tg)tg.onchange=()=>{const M=mixOf(),lift=Math.max(0,+tg.value||0),spend=Z.ss*Math.pow(lift/(M.studyLift||1),1/Math.max(.05,M.ex));setShare(Z.T?spend/Z.T*100:0)};
+ const ap=$('#mx-apply');if(ap)ap.onclick=()=>{if(Z.pins)applyPins(S,Z.t,Z.pins);if(UI.mixShare)delete UI.mixShare[T];changed()};
+ const rv=$('#mx-revert');if(rv)rv.onclick=()=>{if(UI.mixShare)delete UI.mixShare[T];changed()};
+ const ob=$('#mx-open-bd');if(ob)ob.onclick=()=>{UI.tab='assump';UI.bdView='pl';save();renderOut();window.scrollTo({top:$('#tabs').getBoundingClientRect().top+scrollY-12})};
+ v.querySelectorAll('[data-mx-x]').forEach(b=>b.onclick=()=>$('#'+b.dataset.mxX)?.click())}
+function mixAOA(R0){const Z=mixModel(R0),{X,A,M}=Z,P=pipe(),r2=v=>Math.round(v*100)/100;
+ const a=[['MEDIA MIX OUTCOMES · '+TIERNAME[Z.t]],[],['Brand share of budget %',Math.round(Z.share*100)],['Brand spend',Math.round(X.b.spend)],['Demand spend',Math.round(X.d.spend)],[],
+  ['1 · Brand buys'],['Impressions',Math.round(X.b.imp)],['Est. reach',Math.round(X.reach)],['Blended CPM',r2(X.cpm)],['Clicks',Math.round(X.b.clk)],['Landing page visits',Math.round(X.b.lpv)],[],
+  ['2 · Brand lift'],['Awareness lift (pts)',r2(X.aw)],['Consideration lift (pts)',r2(X.cons)],['Ad recall lift (pts)',r2(X.rec)],['Study read (pts)',M.studyLift],['Study brand spend',Math.round(Z.ss)],['Lift response exponent',M.ex],[],
+  ['3 · Demand signals'],['Branded search lift %',r2(X.bs*100)],['Extra brand-driven leads',Math.round(X.brandLeads)],[],
+  ['4 · Pipeline'],['Leads',Math.round(X.leads)],['Demand CPL',r2(X.perfCPA)],['Demand CPL without brand',r2(X.baseCPA)],['Blended CPL',r2(X.bCPA)],['SQLs',r2(X.opps)],['Cost per SQL',r2(X.cpo)],[],
+  ['5 · Revenue & payback'],['Customers',r2(X.cust)],['Pipeline',Math.round(X.pipe)],['First-year revenue',Math.round(X.rev)],['CAC (all-in)',Math.round(X.cac)],['CAC payback (months)',r2(X.pay)],[]];
+ if(A&&A!==X)a.push(['Comparison','100% demand','This mix'],['Leads',Math.round(A.leads),Math.round(X.leads)],['SQLs',r2(A.opps),r2(X.opps)],['Customers',r2(A.cust),r2(X.cust)],['CAC (all-in)',Math.round(A.cac),Math.round(X.cac)],['CAC payback (months)',r2(A.pay),r2(X.pay)],['First-year revenue',Math.round(A.rev),Math.round(X.rev)],[]);
+ const b0=plBudgets(R0),bN=plBudgets(X.R);a.push(['Channel','Placement','Role','In Buy Details','Scenario']);
+ CH.forEach(c=>c.pl.forEach(p=>{if(b0[p.id]==null&&bN[p.id]==null)return;a.push([c.name,p.name,ROLENAME[roleOf(p)],Math.round(b0[p.id]||0),Math.round(bN[p.id]||0)])}));
+ a.push([],['Assumptions: lead → SQL',r2(P.mql*P.sql*100)+'%','Exposed conversion uplift',M.cu+'%','Exposed lead → SQL uplift',M.ou+'%','Reached by brand',M.sh+'%']);return a}
+// Formula popovers on any [data-f]: hover on desktop, tap on phones, Esc closes
+(function(){const pop=document.createElement('div');pop.className='fpop';pop.id='fpop';pop.hidden=true;pop.setAttribute('role','tooltip');let pinned=null,cur=null;
+ const show=el=>{cur=el;pop.innerHTML=`<div class="fpop-f">${esc(el.dataset.f)}</div>${el.dataset.fs?`<div class="fpop-s">Source: ${esc(el.dataset.fs)}</div>`:''}`;pop.hidden=false;
+  const r=el.getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight;let y=r.bottom+8;if(y+h>innerHeight-8)y=r.top-h-8;
+  pop.style.left=Math.min(Math.max(8,r.left),innerWidth-w-8)+'px';pop.style.top=Math.max(8,y)+'px'};
+ const hide=()=>{pop.hidden=true;pinned=cur=null};
+ const ready=()=>document.body.appendChild(pop);if(document.body)ready();else document.addEventListener('DOMContentLoaded',ready);
+ document.addEventListener('mouseover',e=>{const el=e.target.closest?.('[data-f]');if(pinned)return;if(el)show(el);else if(cur)hide()});
+ document.addEventListener('focusin',e=>{const el=e.target.closest?.('[data-f]');if(el)show(el)});
+ document.addEventListener('click',e=>{const el=e.target.closest?.('[data-f]');if(!el||e.target.closest('input,select,button')){if(!e.target.closest?.('.fpop'))hide();return}if(pinned===el){hide();return}pinned=el;show(el)});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});addEventListener('scroll',()=>{if(cur&&!pop.hidden)show(cur)},{passive:true})})();
+
 const TGT_METHODS=['Job title','Skills','Predictive','TAL','Industry','Interests','Keywords','Retargeting','Contextual','Geo-fence'];
 function tgtDefault(c,p){const id=p.id;if(c.id==='google'||c.id==='baidu'||(c.id==='naver'&&/_s$/.test(id)))return 'Keywords';
  if(/_rt$/.test(id))return 'Retargeting';if(c.id==='abm')return 'TAL';if(c.id==='events')return 'Geo-fence';
@@ -972,7 +1151,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['mix','Media Mix Outcomes'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -1374,33 +1553,34 @@ function renderAssump(R){
  const tb=assumptionTable(R),view=UI.bdView||'pl';let grp=UI.bdGroup||'none';if(grp==='market'&&view==='pl')grp='none';
  const cats=[...new Set([...CAT_SUGGEST,...Object.values(S.cats||{}).filter(Boolean)])];
  const plan=+S.budgets[TIERS[R.tier]]||0,lb=bomTable(R).rows;
- const rowsPl=tb.rows.map(r=>{const p=PLMAP[r._id];return {...r,_g:{channel:r.channel,stage:r.stage,ini:iniOf(p).name,buy:r.buy,cat:catOf(r._id)||'Uncategorized'}}});
- const rowsLn=R.lines.map((l,i)=>({...lb[i],_id:l.p.id,rate:rateOf(l.p),qty:Math.round(l.qty),_g:{channel:l.channel,market:l.market,stage:l.stage,ini:l.ini.name,buy:l.p.buy,cat:catOf(l.p.id)||'Uncategorized'}}));
+ const rowsPl=tb.rows.map(r=>{const p=PLMAP[r._id];return {...r,_g:{channel:r.channel,stage:r.stage,ini:iniOf(p).name,buy:r.buy,cat:catOf(r._id)||'Uncategorized',role:ROLENAME[roleOf(p)]}}});
+ const rowsLn=R.lines.map((l,i)=>({...lb[i],_id:l.p.id,rate:rateOf(l.p),qty:Math.round(l.qty),_g:{channel:l.channel,market:l.market,stage:l.stage,ini:l.ini.name,buy:l.p.buy,cat:catOf(l.p.id)||'Uncategorized',role:ROLENAME[roleOf(l.p)]}}));
  const rows=view==='pl'?rowsPl:rowsLn;
  const groups=grp==='none'?[['',rows]]:Object.entries(rows.reduce((o,r)=>{(o[r._g[grp]]=o[r._g[grp]]||[]).push(r);return o},{})).sort((a,b)=>a[0]==='Uncategorized'?1:b[0]==='Uncategorized'?-1:sum(b[1].map(r=>r.budget))-sum(a[1].map(r=>r.budget)));
  const catCell=pid=>`<td><input class="cat-in" list="cat-list" data-pid="${pid}" value="${esc(catOf(pid))}" placeholder="Add category" aria-label="Category"></td>`;
+ const roleCell=pid=>`<td>${roleSelect(pid)}</td>`;
  const rateCell=r=>`<td class="n"><input class="rate" type="number" step="any" min="0" data-rt="${r._id}" value="${r.rate}" aria-label="Rate for ${esc(r.placement)}"></td>`;
- const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th>Audience</th><th>Targeting</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
- const lnHead=`<th>Line</th><th>Channel</th><th>Placement</th><th>Category</th><th>Market</th><th>Lang</th><th>Audience</th><th>Stage</th><th>Buy</th><th class="n">Rate</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Flight</th><th>Initiative</th><th>KPI</th><th>BOM items</th>`;
- const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}${(()=>{const p=PLMAP[r._id],c=CH.find(x=>x.pl.some(q=>q.id===r._id)),pp=c.pl.find(q=>q.id===r._id);return `<td style="min-width:200px">${audSelect(c,pp)}</td><td style="min-width:150px">${tgtSelect(c,pp)}</td>`})()}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
+ const plHead=`<th>Channel</th><th>Placement</th><th>Category</th><th title="Brand placements build awareness; Demand placements drive leads. Feeds Media Mix Outcomes.">Role</th><th>Audience</th><th>Targeting</th><th>Buy</th><th class="n">Rate</th><th class="n">Benchmark</th><th class="n">Budget</th><th class="n">Est. delivery</th><th class="n">Proj. impressions</th><th class="n">Proj. clicks</th><th class="n">Proj. LP visits</th><th class="n">Proj. video views</th><th class="n">Proj. leads</th><th class="n">Cost per lead</th><th>Markets</th><th>Stage</th><th>KPI</th>`;
+ const lnHead=`<th>Line</th><th>Channel</th><th>Placement</th><th>Category</th><th>Role</th><th>Market</th><th>Lang</th><th>Audience</th><th>Stage</th><th>Buy</th><th class="n">Rate</th><th class="n">Budget</th><th class="n">Est. delivery</th><th>Flight</th><th>Initiative</th><th>KPI</th><th>BOM items</th>`;
+ const plRow=r=>`<tr><td>${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}</td>${catCell(r._id)}${roleCell(r._id)}${(()=>{const p=PLMAP[r._id],c=CH.find(x=>x.pl.some(q=>q.id===r._id)),pp=c.pl.find(q=>q.id===r._id);return `<td style="min-width:200px">${audSelect(c,pp)}</td><td style="min-width:150px">${tgtSelect(c,pp)}</td>`})()}<td class="m">${esc(r.buy)}${r.buy==='Flat'?' / '+esc((PLMAP[r._id].unit||'unit').replace(/s$/,'')):''}</td>
   ${rateCell(r)}<td class="n">${rateFmt(r.bench,r.buy)}</td><td class="n"><input class="rate bud${plPinOf(r._id,R.tier)!=null?' pinned':''}" type="number" step="100" min="0" id="pb-${r._id}" value="${Math.round(r.budget)}" title="Type a budget for this placement" aria-label="Budget for ${esc(r.placement)}"></td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${r[k]?compact(r[k]):'<span class="sub2">—</span>'}</td>`).join('')}<td class="n">${r.cpl?money2(r.cpl):'<span class="sub2">—</span>'}</td><td class="sub2" style="min-width:140px">${esc(r.mk)}</td><td>${stageChip(r.stage)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td></tr>`;
- const lnRow=r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="white-space:nowrap">${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.publisher)}</div></td>${catCell(r._id)}<td>${esc(r.market)}</td><td class="m">${esc(r.lang)}</td><td class="sub2" style="min-width:160px">${esc(r.aud||'')}</td><td>${stageChip(r.stage)}</td><td class="m">${esc(r.buy)}</td>
+ const lnRow=r=>`<tr><td class="m"><strong>${r.id}</strong></td><td style="white-space:nowrap">${esc(r.channel)}</td><td style="min-width:200px">${esc(r.placement)}<div class="sub2">${esc(r.publisher)}</div></td>${catCell(r._id)}<td>${ROLENAME[roleOf(PLMAP[r._id])]}</td><td>${esc(r.market)}</td><td class="m">${esc(r.lang)}</td><td class="sub2" style="min-width:160px">${esc(r.aud||'')}</td><td>${stageChip(r.stage)}</td><td class="m">${esc(r.buy)}</td>
   ${rateCell(r)}<td class="n">${money(r.budget)}</td><td class="n">${compact(r.qty)} <span class="sub2">${esc(r.qu)}</span></td><td class="sub2" style="min-width:140px">${esc(r.flight)}</td><td class="sub2">${esc(r.ini)}</td><td class="sub2" style="min-width:160px">${esc(r.kpi)}</td><td class="m">${esc(r.bomIds)}</td></tr>`;
- const subtotal=(name,rs)=>view==='pl'?`<tr class="grp"><td colspan="8">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} placements</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rs.map(r=>r[k]||0)))}</td>`).join('')}<td colspan="4"></td></tr>`
-  :`<tr class="grp"><td colspan="10">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} lines</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td colspan="5"></td></tr>`;
+ const subtotal=(name,rs)=>view==='pl'?`<tr class="grp"><td colspan="9">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} placements</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rs.map(r=>r[k]||0)))}</td>`).join('')}<td colspan="4"></td></tr>`
+  :`<tr class="grp"><td colspan="11">${esc(name)} <span class="sub2" style="font-weight:400">· ${rs.length} lines</span></td><td class="n">${money(sum(rs.map(r=>r.budget)))}</td><td colspan="5"></td></tr>`;
  const total=sum(rows.map(r=>r.budget)),ok=Math.abs(total-plan)<1;
  const opt=(v,n,cur)=>`<option value="${v}" ${cur===v?'selected':''}>${n}</option>`;
- return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version, with the line items folded in. <strong>By placement</strong> sums each buy across markets: click a budget to type your own (that placement gets exactly that amount, its channel total moves with it, and the rest rebalances to stay on ${money(plan)}). <strong>By line</strong> shows every placement × market line the agency books. Edit a rate to replace the benchmark with your rate card (it applies to all versions). Type a category on any row, then group by it.</span>
+ return `<div class="toolbar"><span class="note">Every buy in the ${esc(TIERNAME[R.tier])} version, with the line items folded in. <strong>By placement</strong> sums each buy across markets: click a budget to type your own (that placement gets exactly that amount, its channel total moves with it, and the rest rebalances to stay on ${money(plan)}). <strong>By line</strong> shows every placement × market line the agency books. Edit a rate to replace the benchmark with your rate card (it applies to all versions). Type a category on any row, then group by it. <strong>Role</strong> marks a placement Brand or Demand for Media Mix Outcomes (Awareness placements start as Brand).</span>
   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="rates-reset">Reset rates</button><button class="btn sm" id="pb-reset" ${Object.keys(S.plPin?.[TIERS[R.tier]]||{}).length?'':'disabled'}>Clear typed budgets</button></div></div>
  <div class="toolbar"><div class="left" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
   <div style="display:flex;gap:6px" role="group" aria-label="View"><button class="btn sm ${view==='pl'?'primary':''}" data-bdview="pl">By placement</button><button class="btn sm ${view==='line'?'primary':''}" data-bdview="line">By line (each market)</button></div>
-  <label class="note" style="display:flex;gap:6px;align-items:center">Group by <select id="bd-grp">${opt('none','No grouping',grp)}${opt('cat','My categories',grp)}${opt('channel','Channel',grp)}${view==='line'?opt('market','Market',grp):''}${opt('stage','Funnel stage',grp)}${opt('ini','Initiative',grp)}${opt('buy','Buy type',grp)}</select></label></div>
+  <label class="note" style="display:flex;gap:6px;align-items:center">Group by <select id="bd-grp">${opt('none','No grouping',grp)}${opt('cat','My categories',grp)}${opt('channel','Channel',grp)}${view==='line'?opt('market','Market',grp):''}${opt('stage','Funnel stage',grp)}${opt('ini','Initiative',grp)}${opt('buy','Buy type',grp)}${opt('role','Brand / demand',grp)}</select></label></div>
   <span class="chip ${ok?'aw':'flag'}">Total ${money(total)} ${ok?'matches':'vs'} the ${money(plan)} budget</span></div>
  <datalist id="cat-list">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
  <div class="tscroll"><table><thead><tr>${view==='pl'?plHead:lnHead}</tr></thead><tbody>
  ${groups.map(([g,rs])=>(g?subtotal(g,rs):'')+rs.map(view==='pl'?plRow:lnRow).join('')).join('')}
- ${view==='pl'?`<tr class="tot"><td>Total</td><td>${rows.length} placements</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="n">${money(total)}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(rows.map(r=>r.leads));return L?money2(total/L):'—'})()}</td><td></td><td></td><td></td></tr>`
-  :`<tr class="tot"><td>Total</td><td colspan="9">${rows.length} lines</td><td class="n">${money(total)}</td><td colspan="5"></td></tr>`}
+ ${view==='pl'?`<tr class="tot"><td>Total</td><td>${rows.length} placements</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="n">${money(total)}</td><td></td>${['imp','clk','lpv','views','leads'].map(k=>`<td class="n">${compact(sum(rows.map(r=>r[k])))}</td>`).join('')}<td class="n">${(()=>{const L=sum(rows.map(r=>r.leads));return L?money2(total/L):'—'})()}</td><td></td><td></td><td></td></tr>`
+  :`<tr class="tot"><td>Total</td><td colspan="10">${rows.length} lines</td><td class="n">${money(total)}</td><td colspan="5"></td></tr>`}
  </tbody></table></div>`;
 }
 function renderCompare(){
@@ -1451,7 +1631,7 @@ function _renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={assets:renderAssets,growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={assets:renderAssets,mix:renderMix,growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
@@ -1465,6 +1645,8 @@ function _renderOut(){
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
  if(UI.tab==='assets')wireAssets();
+ if(UI.tab==='mix')wireMix(R);
+ v.querySelectorAll('.role-in').forEach(el=>el.onchange=()=>{S.plRole=S.plRole||{};const p=PLMAP[el.dataset.pid],def=p.stage==='Awareness'?'brand':'demand';if(el.value===def)delete S.plRole[p.id];else S.plRole[p.id]=el.value;if(UI.mixShare)delete UI.mixShare[TIERS[UI.tier]];changed()});
  if(UI.tab==='assump'){v.querySelectorAll('.aud-in').forEach(el=>el.onchange=()=>{S.plAud=S.plAud||{};if(el.value)S.plAud[el.dataset.pid]=el.value;else delete S.plAud[el.dataset.pid];changed()});
   v.querySelectorAll('.tgt-in').forEach(el=>el.onchange=()=>{S.plTgt=S.plTgt||{};S.plTgt[el.dataset.pid]=el.value;changed()});v.querySelectorAll('input[data-rt]').forEach(el=>el.onchange=()=>{S.rates[el.dataset.rt]=el.value===''?null:+el.value;changed()});
   v.querySelectorAll('[data-bdview]').forEach(b=>b.onclick=()=>{UI.bdView=b.dataset.bdview;save();renderOut()});
@@ -1495,9 +1677,9 @@ function workbookFor(tiers){
   addSheet(wb,p+'Ad Copy',adCopyAOA(R),[18,16,26,8,24,80,10,8,8,60]);
   addSheet(wb,p+'Line Items',tableToAOA(bomTable(R),['budget']),[6,9,30,40,13,16,18,36,30,14,8,40,50,32,50,8,16,11,12,11,30,30,16,11,16]);
   addSheet(wb,p+'Creative Spec Sheet',tableToAOA(specTable(R)),[20,30,40,50,24,16,24,60,40,50,24,12,10,10]);
-  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);addSheet(wb,p+'Growth Plan',growthAOA(R),[34,16]);if((S.assets||[]).length)addSheet(wb,p+'Assets',assetsAOA(),[30,40,40,16,14,14,20,24]);
+  addSheet(wb,p+'Flighting & Outcomes',flightAOA(R),[30]);addSheet(wb,p+'Growth Plan',growthAOA(R),[34,16]);addSheet(wb,p+'Media Mix Outcomes',mixAOA(R),[40,16,16,16,12,12,12,12,12,12]);if((S.assets||[]).length)addSheet(wb,p+'Assets',assetsAOA(),[30,40,40,16,14,14,20,24]);
   addSheet(wb,p+'Test Plan',testAOA(R),[6,14,60,16,36,16,18,40,10,18,16,22,10,10,14,18,60,12,11,50,30]);
-  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,10,8,10,12,12,12,12,40,6,10,13,40]);
+  addSheet(wb,p+'Buy Details',tableToAOA(assumptionTable(R),['budget','n','imp','clk','lpv','views','leads']),[24,44,8,10,8,10,12,12,12,12,40,6,10,13,40]);
   addSheet(wb,p+'Agency Tags - Pixels',tableToAOA(pixelTable(R)),[24,50,40,44,44,30,6]);
   addSheet(wb,p+'Workback',[['When','Due','Task','Owner'],...workback().map(w=>[w.days,w.due,w.task,w.owner])],[8,12,60,10]);
   {const g=geoBudget(R);addSheet(wb,p+'Budget by Market',[['Market','Channels','Lines','Budget'],...g.rows.map(r=>[r.market,r.ch,r.lines,Math.round(r.budget)]),['Grand total','',R.lines.length,Math.round(g.total)]],[24,60,8,14])}
@@ -1507,7 +1689,7 @@ function workbookFor(tiers){
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),assets:()=>{const a=assetsAOA(),w=a[0].length;return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),assets:()=>{const a=assetsAOA(),w=a[0].length;return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},mix:()=>{const a=mixAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
