@@ -33,7 +33,8 @@ It's a static site with no build step.
 | Line items | One row per channel × placement × market, with targeting, buy type, rate, budget, estimated delivery, KPI and BOM items |
 | Spec Sheet for Creative | Sizes, file types, max sizes, copy limits and lead times for each ad unit in the plan |
 | Flighting & Projected Outcomes | Monthly spend per channel with launch and event bursts, projected outcomes by month, and KPIs and outcomes by channel |
-| Buy Details | Every buy in the selected version: buy type, editable rate vs benchmark, budget, delivery, markets and KPI |
+| Media Mix Outcomes | Brand vs demand. A left-to-right chain from brand spend to brand lift, demand signals, pipeline and CAC payback, with each link's assumption editable and a hover or tap formula on every number. A brand share slider tries another split, prompts before writing it back to Buy Details, and compares the mix with putting the whole budget into demand. Also upper-funnel delivery, exposed vs unexposed rates and a lift study plan |
+| Buy Details | Every buy in the selected version: buy type, editable rate vs benchmark, budget, delivery, markets, KPI and a Brand / Demand role per placement (Awareness placements start as Brand) |
 | Spec Sheet & Tagging for Agency | A trafficking row for every line (BOM items, files, ad copy that follows BOM edits, pixel, ad name, UTMs and tracked URL), plus pixel and conversion setup for each channel |
 
 Exports: an `.xlsx` for the current version, one `.xlsx` with all versions, a CSV of the current tab, or "Copy table" to paste into Sheets.
