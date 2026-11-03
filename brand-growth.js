@@ -261,11 +261,16 @@ function bgPaint(sp,R){const g=Math.max(0,1-sp.brand-sp.tl),s=g*sp.ss,q=g-s,t=UI
  const put=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
  put('sp-brand-o',Math.round(sp.brand*100)+'%');put('sp-ss-o',Math.round(sp.ss*100)+'%');put('sp-tl-o',Math.round(sp.tl*100)+'%');
  [['b',sp.brand],['s',s],['q',q],['t',sp.tl]].forEach(([k,v])=>{const el=document.getElementById('sp-bar-'+k);if(el)el.style.width=(v*100)+'%';put('sp-l-'+k,f(v))});
+ // Total line: the four parts must add to exactly 100% and to the version's budget
+ const parts=[sp.brand,s,q,sp.tl],pt=sum(parts),dol=parts.map(v=>Math.round(tot*v)),ds=sum(dol),ok=Math.abs(pt-1)<1e-9&&Math.abs(ds-tot)<=2;
+ const te=document.getElementById('sp-total');if(te){te.className='bg-total '+(ok?'ok':'bad');te.innerHTML=`<span>Total</span><b>${(Math.round(pt*1000)/10)}%</b><b>${money(ds)}</b><span>${ok?'✓ matches the '+esc(TIERNAME[t])+' budget':'✕ should be 100% and '+money(tot)}</span>`}
  const n=document.getElementById('sp-note');if(n)n.innerHTML=`${esc(TIERNAME[t])} version: brand <strong>${money(tot*sp.brand)}</strong> · growth <strong>${money(tot*g)}</strong> (self-serve ${money(tot*s)}, pipeline ${money(tot*q)}) · test &amp; learn <strong>${money(tot*sp.tl)}</strong>. Every media line is rescaled to land on this split, so typed channel budgets in section 7 scale with their side; channel weights decide the mix inside each side.`}
 function bgWireSplit(){const b=document.getElementById('sp-brand');if(!b||b.dataset.wired)return;b.dataset.wired=1;
  const ss=document.getElementById('sp-ss'),tl=document.getElementById('sp-tl');
  const read=()=>({...splitOf(),brand:+b.value/100,ss:+ss.value/100,tl:+tl.value/100});
- [b,ss,tl].forEach(el=>{el.oninput=()=>bgPaint(read());el.onchange=()=>{S.split=read();changed()}});
+ // Brand + reserve can never pass 95%, so Growth always keeps at least 5% and the parts never exceed 100%
+ const cap=el=>{const bv=+b.value,tv=+tl.value;if(bv+tv>95){if(el===b)tl.value=Math.max(0,95-bv);else b.value=Math.max(+b.min,95-tv)}};
+ [b,ss,tl].forEach(el=>{el.oninput=()=>{cap(el);bgPaint(read())};el.onchange=()=>{cap(el);S.split=read();changed()}});
  document.getElementById('sp-jd').onclick=()=>{S.split={brand:0.30,ss:0.55,tl:0.10};bgSyncSplit();changed()};
  const bb=document.getElementById('sp-b2b');if(bb)bb.onclick=()=>{S.split={...splitOf(),brand:0.46};bgSyncSplit();changed()}}
 document.addEventListener('DOMContentLoaded',()=>{bgWireSplit();try{bgSyncSplit()}catch(e){}});
