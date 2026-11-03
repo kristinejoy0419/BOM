@@ -2,7 +2,7 @@
 
 Turns a GTM strategy doc into a paid media plan: a bill of materials (BOM), a creative spec sheet, a line-by-line agency trafficking and tagging sheet, and monthly flighting. It builds Low, Medium and High versions of each, plus a side-by-side comparison.
 
-It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with a cream hero and a mulberry-to-black small-caps title). It opens pre-filled with a fictional sample GTM strategy (Example Co.) as a worked example.
+It uses the look of The Haul (Montserrat and Playfair Display, cream and espresso, with a cream hero and a mulberry-to-black small-caps title). It opens pre-filled with a fictional sample GTM strategy (Fernway, a B2B finance company selling corporate cards and spend management) as a worked example.
 
 ## Run it
 

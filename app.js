@@ -59,8 +59,8 @@ const UNIT_META={li_image:['static','paid_social'],li_video:['video','paid_socia
  nl_sponsor:['article','newsletter'],iab_display:['display','display'],native_display:['static','native'],native_article:['article','sponsored_content'],podcast:['audio','audio'],creator_post:['social_post','influencer'],
  event_pkg:['event','event'],wc_moments:['static','paid_social'],wc_oa:['display','display'],wc_channels:['video','paid_social'],bd_search:['text','cpc'],nv_search:['text','cpc'],nv_gfa:['static','display']};
 const TAGS={
- linkedin:{tag:'LinkedIn Insight Tag (site-wide) + Conversions API',events:'Page view, sign-up start, account created, report download, webinar registration',click:'li_fat_id (auto) + UTMs; Lead Gen Forms synced to CRM / MAP with hidden field = line ID',extra:'Matched audiences from CRM lists; Insight Tag retargeting audiences'},
- google:{tag:'Google tag (gtag.js) + Google Ads conversion actions; enhanced conversions; GA4 conversion import',events:'Sign-up start, account created, first campaign created',click:'Auto-tagging (gclid) on; ValueTrack {campaignid} {adgroupid} {keyword} in final URL suffix',extra:'Customer Match lists for brand exclusions'},
+ linkedin:{tag:'LinkedIn Insight Tag (site-wide) + Conversions API',events:'Page view, application start, account approved, report download, webinar registration',click:'li_fat_id (auto) + UTMs; Lead Gen Forms synced to CRM / MAP with hidden field = line ID',extra:'Matched audiences from CRM lists; Insight Tag retargeting audiences'},
+ google:{tag:'Google tag (gtag.js) + Google Ads conversion actions; enhanced conversions; GA4 conversion import',events:'Application start, account approved, first card activated',click:'Auto-tagging (gclid) on; ValueTrack {campaignid} {adgroupid} {keyword} in final URL suffix',extra:'Customer Match lists for brand exclusions'},
  meta:{tag:'Meta Pixel + Conversions API',events:'PageView, Lead, CompleteRegistration, sign-up start',click:'fbclid (auto) + UTMs; Instant Form leads synced to CRM / MAP',extra:'Custom audiences from CRM lists; exclude active customers'},
  x:{tag:'X Pixel (base code + event codes) + X Conversions API',events:'Page view, sign-up start, account created',click:'twclid (auto) + UTMs',extra:'Website activity audiences'},
  reddit:{tag:'Reddit Pixel + Reddit Conversions API',events:'Page view, sign-up start, lead',click:'rdt_cid (auto) + UTMs',extra:''},
@@ -74,57 +74,57 @@ const TAGS={
  naver:{tag:'Naver Premium Log Analysis (wcs script) + Naver Ads conversion tracking',events:'Page view, sign-up start, form submit',click:'Naver auto parameters + UTMs',extra:'PIPA consent on Korean landing page'},
 };
 const UTM_SRC={linkedin:'linkedin',google:'google',meta:'meta',x:'x',reddit:'reddit',youtube:'youtube',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
-const TRADE_PUB={NA:'PocketGamer.biz, GamesIndustry.biz, AdExchanger, Mobile Dev Memo',EMEA:'PocketGamer.biz, GamesIndustry.biz, Mobile Dev Memo',CN:'GameLook, Youxituoluo (游戏陀螺)',JP:'Social Game Info, Gamebiz',KR:'ThisIsGame, GameMeca',SEA:'PocketGamer.biz Asia, Tech in Asia',LATAM:'PocketGamer.biz, local gaming trades'};
+const TRADE_PUB={NA:'CFO Dive, CFO Brew, Accounting Today, TechCrunch',EMEA:'Sifted, Finextra, Accountancy Age',CN:'Caixin, 36Kr',JP:'Nikkei xTECH, ITmedia Business',KR:'Platum, Korea Economic Daily',SEA:'Tech in Asia, DealStreetAsia',LATAM:'Contxto, local finance and startup trades'};
 
 // ini = index of initiative (0 brand / 1 cross-sell / 2 data), min = first tier (0 lean, 1 standard, 2 full)
 const CH=[
  {id:'linkedin',name:'LinkedIn',group:'Paid social',weight:34,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (VP Growth, Head of UA, UA Manager, Media Buyer); industry: Computer Games, Mobile Gaming; company list: Top 200 studios + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
+  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (CFO, VP Finance, Controller, Founder); industries: software, internet, fintech; company size 50 to 1,000; target account list + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
   {id:'li_vid',name:'Sponsored Content · Video (proof-point testimonials)',units:['li_video'],min:0,share:25,buy:'CPM',rate:60,stage:'Awareness',ini:0,tgt:'Same as single image + video viewer retargeting',kpi:'VTR ≥ 25%; cost per 3s view'},
   {id:'li_tla',name:'Thought Leader Ads (execs + creators)',units:['li_tla'],min:0,share:15,buy:'CPM',rate:40,stage:'Awareness',ini:0,tgt:'Followers of competitor and industry pages; job titles above',kpi:'Engagement ≥ 2%; social share of voice'},
-  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:150,stage:'Consideration',ini:0,tgt:'Head of UA, UA Manager, Growth Data Science at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
-  {id:'li_rt',name:'Retargeting · existing advertisers (cross-sell)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: current advertiser contact lists (single-format users); site visitors',kpi:'CTR ≥ 0.8%; second-format activation'},
-  {id:'li_tech',name:'Sponsored Content · technical webinars & docs (GA4, developer data)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Head of UA, Ad Ops, Growth Data Science; current advertisers not yet sharing developer data',kpi:'Webinar registrations; GA4 / data-sharing opt-ins'},
-  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'HOM / Torso account lists; UA and Ad Ops leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
+  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:150,stage:'Consideration',ini:0,tgt:'Controllers, FP&A and Finance Ops leads at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
+  {id:'li_rt',name:'Retargeting · site visitors and started applications',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: started-but-unfinished applications, CRM lists; pricing and product page visitors',kpi:'CTR ≥ 0.8%; completed signups'},
+  {id:'li_tech',name:'Sponsored Content · close & budgeting webinars (ERP integrations)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Controllers, FP&A and Finance Ops at companies on NetSuite, QuickBooks or Xero',kpi:'Webinar registrations; demo requests'},
+  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'Mid-market target account lists; finance and accounting leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
  {id:'google',name:'Google Search',group:'Paid search',weight:12,markets:{exclude:['CN']},personas:['tech','user'],pl:[
   {id:'gs_brand',name:'Brand + product terms',units:['gs_rsa','gs_ext'],min:0,share:35,buy:'CPC',rate:4,stage:'Conversion',ini:1,tgt:'Exact / phrase: brand, product and feature names',kpi:'Impression share ≥ 90%; sign-up CVR'},
-  {id:'gs_cat',name:'Category terms (UA platform, ROAS campaigns)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “user acquisition platform”, “ROAS campaign”, “mobile game UA”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
+  {id:'gs_cat',name:'Category terms (corporate cards, spend management)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “corporate card for startups”, “spend management software”, “expense management”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
   {id:'gs_comp',name:'Competitor conquest',units:['gs_rsa'],min:2,share:20,buy:'CPC',rate:12,stage:'Consideration',ini:0,tgt:'Competitor brand + “alternative” terms (no trademark in ad copy)',kpi:'CTR ≥ 3%; assisted sign-ups'}]},
  {id:'meta',name:'Meta (Facebook + Instagram)',group:'Paid social',weight:8,markets:{exclude:['CN']},personas:['user','tech'],pl:[
-  {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (marketing, advertising, growth); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
+  {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (finance, accounting, small business owners, founders); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
   {id:'mt_vid',name:'Reels, Stories & feed video',units:['meta_reels','meta_feed_vid'],min:1,share:35,buy:'CPM',rate:10,stage:'Awareness',ini:0,tgt:'Same as feed + video viewer retargeting',kpi:'ThruPlay rate ≥ 20%; cost per ThruPlay'},
   {id:'mt_lead',name:'Lead ads · Instant Form (gated report)',units:['meta_feed_img','meta_lgf'],min:2,share:20,buy:'CPL',rate:60,stage:'Consideration',ini:0,tgt:'Lookalikes of SQLs; site and video retargeting',kpi:'CPL ≤ $60; SQL rate'}]},
  {id:'x',name:'X (Twitter)',group:'Paid social',weight:7,markets:{exclude:['CN']},boost:{JP:2.5},personas:['tech','user'],pl:[
-  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of UA / AdTech thought leaders; keywords',kpi:'Engagement ≥ 1%'},
+  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of startup, VC and finance voices; keywords',kpi:'Engagement ≥ 1%'},
   {id:'x_vid',name:'Promoted video · proof-point clips',units:['x_video'],min:1,share:50,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as image + conference hashtags',kpi:'VTR ≥ 20%'}]},
  {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{exclude:['CN']},boost:{JP:0.5,KR:0.3,SEA:0.6,LATAM:0.6},personas:['user'],pl:[
-  {id:'rd_img',name:'Promoted posts · UA & ad-ops communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/gamedev, r/mobilemarketing, r/adops, r/PPC',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
+  {id:'rd_img',name:'Promoted posts · founder & finance communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/startups, r/smallbusiness, r/Accounting, r/FPandA',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
  {id:'youtube',name:'YouTube',group:'Online video',weight:9,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.05,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
+  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.05,stage:'Awareness',ini:0,tgt:'Custom segments: corporate card and expense software search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
   {id:'yt_sh',name:'Shorts · 15s cut-downs',units:['yt_shorts'],min:2,share:30,buy:'CPM',rate:8,stage:'Awareness',ini:0,tgt:'Same custom segments',kpi:'View rate; earned subs'}]},
- {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local gaming / ad-tech trades',pl:[
-  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (studio execs, UA leads)',kpi:'CTR ≥ 1.5%'},
-  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, ad-tech and UA sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
+ {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local finance and startup trades',pl:[
+  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (finance leaders, founders)',kpi:'CTR ≥ 1.5%'},
+  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, finance, accounting and startup sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
   {id:'tr_nat',name:'Sponsored article · customer proof point',units:['native_article'],min:2,share:25,buy:'Flat',rate:15000,unit:'articles',stage:'Consideration',ini:0,tgt:'Publisher audience + social amplification',kpi:'Time on page; referral sign-ups'}]},
- {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'Deconstructor of Fun, GameMakers, industry creators',pl:[
+ {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'CFO and founder newsletters, podcasts and creators',pl:[
   {id:'cr_nl',name:'Specialist newsletter sponsorship',units:['nl_sponsor'],min:1,share:50,buy:'Flat',rate:3500,unit:'sends',stage:'Consideration',ini:0,tgt:'Subscriber base',kpi:'CTR ≥ 2%'},
   {id:'cr_inf',name:'Paid creator posts (LinkedIn / X)',units:['creator_post'],min:1,share:20,buy:'Flat',rate:2500,unit:'posts',stage:'Awareness',ini:0,tgt:'Creator follower base',kpi:'Mentions, shares, comments; social SOV'},
-  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (studio execs, growth leads)',kpi:'Vanity URL visits'}]},
+  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (founders, CFOs)',kpi:'Vanity URL visits'}]},
  {id:'abm',name:'ABM programmatic',group:'Programmatic',weight:8,markets:{exclude:['CN']},personas:['dm','tech'],pub:()=>'ABM DSP (e.g., Demandbase, 6sense)',pl:[
-  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Top 200 studios + HOM / Torso target accounts; buying-committee roles',kpi:'Account reach ≥ 60%; engaged accounts'},
+  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Mid-market target accounts (100 to 1,000 employees); buying-committee roles',kpi:'Account reach ≥ 60%; engaged accounts'},
   {id:'abm_rt',name:'Site retargeting · product, pricing & docs visitors',units:['iab_display'],min:1,share:30,buy:'CPM',rate:12,stage:'Conversion',ini:1,tgt:'Site visitors (30-day), excluding active customers of that format',kpi:'Return-visit rate; sign-ups'}]},
  {id:'events',name:'Event amplification',group:'Events',weight:6,markets:'all',personas:['dm'],burst:'events',pub:()=>'Event organizers (per moment)',pl:[
   {id:'ev_pkg',name:'Sponsor digital package (app, attendee email)',units:['event_pkg'],min:1,share:60,buy:'Flat',rate:12000,unit:'events',stage:'Consideration',ini:0,tgt:'Registered attendees',kpi:'Meetings booked; booth scans'},
   {id:'ev_soc',name:'Geo-targeted paid social · meeting booking',units:m=>m.id==='CN'?['wc_moments']:['li_image'],min:1,share:40,buy:'CPM',rate:45,stage:'Consideration',ini:0,tgt:'Venue geo-fence + attendee job titles, 2 weeks pre-show',kpi:'Meetings booked; CTR ≥ 0.6%'}]},
  {id:'wechat',name:'WeChat',group:'Regional platforms',weight:14,markets:{only:['CN']},personas:['dm','tech','user'],pub:()=>'Tencent Ads',pl:[
-  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: game developers, publishers, ad-tech; lookalikes of studio list',kpi:'CTR ≥ 0.8%; follows'},
-  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Gaming / ad-tech official accounts',kpi:'CPC; account follows'},
+  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: finance, accounting, startups; lookalikes of customer list',kpi:'CTR ≥ 0.8%; follows'},
+  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Finance and business official accounts',kpi:'CPC; account follows'},
   {id:'wc_c',name:'Channels video',units:['wc_channels'],min:2,share:15,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as Moments',kpi:'Completion rate'}]},
  {id:'baidu',name:'Baidu Search',group:'Regional platforms',weight:8,markets:{only:['CN']},personas:['tech','user'],pub:()=>'Baidu',pl:[
-  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
+  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and spend management terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
  {id:'naver',name:'Naver',group:'Regional platforms',weight:8,markets:{only:['KR']},personas:['tech','user'],pub:()=>'Naver',pl:[
-  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Korean',kpi:'CTR ≥ 3%'},
-  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: games, marketing, IT',kpi:'CTR ≥ 0.5%'}]},
+  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and spend management terms in Korean',kpi:'CTR ≥ 3%'},
+  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: business, finance, startups',kpi:'CTR ≥ 0.5%'}]},
 ];
 for(const u in UNITS){UNITS[u].fmt=UNIT_META[u][0];UNITS[u].medium=UNIT_META[u][1]}
 // copy limits used to fit the ad copy column (h = headline, b = body / primary text, cta = button)
@@ -134,68 +134,68 @@ const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 
-/* ==================== EXAMPLE STATE (sample GTM, fictional "Example Co.") ==================== */
-const EX_NAME='Example Co. · Growth Platform 2027';
-const EXAMPLE_BRIEF=`GTM Strategy: Example Co. · Growth Platform 2027 (sample brief used to pre-fill this example)
+/* ==================== EXAMPLE STATE (sample GTM, fictional "Fernway", a B2B finance company) ==================== */
+const EX_NAME='Fernway · Spend Platform 2027';
+const EX_OLD=['Example Co. · Growth Platform 2027','One Unity · Unity Acquire 2026'];
+const EXAMPLE_BRIEF=`GTM Strategy: Fernway · Spend Platform 2027 (fictional sample brief used to pre-fill this example)
 
-Solution: Growth Platform, an AI-powered campaign tool that plans, buys and optimizes ads from one dashboard.
+Solution: Fernway Spend Platform, corporate cards, expense management, bill pay and business accounts in one finance platform for startups and mid-market companies.
 
 2027 initiatives
-1. AI Engine Perception Reset + Brand Equity: reposition the platform as an AI engine with unique first-party data. KPI: 30% YoY net revenue growth.
-2. Platform Adoption & Cross-Sell: make multi-format campaigns the default. KPIs: 11% YoY add-on revenue; +25% of advertisers activating a second format.
-3. Data Activation & Measurement Confidence: analytics integrations and first-party data. KPIs: 100% of advertisers sharing first-party data; % linking Google Analytics.
+1. Finance Brand Awareness: make Fernway the first name finance leaders think of for spend management. KPIs: +8 pts aided awareness among US finance leaders; +30% branded search volume.
+2. Self-Serve Signups & Activation: grow online applications from startups and small businesses. KPIs: +40% YoY self-serve signups; 60% of approved accounts activating a card within 14 days.
+3. Mid-Market Pipeline & Proof: win companies with 100 to 1,000 employees replacing legacy cards and expense tools. KPIs: +35% sales-qualified pipeline; $18M in sourced pipeline.
 
-ICP: current advertisers (enterprise >$10K/day, mid-market $1–10K, SMB $200–1K) and new prospects (top 200 globally) on competing platforms.
+ICP: venture-backed startups (self-serve), growing SMBs (self-serve plus sales assist) and mid-market companies with 100 to 1,000 employees (sales-led).
 Personas & where they learn:
-- Decision-maker (CEO, CMO, VP Growth): LinkedIn; industry trades; major industry conferences; exec podcasts.
-- Technical influencer (Head of Growth, Ad Ops, Data Science): LinkedIn + groups, Slack communities, X, industry newsletters.
-- Day-to-day user (Marketing Manager, Media Buyer): LinkedIn, X, Reddit, forums, search / LLM search.
-Markets: US and APAC emphasized (China, Japan, Korea).
+- Decision-maker (CFO, VP Finance, Founder): LinkedIn; finance trades; CFO conferences; business podcasts.
+- Technical influencer (Controller, FP&A, Finance Ops): LinkedIn, finance communities, ERP partner ecosystems, webinars.
+- Day-to-day user (Accountant, AP Specialist, Office Manager): Google and LLM search, Meta, YouTube, Reddit.
+Markets: US first, with the UK, Canada and Mexico growing.
 
-Launch calendar: Q1-Mar ROAS Campaigns + New Campaign Flow; Q2-Apr Unified Dashboard Ph1 + Multi-Country Budget; Q2-Jun Retention Campaigns; Q3 2027 Industry Benchmark Report; Q3 Unified onboarding; Q3 Unified SDK; Q4 Insights Agent; Q4 Executive Summit [China]. Ongoing: customer video testimonials, proof points, co-marketing, LinkedIn newsletter, technical webinars.`;
-
+Launch calendar: Q1-Mar Spend Platform 2027 brand campaign; Q2-Apr AP automation + bill pay launch; Q2-May spring finance leaders conference; Q2-Jun self-serve onboarding v2; Q3-Jul 2027 State of Business Spend report; Q3-Sep startup and VC conference; Q4-Oct travel and expense launch; Q4-Nov CFO summit; Q4-Dec year-end close campaign. Ongoing: customer video stories, CFO newsletter, ERP partner co-marketing, close and budgeting webinars.`;
 function exampleState(){return{
- name:EX_NAME,product:'Growth Platform (AI-powered campaign planning, buying and optimization)',brief:EXAMPLE_BRIEF,
+ name:EX_NAME,product:'Spend Platform (corporate cards, expense management, bill pay and business accounts)',brief:EXAMPLE_BRIEF,
  budgets:{lean:400000,standard:900000,full:1600000},start:'2027-03-01',end:'2027-12-31',
  markets:[
-  {id:'NA',name:'North America',lang:'EN',on:true,weight:40},
-  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:20},
-  {id:'CN',name:'China',lang:'ZH',on:true,weight:15},
-  {id:'JP',name:'Japan',lang:'JA',on:true,weight:13},
-  {id:'KR',name:'Korea',lang:'KO',on:true,weight:12},
-  {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:5},
-  {id:'LATAM',name:'LATAM',lang:'ES',on:false,weight:5}],
- personas:{dm:{label:'Decision-maker (CEO, CMO, VP Growth)',on:true},tech:{label:'Technical influencer (Head of Growth, Ad Ops)',on:true},user:{label:'Day-to-day user (Marketing Manager, Media Buyer)',on:true}},
+  {id:'NA',name:'North America',lang:'EN',on:true,weight:75},
+  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:15},
+  {id:'LATAM',name:'LATAM',lang:'ES',on:true,weight:10},
+  {id:'CN',name:'China',lang:'ZH',on:false,weight:0},
+  {id:'JP',name:'Japan',lang:'JA',on:false,weight:0},
+  {id:'KR',name:'Korea',lang:'KO',on:false,weight:0},
+  {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:0}],
+ personas:{dm:{label:'Decision-maker (CFO, VP Finance, Founder)',on:true},tech:{label:'Technical influencer (Controller, FP&A, Finance Ops)',on:true},user:{label:'Day-to-day user (Accountant, AP Specialist, Office Manager)',on:true}},
  initiatives:[
-  {name:'AI Engine Perception Reset + Brand Equity',stage:'Awareness',pillar:'An AI campaign engine built on unique first-party data'},
-  {name:'Platform Adoption & Cross-Sell',stage:'Conversion',pillar:'Run every format from one dashboard; multi-format by default'},
-  {name:'Data Activation & Measurement Confidence',stage:'Consideration',pillar:'Measurement you can trust: analytics and first-party data, less guesswork'}],
+  {name:'Finance Brand Awareness',stage:'Awareness',pillar:'The finance platform growing companies trust to spend smarter'},
+  {name:'Self-Serve Signups & Activation',stage:'Conversion',pillar:'Apply in minutes; cards, expenses and bill pay in one account'},
+  {name:'Mid-Market Pipeline & Proof',stage:'Consideration',pillar:'Real-time spend controls and a faster month-end close'}],
  moments:[
-  {name:'ROAS Campaigns + New Campaign Flow',month:'2027-03',type:'launch',ini:0},
-  {name:'Spring industry conference',month:'2027-03',type:'event',ini:0},
-  {name:'Unified Dashboard Ph1 + Multi-Country Budget',month:'2027-04',type:'launch',ini:1},
-  {name:'Retention Campaigns',month:'2027-06',type:'launch',ini:0},
-  {name:'2027 Industry Benchmark Report',month:'2027-07',type:'content',ini:0},
-  {name:'Unified onboarding',month:'2027-08',type:'launch',ini:1},
-  {name:'Unified SDK',month:'2027-09',type:'launch',ini:1},
-  {name:'Executive Summit (China)',month:'2027-11',type:'event',ini:0},
-  {name:'Insights Agent',month:'2027-12',type:'launch',ini:2}],
- channels:Object.fromEntries(CH.map(c=>[c.id,{on:true,weight:c.weight}])),
+  {name:'Spend Platform 2027 brand campaign',month:'2027-03',type:'launch',ini:0},
+  {name:'AP automation + bill pay launch',month:'2027-04',type:'launch',ini:1},
+  {name:'Spring finance leaders conference',month:'2027-05',type:'event',ini:2},
+  {name:'Self-serve onboarding v2',month:'2027-06',type:'launch',ini:1},
+  {name:'2027 State of Business Spend report',month:'2027-07',type:'content',ini:2},
+  {name:'Startup & VC conference',month:'2027-09',type:'event',ini:0},
+  {name:'Travel & expense launch',month:'2027-10',type:'launch',ini:1},
+  {name:'CFO Summit',month:'2027-11',type:'event',ini:2},
+  {name:'Year-end close campaign',month:'2027-12',type:'launch',ini:2}],
+ channels:Object.fromEntries(CH.map(c=>[c.id,{on:!['wechat','baidu','naver'].includes(c.id),weight:c.weight}])),
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
  formats:defaultFormats(),landing:'https://example.com/',copy:exampleCopy()
 };}
 function exampleCopy(){return{src:EX_NAME,
- voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
- eyebrow:'New: AI campaign engine\nThe 2027 UA report\nBuilt on real data',
- ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
- proof:'A retail app scaled ROAS campaigns 4x on iOS and Android with flat CPI\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles\nA top publisher improved campaign results at scale with high-quality users',
+ voice:'Clear, confident and practical. Lead with time and money saved, show the controls finance teams care about, skip the jargon.',
+ eyebrow:'New: AP automation\nThe 2027 spend report\nBuilt for finance teams',
+ ctas:'Apply now\nGet started\nGet the report\nRegister now\nBook a demo',
+ proof:'A 300-person software company closed its books 5 days faster\nA seed-stage startup was approved and issuing cards the same day\nA multi-entity retailer cut out-of-policy spend by 40%',
  ini:[
-  {h:'Grow on D28 ROAS\nAI built for ROAS\nUA that understands your users\nSet the goal. AI finds the buyers.\nThe campaign engine built on real data',
-   b:'Tell the AI your goal. It handles bids and pacing.\nOur engine uses first-party and in-app signals to find users who stay and pay. Launch ROAS campaigns in minutes.\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles.'},
-  {h:'One login for all your ads\nEvery format. One dashboard.\nVideo + rewarded. One place.\nRun all your formats together',
-   b:'Every format in one place.\nAdd new formats to your campaigns in a few clicks and reach more users at scale.\nLaunch video, display and rewarded campaigns from one dashboard, with one login and shared reporting.'},
-  {h:'Less attribution guesswork\nLink GA4. Get sharper ROAS.\nMeasurement you can trust',
-   b:'Link GA4 for sharper ROAS.\nReconcile results with your own analytics, right in the dashboard.\nConnect GA4 and first-party data so the AI optimizes on signals you already trust, not delayed postbacks.'}]};}
+  {h:'Spend smarter, grow faster\nFinance, without the friction\nThe card finance teams trust\nEvery dollar, in real time\nBuilt for how you grow',
+   b:'Cards, expenses and bill pay in one place.\nGive teams the cards they need while finance keeps real-time control of every dollar.\nGrowing companies run spend on Fernway so finance can focus on the next stage of growth.'},
+  {h:'Apply in minutes\nCards issued same day\nNo personal guarantee\nStart spending smarter today',
+   b:'Apply online in minutes.\nGet approved fast, issue virtual cards instantly and connect your accounting software on day one.\nA seed-stage startup was approved and issuing cards the same day.'},
+  {h:'Close the books 5 days faster\nSpend controls that scale\nReplace your legacy card',
+   b:'Close faster with automatic receipts.\nSet policies by team, sync to your ERP and see every transaction as it happens.\nA 300-person software company closed its books 5 days faster after switching.'}]};}
 function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
 function blankState(){const yr=new Date().getFullYear()+1;return{
  name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
@@ -207,7 +207,7 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
-if(!S||!S.markets||S.name==='One Unity · Unity Acquire 2026')S=exampleState();
+if(!S||!S.markets||EX_OLD.includes(S.name))S=exampleState();
 if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
@@ -219,7 +219,7 @@ const pjId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)
 let PJ_ERR=false;
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}
  if(UI.pj){const P=pjAll();if(P[UI.pj]){P[UI.pj].S=S;P[UI.pj].saved=Date.now();PJ_ERR=!pjPut(P);const h=document.getElementById('pj-hint');if(h)h.textContent=PJ_ERR?'browser storage full: download a backup':'saved '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}}}
-(function pjEnsure(){const P=pjAll();if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
+(function pjEnsure(){const P=pjAll();if(UI.pj&&P[UI.pj]&&EX_OLD.includes(P[UI.pj].name)){P[UI.pj].name=S.name;P[UI.pj].S=S;pjPut(P)}if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
 function pjOpen(id){const P=pjAll();if(!P[id])return;try{localStorage.setItem(LSKEY,JSON.stringify(P[id].S));UI.pj=id;localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}location.reload()}
 function renderProjects(){const P=pjAll(),ids=Object.keys(P).sort((a,b)=>(P[b].saved||0)-(P[a].saved||0));
  $('#pj-sel').innerHTML=ids.map(id=>`<option value="${id}" ${id===UI.pj?'selected':''}>${esc(P[id].name||'Untitled plan')}</option>`).join('');
@@ -1732,7 +1732,7 @@ $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatu
  catch(err){runBusy(false);setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
-const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
+const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/cfo dive|cfo brew|accounting today|finextra|trade press|industry press|finance trades/i,creators:/podcast|newsletter|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
 function applyExtract(x){
  const changes=[];
  if(x.campaignName){S.name=x.campaignName;changes.push('name')}
