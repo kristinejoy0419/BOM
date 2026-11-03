@@ -214,7 +214,7 @@ const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
 if(!S||!S.markets||EX_OLD.includes(S.name))S=exampleState();
 if(S.name===EX_NAME&&S.budgets&&+S.budgets.lean===400000&&+S.budgets.standard===900000&&+S.budgets.full===1600000)S.budgets={lean:1500000,standard:2500000,full:4000000};
-if(!S.split)S.split={brand:0.30,ss:0.55,tl:0.10};
+if(!S.split||(S.split.brand===0.3&&S.split.ss===0.55&&S.split.tl===0.1))S.split={brand:0.46,ss:0.55,tl:0.10};
 if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
@@ -340,7 +340,8 @@ const chW=(id,t)=>{const c=S.channels[id];return c?+c.weight:0};
 const setChW=(id,t,v)=>{const c=S.channels[id];(c.tw=c.tw||{})[TIERS[t]]=v};
 /* ==================== BRAND VS GROWTH SPLIT (section 2) ==================== */
 // Share of each version's budget: brand media, growth & performance media (self-serve vs pipeline), and a test & learn reserve held back from the lines
-const SPLIT_DEF={brand:0.30,ss:0.55,tl:0.10};
+// Brand default = Binet & Field's B2B benchmark (about 46% brand, 54% activation, LinkedIn B2B Institute)
+const SPLIT_DEF={brand:0.46,ss:0.55,tl:0.10};
 const splitOf=()=>{const x={...SPLIT_DEF,...(S.split||{})};x.brand=Math.min(0.9,Math.max(0,+x.brand||0));x.tl=Math.min(0.5,Math.max(0,+x.tl||0));if(x.brand+x.tl>0.95)x.tl=Math.max(0,0.95-x.brand);x.ss=Math.min(1,Math.max(0,+x.ss||0));return x};
 const SIDES=['brand','self','pipe'],SIDENAME={brand:'Brand',self:'Growth · Self-Serve',pipe:'Growth · Pipeline'};
 const PIPE_PL=new Set(['li_doc','li_conv','li_tech','gs_comp','mt_lead','abm_d','abm_rt','ev_pkg','ev_soc','tr_nat']);
@@ -1180,11 +1181,16 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
 const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['mix','Media Mix Outcomes'],...(typeof BG_TABS!=='undefined'?BG_TABS:[]),['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
-function renderSeg(){
+// Tabs sit under two headers; a tab not listed here falls into Strategy & Planning
+const TAB_EXEC=['bom','spec','assets','flight','assump','tests','tagging'];
+const TAB_GROUPS_FN=()=>[['Strategy &amp; Planning',TABS.map(t=>t[0]).filter(k=>!TAB_EXEC.includes(k))],['Execution',TAB_EXEC]];
+let TAB_GROUPS=[];
+function renderSeg(){TAB_GROUPS=TAB_GROUPS_FN();
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
  const ord=UI.tabOrder||[],tabs=TABS.slice().sort((a,b)=>{const i=ord.indexOf(a[0]),j=ord.indexOf(b[0]);return (i<0?99:i)-(j<0?99:j)});
- $('#tabs').innerHTML=UI.tier===3?'':tabs.map(([k,n])=>`<button role="tab" aria-selected="${UI.tab===k}" data-k="${k}" draggable="true" title="Drag to reorder">${n}</button>`).join('');
+ const btn=([k,n])=>`<button role="tab" aria-selected="${UI.tab===k}" data-k="${k}" draggable="true" title="Drag to reorder">${n}</button>`;
+ $('#tabs').innerHTML=UI.tier===3?'':TAB_GROUPS.map(([g,ks])=>{const ts=tabs.filter(t=>ks.includes(t[0]));return ts.length?`<div class="tab-group" role="presentation"><div class="tab-head">${g}</div><div class="tab-row">${ts.map(btn).join('')}</div></div>`:''}).join('');
  let dragK=null;$('#tabs').querySelectorAll('button').forEach(b=>{
   b.ondragstart=e=>{dragK=b.dataset.k;b.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragK)};
   b.ondragend=()=>{b.classList.remove('drag');$('#tabs').querySelectorAll('.over').forEach(x=>x.classList.remove('over'))};
