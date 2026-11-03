@@ -271,6 +271,6 @@ function bgWireSplit(){const b=document.getElementById('sp-brand');if(!b||b.data
  // Brand + reserve can never pass 95%, so Growth always keeps at least 5% and the parts never exceed 100%
  const cap=el=>{const bv=+b.value,tv=+tl.value;if(bv+tv>95){if(el===b)tl.value=Math.max(0,95-bv);else b.value=Math.max(+b.min,95-tv)}};
  [b,ss,tl].forEach(el=>{el.oninput=()=>{cap(el);bgPaint(read())};el.onchange=()=>{cap(el);S.split=read();changed()}});
- document.getElementById('sp-jd').onclick=()=>{S.split={brand:0.30,ss:0.55,tl:0.10};bgSyncSplit();changed()};
+ 
  const bb=document.getElementById('sp-b2b');if(bb)bb.onclick=()=>{S.split={...splitOf(),brand:0.46};bgSyncSplit();changed()}}
 document.addEventListener('DOMContentLoaded',()=>{bgWireSplit();try{bgSyncSplit()}catch(e){}});
