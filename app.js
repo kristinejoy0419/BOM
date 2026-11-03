@@ -19,6 +19,7 @@ const UNITS={
  meta_feed_vid:{platform:'Meta',name:'Feed video ad',covers:'Facebook Feed, Instagram Feed, in-stream',variants:['4:5 · 1080×1350','1:1 · 1080×1080'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (1s–241 min)',copy:['Primary text ≤125 chars recommended','Headline ≤40 chars recommended','Captions on (most views are muted)'],notes:'Product or proof point in the first 3 seconds.',lead:14},
  meta_reels:{platform:'Meta',name:'Reels & Stories video',covers:'Facebook Reels, Instagram Reels, Facebook Stories, Instagram Stories',variants:['9:16 · 1080×1920'],files:'MP4, MOV',max:'4 GB',length:'≤15s recommended (Reels ≤90s, Stories ≤60s per card)',copy:['Primary text ≤72 chars shown','Keep the top 14% and bottom 35% clear of text (UI overlay)'],notes:'Shoot vertical; sound on with captions.',lead:14},
  meta_lgf:{platform:'Meta',name:'Instant Form (lead ad)',covers:'Facebook and Instagram lead ads',variants:['Form'],files:'—',max:'—',length:'—',copy:['Intro headline ≤60 chars','3–4 questions recommended (15 max)','Privacy policy URL, thank-you screen'],notes:'Sync to CRM / MAP before launch; use "Higher intent" form type for B2B.',lead:5},
+ ctv_spot:{platform:'Connected TV',name:'CTV spot (streaming apps)',variants:['16:9 · 1920×1080'],files:'MP4 (H.264), 15s or 30s, broadcast-safe audio',max:'—',length:'15s or 30s; non-skippable',copy:['No clickable copy: message, logo and URL on screen','End card with URL or QR code for at least 3 seconds'],notes:'Built for the living room: sound on, no click. Measure with site-visit and branded search lift.',lead:21},
  yt_instream:{platform:'YouTube',name:'Skippable In-stream',variants:['16:9 · 1920×1080'],files:'Upload to YouTube (MP4/MOV)',max:'—',length:'15–30s recommended; skippable after 5s',copy:['Headline ≤40 chars (shown in-stream)','Long headline ≤90 chars (in-feed placements)','Description ≤90 chars','Companion banner auto-generated'],notes:'Logo and message inside the first 5 seconds.',lead:21},
  yt_shorts:{platform:'YouTube',name:'Shorts',variants:['9:16 · 1080×1920'],files:'Upload to YouTube',max:'—',length:'15–30s recommended (60s max)',copy:['Headline ≤40 chars'],notes:'Keep text clear of the bottom 20% and right edge (UI overlay).',lead:14},
  nl_sponsor:{platform:'Publisher',name:'Newsletter sponsorship',variants:['Hero image 600×300','Logo (PNG, transparent)'],files:'PNG, JPG',max:'Per media kit',length:'—',copy:['Headline ≤60 chars','Body 50–75 words','1 CTA with tracked URL'],notes:'Specs vary by publisher. Confirm against the media kit.',lead:10,verify:true},
@@ -50,20 +51,21 @@ const FORMATS=[
 const FMTNAME=Object.fromEntries(FORMATS.map(f=>[f.id,f.name]));
 // creative units grouped by platform for the inputs panel and the spec sheet
 const UNIT_GROUPS=[['Search',['gs_rsa','gs_ext','bd_search','nv_search']],['Display & programmatic',['iab_display','native_display','nv_gfa']],['LinkedIn',['li_image','li_video','li_doc','li_lgf','li_conv','li_tla']],
- ['Meta',['meta_feed_img','meta_feed_vid','meta_reels','meta_lgf']],['X',['x_image','x_video']],['Reddit',['rd_image']],['YouTube',['yt_instream','yt_shorts']],['WeChat',['wc_moments','wc_oa','wc_channels']],
+ ['Meta',['meta_feed_img','meta_feed_vid','meta_reels','meta_lgf']],['X',['x_image','x_video']],['Reddit',['rd_image']],['YouTube',['yt_instream','yt_shorts']],['Connected TV',['ctv_spot']],['WeChat',['wc_moments','wc_oa','wc_channels']],
  ['Publishers & newsletters',['nl_sponsor','native_article']],['Creators & podcasts',['creator_post','podcast']],['Events',['event_pkg']]];
 const UNIT_GROUP=Object.fromEntries(UNIT_GROUPS.flatMap(([g,us])=>us.map(u=>[u,g])));
 const specSig=u=>{const U=UNITS[u];return [U.variants.join('|'),U.files,U.max,U.length,U.copy.join('|')].join('#')};
 const UNIT_META={li_image:['static','paid_social'],li_video:['video','paid_social'],li_tla:['social_post','paid_social'],li_doc:['document','paid_social'],li_lgf:['messaging','paid_social'],li_conv:['messaging','paid_messaging'],
- gs_rsa:['text','cpc'],gs_ext:['text','cpc'],meta_feed_img:['static','paid_social'],meta_feed_vid:['video','paid_social'],meta_reels:['video','paid_social'],meta_lgf:['messaging','paid_social'],x_image:['static','paid_social'],x_video:['video','paid_social'],rd_image:['static','paid_social'],yt_instream:['video','paid_video'],yt_shorts:['video','paid_video'],
+ gs_rsa:['text','cpc'],gs_ext:['text','cpc'],meta_feed_img:['static','paid_social'],meta_feed_vid:['video','paid_social'],meta_reels:['video','paid_social'],meta_lgf:['messaging','paid_social'],x_image:['static','paid_social'],x_video:['video','paid_social'],rd_image:['static','paid_social'],yt_instream:['video','paid_video'],ctv_spot:['video','ctv'],yt_shorts:['video','paid_video'],
  nl_sponsor:['article','newsletter'],iab_display:['display','display'],native_display:['static','native'],native_article:['article','sponsored_content'],podcast:['audio','audio'],creator_post:['social_post','influencer'],
  event_pkg:['event','event'],wc_moments:['static','paid_social'],wc_oa:['display','display'],wc_channels:['video','paid_social'],bd_search:['text','cpc'],nv_search:['text','cpc'],nv_gfa:['static','display']};
 const TAGS={
- linkedin:{tag:'LinkedIn Insight Tag (site-wide) + Conversions API',events:'Page view, sign-up start, account created, report download, webinar registration',click:'li_fat_id (auto) + UTMs; Lead Gen Forms synced to CRM / MAP with hidden field = line ID',extra:'Matched audiences from CRM lists; Insight Tag retargeting audiences'},
- google:{tag:'Google tag (gtag.js) + Google Ads conversion actions; enhanced conversions; GA4 conversion import',events:'Sign-up start, account created, first campaign created',click:'Auto-tagging (gclid) on; ValueTrack {campaignid} {adgroupid} {keyword} in final URL suffix',extra:'Customer Match lists for brand exclusions'},
+ linkedin:{tag:'LinkedIn Insight Tag (site-wide) + Conversions API',events:'Page view, application start, account approved, report download, webinar registration',click:'li_fat_id (auto) + UTMs; Lead Gen Forms synced to CRM / MAP with hidden field = line ID',extra:'Matched audiences from CRM lists; Insight Tag retargeting audiences'},
+ google:{tag:'Google tag (gtag.js) + Google Ads conversion actions; enhanced conversions; GA4 conversion import',events:'Application start, account approved, first card activated',click:'Auto-tagging (gclid) on; ValueTrack {campaignid} {adgroupid} {keyword} in final URL suffix',extra:'Customer Match lists for brand exclusions'},
  meta:{tag:'Meta Pixel + Conversions API',events:'PageView, Lead, CompleteRegistration, sign-up start',click:'fbclid (auto) + UTMs; Instant Form leads synced to CRM / MAP',extra:'Custom audiences from CRM lists; exclude active customers'},
  x:{tag:'X Pixel (base code + event codes) + X Conversions API',events:'Page view, sign-up start, account created',click:'twclid (auto) + UTMs',extra:'Website activity audiences'},
  reddit:{tag:'Reddit Pixel + Reddit Conversions API',events:'Page view, sign-up start, lead',click:'rdt_cid (auto) + UTMs',extra:''},
+ ctv:{tag:'DSP pixel (site-wide) + ad-server impression tracking; household IP match from the CTV vendor',events:'Site visit, application start (view-through)',click:'CTV is view-through only; display clicks carry UTMs',extra:'Verification (e.g., DV or IAS); frequency cap 3–4 a week per household'},
  youtube:{tag:'Google Ads conversion actions (shared Google tag); view-through conversions on',events:'Engaged view, site visit, sign-up start',click:'Auto-tagging (gclid) + UTMs',extra:'Video viewer remarketing lists'},
  trade:{tag:'Ad server (e.g., CM360) third-party display tags + 1×1 impression trackers for newsletters and articles',events:'Floodlight / site activity: landing view, sign-up start',click:'Ad-server click trackers wrapping the UTM URL',extra:'Verification (e.g., DV or IAS) on display; publisher sends delivery screenshots for newsletters'},
  creators:{tag:'Vanity URLs and promo codes per creator / show, redirecting to UTM URLs',events:'Landing view, sign-up start',click:'Unique UTM per creator or episode',extra:'Creator reports post analytics weekly'},
@@ -73,129 +75,132 @@ const TAGS={
  baidu:{tag:'Baidu Tongji (百度统计) + Baidu Ads OCPC conversion tracking',events:'Page view, form submit',click:'bd_vid (auto) + UTMs',extra:'ICP-licensed, China-hosted landing page'},
  naver:{tag:'Naver Premium Log Analysis (wcs script) + Naver Ads conversion tracking',events:'Page view, sign-up start, form submit',click:'Naver auto parameters + UTMs',extra:'PIPA consent on Korean landing page'},
 };
-const UTM_SRC={linkedin:'linkedin',google:'google',meta:'meta',x:'x',reddit:'reddit',youtube:'youtube',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
-const TRADE_PUB={NA:'PocketGamer.biz, GamesIndustry.biz, AdExchanger, Mobile Dev Memo',EMEA:'PocketGamer.biz, GamesIndustry.biz, Mobile Dev Memo',CN:'GameLook, Youxituoluo (游戏陀螺)',JP:'Social Game Info, Gamebiz',KR:'ThisIsGame, GameMeca',SEA:'PocketGamer.biz Asia, Tech in Asia',LATAM:'PocketGamer.biz, local gaming trades'};
+const UTM_SRC={linkedin:'linkedin',google:'google',meta:'meta',x:'x',reddit:'reddit',youtube:'youtube',ctv:'ctv_dsp',trade:'tradepress',creators:'creators',abm:'abm_dsp',events:'events',wechat:'wechat',baidu:'baidu',naver:'naver'};
+const TRADE_PUB={NA:'CFO Dive, CFO Brew, Accounting Today, TechCrunch',EMEA:'Sifted, Finextra, Accountancy Age',CN:'Caixin, 36Kr',JP:'Nikkei xTECH, ITmedia Business',KR:'Platum, Korea Economic Daily',SEA:'Tech in Asia, DealStreetAsia',LATAM:'Contxto, local finance and startup trades'};
 
 // ini = index of initiative (0 brand / 1 cross-sell / 2 data), min = first tier (0 lean, 1 standard, 2 full)
 const CH=[
  {id:'linkedin',name:'LinkedIn',group:'Paid social',weight:34,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (VP Growth, Head of UA, UA Manager, Media Buyer); industry: Computer Games, Mobile Gaming; company list: Top 200 studios + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
+  {id:'li_si',name:'Sponsored Content · Single Image',units:['li_image'],min:0,share:30,buy:'CPM',rate:55,stage:'Awareness',ini:0,tgt:'Job functions & titles (CFO, VP Finance, Controller, Founder); industries: software, internet, fintech; company size 50 to 1,000; target account list + lookalikes',kpi:'CTR ≥ 0.5%; eCPM'},
   {id:'li_vid',name:'Sponsored Content · Video (proof-point testimonials)',units:['li_video'],min:0,share:25,buy:'CPM',rate:60,stage:'Awareness',ini:0,tgt:'Same as single image + video viewer retargeting',kpi:'VTR ≥ 25%; cost per 3s view'},
   {id:'li_tla',name:'Thought Leader Ads (execs + creators)',units:['li_tla'],min:0,share:15,buy:'CPM',rate:40,stage:'Awareness',ini:0,tgt:'Followers of competitor and industry pages; job titles above',kpi:'Engagement ≥ 2%; social share of voice'},
-  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:150,stage:'Consideration',ini:0,tgt:'Head of UA, UA Manager, Growth Data Science at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
-  {id:'li_rt',name:'Retargeting · existing advertisers (cross-sell)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: current advertiser contact lists (single-format users); site visitors',kpi:'CTR ≥ 0.8%; second-format activation'},
-  {id:'li_tech',name:'Sponsored Content · technical webinars & docs (GA4, developer data)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Head of UA, Ad Ops, Growth Data Science; current advertisers not yet sharing developer data',kpi:'Webinar registrations; GA4 / data-sharing opt-ins'},
-  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'HOM / Torso account lists; UA and Ad Ops leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
+  {id:'li_doc',name:'Document Ads + Lead Gen (gated report)',units:['li_doc','li_lgf'],min:1,share:20,buy:'CPL',rate:150,stage:'Consideration',ini:0,tgt:'Controllers, FP&A and Finance Ops leads at target accounts',kpi:'CPL ≤ $120; form completion ≥ 10%'},
+  {id:'li_rt',name:'Retargeting · site visitors and started applications',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Conversion',ini:1,tgt:'Matched audiences: started-but-unfinished applications, CRM lists; pricing and product page visitors',kpi:'CTR ≥ 0.8%; completed signups'},
+  {id:'li_tech',name:'Sponsored Content · close & budgeting webinars (ERP integrations)',units:['li_image'],min:1,share:10,buy:'CPC',rate:9,stage:'Consideration',ini:2,tgt:'Controllers, FP&A and Finance Ops at companies on NetSuite, QuickBooks or Xero',kpi:'Webinar registrations; demo requests'},
+  {id:'li_conv',name:'Conversation Ads · workshop & webinar invites',units:['li_conv'],min:2,share:10,buy:'CPS',rate:0.6,stage:'Consideration',ini:2,tgt:'Mid-market target account lists; finance and accounting leads',kpi:'Open ≥ 50%; click ≥ 3%; registrations'}]},
  {id:'google',name:'Google Search',group:'Paid search',weight:12,markets:{exclude:['CN']},personas:['tech','user'],pl:[
   {id:'gs_brand',name:'Brand + product terms',units:['gs_rsa','gs_ext'],min:0,share:35,buy:'CPC',rate:4,stage:'Conversion',ini:1,tgt:'Exact / phrase: brand, product and feature names',kpi:'Impression share ≥ 90%; sign-up CVR'},
-  {id:'gs_cat',name:'Category terms (UA platform, ROAS campaigns)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “user acquisition platform”, “ROAS campaign”, “mobile game UA”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
+  {id:'gs_cat',name:'Category terms (corporate cards, spend management)',units:['gs_rsa','gs_ext'],min:0,share:45,buy:'CPC',rate:9,stage:'Consideration',ini:0,tgt:'Phrase / broad + smart bidding: “corporate card for startups”, “spend management software”, “expense management”',kpi:'CPC ≤ $9; CTR ≥ 4%'},
   {id:'gs_comp',name:'Competitor conquest',units:['gs_rsa'],min:2,share:20,buy:'CPC',rate:12,stage:'Consideration',ini:0,tgt:'Competitor brand + “alternative” terms (no trademark in ad copy)',kpi:'CTR ≥ 3%; assisted sign-ups'}]},
  {id:'meta',name:'Meta (Facebook + Instagram)',group:'Paid social',weight:8,markets:{exclude:['CN']},personas:['user','tech'],pl:[
-  {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (marketing, advertising, growth); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
+  {id:'mt_feed',name:'Feed ads · image (Facebook + Instagram)',units:['meta_feed_img'],min:0,share:45,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Interests and job titles (finance, accounting, small business owners, founders); lookalikes of customer lists',kpi:'CTR ≥ 0.6%; CPM ≤ $12'},
   {id:'mt_vid',name:'Reels, Stories & feed video',units:['meta_reels','meta_feed_vid'],min:1,share:35,buy:'CPM',rate:10,stage:'Awareness',ini:0,tgt:'Same as feed + video viewer retargeting',kpi:'ThruPlay rate ≥ 20%; cost per ThruPlay'},
   {id:'mt_lead',name:'Lead ads · Instant Form (gated report)',units:['meta_feed_img','meta_lgf'],min:2,share:20,buy:'CPL',rate:60,stage:'Consideration',ini:0,tgt:'Lookalikes of SQLs; site and video retargeting',kpi:'CPL ≤ $60; SQL rate'}]},
  {id:'x',name:'X (Twitter)',group:'Paid social',weight:7,markets:{exclude:['CN']},boost:{JP:2.5},personas:['tech','user'],pl:[
-  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of UA / AdTech thought leaders; keywords',kpi:'Engagement ≥ 1%'},
+  {id:'x_img',name:'Promoted posts · image',units:['x_image'],min:1,share:50,buy:'CPM',rate:9,stage:'Awareness',ini:0,tgt:'Follower lookalikes of startup, VC and finance voices; keywords',kpi:'Engagement ≥ 1%'},
   {id:'x_vid',name:'Promoted video · proof-point clips',units:['x_video'],min:1,share:50,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as image + conference hashtags',kpi:'VTR ≥ 20%'}]},
  {id:'reddit',name:'Reddit',group:'Paid social',weight:3,markets:{exclude:['CN']},boost:{JP:0.5,KR:0.3,SEA:0.6,LATAM:0.6},personas:['user'],pl:[
-  {id:'rd_img',name:'Promoted posts · UA & ad-ops communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/gamedev, r/mobilemarketing, r/adops, r/PPC',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
+  {id:'rd_img',name:'Promoted posts · founder & finance communities',units:['rd_image'],min:2,share:100,buy:'CPM',rate:6,stage:'Consideration',ini:2,tgt:'Communities: r/startups, r/smallbusiness, r/Accounting, r/FPandA',kpi:'CTR ≥ 0.4%; comment sentiment'}]},
  {id:'youtube',name:'YouTube',group:'Online video',weight:9,markets:{exclude:['CN']},personas:['dm','tech','user'],pl:[
-  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.05,stage:'Awareness',ini:0,tgt:'Custom segments: UA / AdTech search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
+  {id:'yt_in',name:'Skippable in-stream · testimonial series',units:['yt_instream'],min:1,share:70,buy:'CPV',rate:0.05,stage:'Awareness',ini:0,tgt:'Custom segments: corporate card and expense software search terms, competitor channel viewers; customer match',kpi:'VTR ≥ 25%; CPV ≤ $0.06'},
   {id:'yt_sh',name:'Shorts · 15s cut-downs',units:['yt_shorts'],min:2,share:30,buy:'CPM',rate:8,stage:'Awareness',ini:0,tgt:'Same custom segments',kpi:'View rate; earned subs'}]},
- {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local gaming / ad-tech trades',pl:[
-  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (studio execs, UA leads)',kpi:'CTR ≥ 1.5%'},
-  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, ad-tech and UA sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
+ {id:'ctv',name:'Connected TV & programmatic',group:'Programmatic',weight:8,markets:{exclude:['CN']},personas:['dm','user'],pub:()=>'DSP (e.g., The Trade Desk or DV360) · CTV apps',pl:[
+  {id:'ctv_s',name:'CTV · 15s / 30s spots on streaming apps',units:['ctv_spot'],min:1,share:60,buy:'CPM',rate:35,stage:'Awareness',ini:0,tgt:'B2B decision-maker data segments (firmographics); household IP match to target accounts',kpi:'Completion rate ≥ 90%; site-visit lift'},
+  {id:'ctv_p',name:'Programmatic prospecting · display & online video',units:['iab_display'],min:0,share:40,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Contextual finance and business content; B2B data segments; lookalikes of customers',kpi:'Viewability ≥ 70%; site-visit lift'}]},
+ {id:'trade',name:'Trade & endemic press',group:'Trade & endemic',weight:13,markets:'all',personas:['dm','tech'],pub:m=>TRADE_PUB[m.id]||'Local finance and startup trades',pl:[
+  {id:'tr_nl',name:'Newsletter sponsorship',units:['nl_sponsor'],min:0,share:40,buy:'Flat',rate:4500,unit:'sends',stage:'Consideration',ini:0,tgt:'Publisher subscriber base (finance leaders, founders)',kpi:'CTR ≥ 1.5%'},
+  {id:'tr_disp',name:'Run-of-site display (IAB)',units:['iab_display'],min:1,share:35,buy:'CPM',rate:30,stage:'Awareness',ini:0,tgt:'Run of site, finance, accounting and startup sections',kpi:'Viewability ≥ 70%; CTR ≥ 0.15%'},
   {id:'tr_nat',name:'Sponsored article · customer proof point',units:['native_article'],min:2,share:25,buy:'Flat',rate:15000,unit:'articles',stage:'Consideration',ini:0,tgt:'Publisher audience + social amplification',kpi:'Time on page; referral sign-ups'}]},
- {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'Deconstructor of Fun, GameMakers, industry creators',pl:[
+ {id:'creators',name:'Newsletters, podcasts & creators',group:'Trade & endemic',weight:6,markets:{only:['NA','EMEA']},personas:['dm','tech'],pub:()=>'CFO and founder newsletters, podcasts and creators',pl:[
   {id:'cr_nl',name:'Specialist newsletter sponsorship',units:['nl_sponsor'],min:1,share:50,buy:'Flat',rate:3500,unit:'sends',stage:'Consideration',ini:0,tgt:'Subscriber base',kpi:'CTR ≥ 2%'},
   {id:'cr_inf',name:'Paid creator posts (LinkedIn / X)',units:['creator_post'],min:1,share:20,buy:'Flat',rate:2500,unit:'posts',stage:'Awareness',ini:0,tgt:'Creator follower base',kpi:'Mentions, shares, comments; social SOV'},
-  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (studio execs, growth leads)',kpi:'Vanity URL visits'}]},
+  {id:'cr_pod',name:'Podcast host-read',units:['podcast'],min:2,share:30,buy:'Flat',rate:6000,unit:'episodes',stage:'Awareness',ini:0,tgt:'Listener base (founders, CFOs)',kpi:'Vanity URL visits'}]},
  {id:'abm',name:'ABM programmatic',group:'Programmatic',weight:8,markets:{exclude:['CN']},personas:['dm','tech'],pub:()=>'ABM DSP (e.g., Demandbase, 6sense)',pl:[
-  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Top 200 studios + HOM / Torso target accounts; buying-committee roles',kpi:'Account reach ≥ 60%; engaged accounts'},
+  {id:'abm_d',name:'Account-based display · target account list',units:['iab_display','native_display'],min:1,share:70,buy:'CPM',rate:28,stage:'Consideration',ini:0,tgt:'Mid-market target accounts (100 to 1,000 employees); buying-committee roles',kpi:'Account reach ≥ 60%; engaged accounts'},
   {id:'abm_rt',name:'Site retargeting · product, pricing & docs visitors',units:['iab_display'],min:1,share:30,buy:'CPM',rate:12,stage:'Conversion',ini:1,tgt:'Site visitors (30-day), excluding active customers of that format',kpi:'Return-visit rate; sign-ups'}]},
  {id:'events',name:'Event amplification',group:'Events',weight:6,markets:'all',personas:['dm'],burst:'events',pub:()=>'Event organizers (per moment)',pl:[
   {id:'ev_pkg',name:'Sponsor digital package (app, attendee email)',units:['event_pkg'],min:1,share:60,buy:'Flat',rate:12000,unit:'events',stage:'Consideration',ini:0,tgt:'Registered attendees',kpi:'Meetings booked; booth scans'},
   {id:'ev_soc',name:'Geo-targeted paid social · meeting booking',units:m=>m.id==='CN'?['wc_moments']:['li_image'],min:1,share:40,buy:'CPM',rate:45,stage:'Consideration',ini:0,tgt:'Venue geo-fence + attendee job titles, 2 weeks pre-show',kpi:'Meetings booked; CTR ≥ 0.6%'}]},
  {id:'wechat',name:'WeChat',group:'Regional platforms',weight:14,markets:{only:['CN']},personas:['dm','tech','user'],pub:()=>'Tencent Ads',pl:[
-  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: game developers, publishers, ad-tech; lookalikes of studio list',kpi:'CTR ≥ 0.8%; follows'},
-  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Gaming / ad-tech official accounts',kpi:'CPC; account follows'},
+  {id:'wc_m',name:'Moments ads',units:['wc_moments'],min:0,share:60,buy:'CPM',rate:15,stage:'Awareness',ini:0,tgt:'Industry & interest: finance, accounting, startups; lookalikes of customer list',kpi:'CTR ≥ 0.8%; follows'},
+  {id:'wc_o',name:'Official Account article ads',units:['wc_oa'],min:1,share:25,buy:'CPC',rate:1.5,stage:'Consideration',ini:0,tgt:'Finance and business official accounts',kpi:'CPC; account follows'},
   {id:'wc_c',name:'Channels video',units:['wc_channels'],min:2,share:15,buy:'CPM',rate:12,stage:'Awareness',ini:0,tgt:'Same as Moments',kpi:'Completion rate'}]},
  {id:'baidu',name:'Baidu Search',group:'Regional platforms',weight:8,markets:{only:['CN']},personas:['tech','user'],pub:()=>'Baidu',pl:[
-  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
+  {id:'bd_s',name:'Brand + category search',units:['bd_search'],min:0,share:100,buy:'CPC',rate:2.5,stage:'Consideration',ini:1,tgt:'Brand, product and spend management terms in Chinese',kpi:'CTR ≥ 3%; leads'}]},
  {id:'naver',name:'Naver',group:'Regional platforms',weight:8,markets:{only:['KR']},personas:['tech','user'],pub:()=>'Naver',pl:[
-  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and UA category terms in Korean',kpi:'CTR ≥ 3%'},
-  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: games, marketing, IT',kpi:'CTR ≥ 0.5%'}]},
+  {id:'nv_s',name:'PowerLink search',units:['nv_search'],min:0,share:70,buy:'CPC',rate:1.8,stage:'Consideration',ini:1,tgt:'Brand, product and spend management terms in Korean',kpi:'CTR ≥ 3%'},
+  {id:'nv_g',name:'GFA feed & display',units:['nv_gfa'],min:1,share:30,buy:'CPM',rate:6,stage:'Awareness',ini:0,tgt:'Interest: business, finance, startups',kpi:'CTR ≥ 0.5%'}]},
 ];
 for(const u in UNITS){UNITS[u].fmt=UNIT_META[u][0];UNITS[u].medium=UNIT_META[u][1]}
 // copy limits used to fit the ad copy column (h = headline, b = body / primary text, cta = button)
 const LIMS={meta_feed_img:{h:40,b:125},meta_feed_vid:{h:40,b:125},meta_reels:{b:72},meta_lgf:{h:60,b:160},li_image:{h:70,b:150},li_video:{h:70,b:150},li_tla:{b:3000},li_doc:{h:70,b:150},li_lgf:{h:60,b:160},li_conv:{b:500,cta:25},gs_rsa:{h:30,b:90},gs_ext:{h:25,b:35},
- x_image:{h:70,b:100},x_video:{b:100},rd_image:{h:150},yt_instream:{h:40,b:90},yt_shorts:{h:40},nl_sponsor:{h:60,b:450},iab_display:{h:40,cta:15},native_display:{h:50,b:90,cta:15},native_article:{h:90},
+ x_image:{h:70,b:100},x_video:{b:100},rd_image:{h:150},yt_instream:{h:40,b:90},ctv_spot:{},yt_shorts:{h:40},nl_sponsor:{h:60,b:450},iab_display:{h:40,cta:15},native_display:{h:50,b:90,cta:15},native_article:{h:90},
  podcast:{},creator_post:{},event_pkg:{h:60,b:300},wc_moments:{b:40},wc_oa:{h:28,b:60},wc_channels:{b:40},bd_search:{h:25,b:80},nv_search:{h:15,b:45},nv_gfa:{h:25,b:45}};
 const CHMAP=Object.fromEntries(CH.map(c=>[c.id,c]));
 const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 
-/* ==================== EXAMPLE STATE (sample GTM, fictional "Example Co.") ==================== */
-const EX_NAME='Example Co. · Growth Platform 2027';
-const EXAMPLE_BRIEF=`GTM Strategy: Example Co. · Growth Platform 2027 (sample brief used to pre-fill this example)
+/* ==================== EXAMPLE STATE (sample GTM, fictional "Fernway", a B2B finance company) ==================== */
+const EX_NAME='Fernway · Spend Platform 2027';
+const EX_OLD=['Example Co. · Growth Platform 2027','One Unity · Unity Acquire 2026'];
+const EXAMPLE_BRIEF=`GTM Strategy: Fernway · Spend Platform 2027 (fictional sample brief used to pre-fill this example)
 
-Solution: Growth Platform, an AI-powered campaign tool that plans, buys and optimizes ads from one dashboard.
+Solution: Fernway Spend Platform, corporate cards, expense management, bill pay and business accounts in one finance platform for startups and mid-market companies.
 
 2027 initiatives
-1. AI Engine Perception Reset + Brand Equity: reposition the platform as an AI engine with unique first-party data. KPI: 30% YoY net revenue growth.
-2. Platform Adoption & Cross-Sell: make multi-format campaigns the default. KPIs: 11% YoY add-on revenue; +25% of advertisers activating a second format.
-3. Data Activation & Measurement Confidence: analytics integrations and first-party data. KPIs: 100% of advertisers sharing first-party data; % linking Google Analytics.
+1. Finance Brand Awareness: make Fernway the first name finance leaders think of for spend management. KPIs: +8 pts aided awareness among US finance leaders; +30% branded search volume.
+2. Self-Serve Signups & Activation: grow online applications from startups and small businesses. KPIs: +40% YoY self-serve signups; 60% of approved accounts activating a card within 14 days.
+3. Mid-Market Pipeline & Proof: win companies with 100 to 1,000 employees replacing legacy cards and expense tools. KPIs: +35% sales-qualified pipeline; $18M in sourced pipeline.
 
-ICP: current advertisers (enterprise >$10K/day, mid-market $1–10K, SMB $200–1K) and new prospects (top 200 globally) on competing platforms.
+ICP: venture-backed startups (self-serve), growing SMBs (self-serve plus sales assist) and mid-market companies with 100 to 1,000 employees (sales-led).
 Personas & where they learn:
-- Decision-maker (CEO, CMO, VP Growth): LinkedIn; industry trades; major industry conferences; exec podcasts.
-- Technical influencer (Head of Growth, Ad Ops, Data Science): LinkedIn + groups, Slack communities, X, industry newsletters.
-- Day-to-day user (Marketing Manager, Media Buyer): LinkedIn, X, Reddit, forums, search / LLM search.
-Markets: US and APAC emphasized (China, Japan, Korea).
+- Decision-maker (CFO, VP Finance, Founder): LinkedIn; finance trades; CFO conferences; business podcasts.
+- Technical influencer (Controller, FP&A, Finance Ops): LinkedIn, finance communities, ERP partner ecosystems, webinars.
+- Day-to-day user (Accountant, AP Specialist, Office Manager): Google and LLM search, Meta, YouTube, Reddit.
+Markets: US first, with the UK, Canada and Mexico growing.
 
-Launch calendar: Q1-Mar ROAS Campaigns + New Campaign Flow; Q2-Apr Unified Dashboard Ph1 + Multi-Country Budget; Q2-Jun Retention Campaigns; Q3 2027 Industry Benchmark Report; Q3 Unified onboarding; Q3 Unified SDK; Q4 Insights Agent; Q4 Executive Summit [China]. Ongoing: customer video testimonials, proof points, co-marketing, LinkedIn newsletter, technical webinars.`;
-
+Launch calendar: Q1-Mar Spend Platform 2027 brand campaign; Q2-Apr AP automation + bill pay launch; Q2-May spring finance leaders conference; Q2-Jun self-serve onboarding v2; Q3-Jul 2027 State of Business Spend report; Q3-Sep startup and VC conference; Q4-Oct travel and expense launch; Q4-Nov CFO summit; Q4-Dec year-end close campaign. Ongoing: customer video stories, CFO newsletter, ERP partner co-marketing, close and budgeting webinars.`;
 function exampleState(){return{
- name:EX_NAME,product:'Growth Platform (AI-powered campaign planning, buying and optimization)',brief:EXAMPLE_BRIEF,
- budgets:{lean:400000,standard:900000,full:1600000},start:'2027-03-01',end:'2027-12-31',
+ name:EX_NAME,product:'Spend Platform (corporate cards, expense management, bill pay and business accounts)',brief:EXAMPLE_BRIEF,
+ budgets:{lean:1500000,standard:2500000,full:4000000},start:'2027-03-01',end:'2027-12-31',
  markets:[
-  {id:'NA',name:'North America',lang:'EN',on:true,weight:40},
-  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:20},
-  {id:'CN',name:'China',lang:'ZH',on:true,weight:15},
-  {id:'JP',name:'Japan',lang:'JA',on:true,weight:13},
-  {id:'KR',name:'Korea',lang:'KO',on:true,weight:12},
-  {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:5},
-  {id:'LATAM',name:'LATAM',lang:'ES',on:false,weight:5}],
- personas:{dm:{label:'Decision-maker (CEO, CMO, VP Growth)',on:true},tech:{label:'Technical influencer (Head of Growth, Ad Ops)',on:true},user:{label:'Day-to-day user (Marketing Manager, Media Buyer)',on:true}},
+  {id:'NA',name:'North America',lang:'EN',on:true,weight:75},
+  {id:'EMEA',name:'EMEA',lang:'EN',on:true,weight:15},
+  {id:'LATAM',name:'LATAM',lang:'ES',on:true,weight:10},
+  {id:'CN',name:'China',lang:'ZH',on:false,weight:0},
+  {id:'JP',name:'Japan',lang:'JA',on:false,weight:0},
+  {id:'KR',name:'Korea',lang:'KO',on:false,weight:0},
+  {id:'SEA',name:'Southeast Asia',lang:'EN',on:false,weight:0}],
+ personas:{dm:{label:'Decision-maker (CFO, VP Finance, Founder)',on:true},tech:{label:'Technical influencer (Controller, FP&A, Finance Ops)',on:true},user:{label:'Day-to-day user (Accountant, AP Specialist, Office Manager)',on:true}},
  initiatives:[
-  {name:'AI Engine Perception Reset + Brand Equity',stage:'Awareness',pillar:'An AI campaign engine built on unique first-party data'},
-  {name:'Platform Adoption & Cross-Sell',stage:'Conversion',pillar:'Run every format from one dashboard; multi-format by default'},
-  {name:'Data Activation & Measurement Confidence',stage:'Consideration',pillar:'Measurement you can trust: analytics and first-party data, less guesswork'}],
+  {name:'Finance Brand Awareness',stage:'Awareness',pillar:'The finance platform growing companies trust to spend smarter'},
+  {name:'Self-Serve Signups & Activation',stage:'Conversion',pillar:'Apply in minutes; cards, expenses and bill pay in one account'},
+  {name:'Mid-Market Pipeline & Proof',stage:'Consideration',pillar:'Real-time spend controls and a faster month-end close'}],
  moments:[
-  {name:'ROAS Campaigns + New Campaign Flow',month:'2027-03',type:'launch',ini:0},
-  {name:'Spring industry conference',month:'2027-03',type:'event',ini:0},
-  {name:'Unified Dashboard Ph1 + Multi-Country Budget',month:'2027-04',type:'launch',ini:1},
-  {name:'Retention Campaigns',month:'2027-06',type:'launch',ini:0},
-  {name:'2027 Industry Benchmark Report',month:'2027-07',type:'content',ini:0},
-  {name:'Unified onboarding',month:'2027-08',type:'launch',ini:1},
-  {name:'Unified SDK',month:'2027-09',type:'launch',ini:1},
-  {name:'Executive Summit (China)',month:'2027-11',type:'event',ini:0},
-  {name:'Insights Agent',month:'2027-12',type:'launch',ini:2}],
- channels:Object.fromEntries(CH.map(c=>[c.id,{on:true,weight:c.weight}])),
+  {name:'Spend Platform 2027 brand campaign',month:'2027-03',type:'launch',ini:0},
+  {name:'AP automation + bill pay launch',month:'2027-04',type:'launch',ini:1},
+  {name:'Spring finance leaders conference',month:'2027-05',type:'event',ini:2},
+  {name:'Self-serve onboarding v2',month:'2027-06',type:'launch',ini:1},
+  {name:'2027 State of Business Spend report',month:'2027-07',type:'content',ini:2},
+  {name:'Startup & VC conference',month:'2027-09',type:'event',ini:0},
+  {name:'Travel & expense launch',month:'2027-10',type:'launch',ini:1},
+  {name:'CFO Summit',month:'2027-11',type:'event',ini:2},
+  {name:'Year-end close campaign',month:'2027-12',type:'launch',ini:2}],
+ channels:Object.fromEntries(CH.map(c=>[c.id,{on:!['wechat','baidu','naver'].includes(c.id),weight:c.weight}])),
  concepts:{lean:2,standard:3,full:4},refresh:{lean:12,standard:8,full:6},rates:{},
  formats:defaultFormats(),landing:'https://example.com/',copy:exampleCopy()
 };}
 function exampleCopy(){return{src:EX_NAME,
- voice:'Confident, specific and performance-first. Lead with outcomes (ROAS, retention, scale), name the data advantage, skip the hype.',
- eyebrow:'New: AI campaign engine\nThe 2027 UA report\nBuilt on real data',
- ctas:'Start a campaign\nLearn more\nGet the report\nRegister now\nBook a meeting',
- proof:'A retail app scaled ROAS campaigns 4x on iOS and Android with flat CPI\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles\nA top publisher improved campaign results at scale with high-quality users',
+ voice:'Clear, confident and practical. Lead with time and money saved, show the controls finance teams care about, skip the jargon.',
+ eyebrow:'New: AP automation\nThe 2027 spend report\nBuilt for finance teams',
+ ctas:'Apply now\nGet started\nGet the report\nRegister now\nBook a demo',
+ proof:'A 300-person software company closed its books 5 days faster\nA seed-stage startup was approved and issuing cards the same day\nA multi-entity retailer cut out-of-policy spend by 40%',
  ini:[
-  {h:'Grow on D28 ROAS\nAI built for ROAS\nUA that understands your users\nSet the goal. AI finds the buyers.\nThe campaign engine built on real data',
-   b:'Tell the AI your goal. It handles bids and pacing.\nOur engine uses first-party and in-app signals to find users who stay and pay. Launch ROAS campaigns in minutes.\nA puzzle studio saw ~50% more installs and 7% lower CPI across 6 titles.'},
-  {h:'One login for all your ads\nEvery format. One dashboard.\nVideo + rewarded. One place.\nRun all your formats together',
-   b:'Every format in one place.\nAdd new formats to your campaigns in a few clicks and reach more users at scale.\nLaunch video, display and rewarded campaigns from one dashboard, with one login and shared reporting.'},
-  {h:'Less attribution guesswork\nLink GA4. Get sharper ROAS.\nMeasurement you can trust',
-   b:'Link GA4 for sharper ROAS.\nReconcile results with your own analytics, right in the dashboard.\nConnect GA4 and first-party data so the AI optimizes on signals you already trust, not delayed postbacks.'}]};}
+  {h:'Spend smarter, grow faster\nFinance, without the friction\nThe card finance teams trust\nEvery dollar, in real time\nBuilt for how you grow',
+   b:'Cards, expenses and bill pay in one place.\nGive teams the cards they need while finance keeps real-time control of every dollar.\nGrowing companies run spend on Fernway so finance can focus on the next stage of growth.'},
+  {h:'Apply in minutes\nCards issued same day\nNo personal guarantee\nStart spending smarter today',
+   b:'Apply online in minutes.\nGet approved fast, issue virtual cards instantly and connect your accounting software on day one.\nA seed-stage startup was approved and issuing cards the same day.'},
+  {h:'Close the books 5 days faster\nSpend controls that scale\nReplace your legacy card',
+   b:'Close faster with automatic receipts.\nSet policies by team, sync to your ERP and see every transaction as it happens.\nA 300-person software company closed its books 5 days faster after switching.'}]};}
 function blankPersonas(){return {dm:{label:'Decision-maker',on:true},tech:{label:'Technical influencer',on:true},user:{label:'Day-to-day user',on:true}}}
 function blankState(){const yr=new Date().getFullYear()+1;return{
  name:'',product:'',brief:'',budgets:{lean:250000,standard:500000,full:1000000},start:yr+'-01-01',end:yr+'-12-31',
@@ -207,7 +212,9 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
-if(!S||!S.markets||S.name==='One Unity · Unity Acquire 2026')S=exampleState();
+if(!S||!S.markets||EX_OLD.includes(S.name))S=exampleState();
+if(S.name===EX_NAME&&S.budgets&&+S.budgets.lean===400000&&+S.budgets.standard===900000&&+S.budgets.full===1600000)S.budgets={lean:1500000,standard:2500000,full:4000000};
+if(!S.split)S.split={brand:0.30,ss:0.55,tl:0.10};
 if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
 let UI={tier:1,tab:'summary',group:'channel',mvp:'master'};
 try{Object.assign(UI,JSON.parse(localStorage.getItem(LSKEY+'-ui')||'{}'))}catch(e){}
@@ -219,7 +226,7 @@ const pjId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)
 let PJ_ERR=false;
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}
  if(UI.pj){const P=pjAll();if(P[UI.pj]){P[UI.pj].S=S;P[UI.pj].saved=Date.now();PJ_ERR=!pjPut(P);const h=document.getElementById('pj-hint');if(h)h.textContent=PJ_ERR?'browser storage full: download a backup':'saved '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}}}
-(function pjEnsure(){const P=pjAll();if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
+(function pjEnsure(){const P=pjAll();if(UI.pj&&P[UI.pj]&&EX_OLD.includes(P[UI.pj].name)){P[UI.pj].name=S.name;P[UI.pj].S=S;pjPut(P)}if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
 function pjOpen(id){const P=pjAll();if(!P[id])return;try{localStorage.setItem(LSKEY,JSON.stringify(P[id].S));UI.pj=id;localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}location.reload()}
 function renderProjects(){const P=pjAll(),ids=Object.keys(P).sort((a,b)=>(P[b].saved||0)-(P[a].saved||0));
  $('#pj-sel').innerHTML=ids.map(id=>`<option value="${id}" ${id===UI.pj?'selected':''}>${esc(P[id].name||'Untitled plan')}</option>`).join('');
@@ -331,6 +338,16 @@ const CTAPICK={LinkedIn:'CTA button (pick from LinkedIn list)',Meta:'CTA button 
 // Channel split per version: a version's own weights once its budgets are edited, else the shared default split
 const chW=(id,t)=>{const c=S.channels[id];return c?+c.weight:0};
 const setChW=(id,t,v)=>{const c=S.channels[id];(c.tw=c.tw||{})[TIERS[t]]=v};
+/* ==================== BRAND VS GROWTH SPLIT (section 2) ==================== */
+// Share of each version's budget: brand media, growth & performance media (self-serve vs pipeline), and a test & learn reserve held back from the lines
+const SPLIT_DEF={brand:0.30,ss:0.55,tl:0.10};
+const splitOf=()=>{const x={...SPLIT_DEF,...(S.split||{})};x.brand=Math.min(0.9,Math.max(0,+x.brand||0));x.tl=Math.min(0.5,Math.max(0,+x.tl||0));if(x.brand+x.tl>0.95)x.tl=Math.max(0,0.95-x.brand);x.ss=Math.min(1,Math.max(0,+x.ss||0));return x};
+const SIDES=['brand','self','pipe'],SIDENAME={brand:'Brand',self:'Growth · Self-Serve',pipe:'Growth · Pipeline'};
+const PIPE_PL=new Set(['li_doc','li_conv','li_tech','gs_comp','mt_lead','abm_d','abm_rt','ev_pkg','ev_soc','tr_nat']);
+const sideOf=p=>roleOf(p)==='brand'?'brand':(S.plSide||{})[p.id]||(PIPE_PL.has(p.id)||p.buy==='CPL'?'pipe':'self');
+const splitTargets=total=>{const x=splitOf(),g=Math.max(0,1-x.brand-x.tl);return {brand:total*x.brand,self:total*g*x.ss,pipe:total*g*(1-x.ss),reserve:total*x.tl,media:total*(1-x.tl)}};
+const mediaBudget=t=>splitTargets(+S.budgets[TIERS[t]]||0).media;
+function requantify(l){const b=l.budget,r=l.rate;if(l.p.buy==='Flat'){l.qty=Math.floor(b/r);l.under=l.qty<1}else l.qty=l.p.buy==='CPM'?b/r*1000:b/r}
 function compute(tier){
  const T=TIERS[tier],total=+S.budgets[T]||0;
  const mkts=S.markets.filter(m=>m.on&&+m.weight>0),wsum=sum(mkts.map(m=>m.weight));
@@ -370,6 +387,12 @@ function compute(tier){
      due:isoD(new Date(parseD(S.start)-lead*864e5)),under:p.buy==='Flat'&&qty<1});
    });});
  }
+ // Brand vs Growth split: every line is rescaled so each side lands on its share of the budget; the test & learn reserve stays unplaced.
+ // A side with no lines passes its share to the others, so the lines always add up to the media budget.
+ {const tg=splitTargets(total),have={};lines.forEach(l=>{l.side=sideOf(l.p);have[l.side]=(have[l.side]||0)+l.budget});
+  const live=SIDES.filter(k=>have[k]>0),ts=sum(live.map(k=>tg[k]));
+  live.forEach(k=>{const f=ts?tg[k]*tg.media/ts/have[k]:0;lines.forEach(l=>{if(l.side===k){l.budget*=f;requantify(l)}})});
+  for(let i=lines.length-1;i>=0;i--)if(!(lines[i].budget>0))lines.splice(i,1)}
  lines.forEach((l,i)=>l.id='L'+String(i+1).padStart(3,'0'));
  // diminishing returns: each line's results scale with its channel's total spend
  const chSp={};lines.forEach(l=>chSp[l.c.id]=(chSp[l.c.id]||0)+l.budget);lines.forEach(l=>l.sat=satF(l.c.id,chSp[l.c.id]));
@@ -410,7 +433,7 @@ function compute(tier){
    master:M.best.size||'—'}});
  const keyToId=Object.fromEntries(masters.map(m=>[m.key,m.id]));
  lines.forEach(l=>{l.bomIds=[...l.bom].map(k=>keyToId[k]).sort()});
- return {tier,total,lines,months,flightRows,deliverables,rounds,concepts,masters,lens};
+ return {tier,total,lines,months,flightRows,deliverables,rounds,concepts,masters,lens,split:splitTargets(total)};
 }
 function nextMonth(k){let [y,m]=k.split('-').map(Number);m++;if(m>12){m=1;y++}return `${y}-${String(m).padStart(2,'0')}`}
 
@@ -445,7 +468,7 @@ const TRAFFIC_DEF={bu:'',region:'',cc:'',crm:'',crmName:'',content:'ug',ctype:'r
 const trafficOf=()=>({...TRAFFIC_DEF,...(S.traffic||{})});
 const OBJ={CPM:['Brand awareness','Impressions / reach'],CPC:['Website traffic','Landing page clicks'],CPL:['Lead generation','Leads'],CPV:['Video views','Views (2s+ / ThruPlay)'],CPS:['Sponsored messaging','Sends / opens'],Flat:['Sponsorship (IO)','Delivery per IO']};
 const STG={Awareness:'aw',Consideration:'co',Conversion:'cv'};
-const CHC={linkedin:'soc-li',google:'sem-gg',meta:'soc-fb',x:'soc-x',reddit:'soc-rd',youtube:'vid-yt',trade:'pr-trd',creators:'cr-nl',abm:'prg-abm',events:'evt',wechat:'soc-wc',baidu:'sem-bd',naver:'sem-nv'};
+const CHC={linkedin:'soc-li',google:'sem-gg',meta:'soc-fb',x:'soc-x',reddit:'soc-rd',youtube:'vid-yt',ctv:'prg-ctv',trade:'pr-trd',creators:'cr-nl',abm:'prg-abm',events:'evt',wechat:'soc-wc',baidu:'sem-bd',naver:'sem-nv'};
 const FMTC={static:'img',video:'vid',carousel:'car',text:'txt',display:'dsp',native:'nat',messaging:'msg',audio:'aud',doc:'doc'};
 const DEF_EXCL='Competitor & partner lists; current employees; students & interns; existing customers / converters (CRM upload)';
 const DEVICES={search:'All (mobile bid adj.)',video:'All',display:'All',social:'All (mobile-first)'};
@@ -540,7 +563,7 @@ function totals(R){const t={imp:0,clk:0,views:0,leads:0};R.lines.forEach(l=>{if(
 // Full-funnel estimate across every buy: each line's bought unit plus benchmark ratios for the rest (flat-fee buys not estimated)
 const FUN={ctr:0.005,ctrCpc:0.05,viewRate:0.3,leadForm:0.10,openRate:0.4,sendCtr:0.03,lpv:0.8,eng:0.006,cvr:0.02};
 // Channel benchmarks (B2B, 2025 industry data): override FUN per channel. Sources are listed on the Flighting tab.
-const CHFUN={linkedin:{ctr:0.005,leadForm:0.10,cvr:0.025,lpv:0.75},google:{ctrCpc:0.06,cvr:0.03,lpv:0.85},meta:{ctr:0.008,leadForm:0.12,cvr:0.015},x:{ctr:0.004,cvr:0.01},reddit:{ctr:0.005,cvr:0.01},youtube:{ctr:0.004,viewRate:0.3,cvr:0.01},
+const CHFUN={linkedin:{ctr:0.005,leadForm:0.10,cvr:0.025,lpv:0.75},google:{ctrCpc:0.06,cvr:0.03,lpv:0.85},meta:{ctr:0.008,leadForm:0.12,cvr:0.015},x:{ctr:0.004,cvr:0.01},reddit:{ctr:0.005,cvr:0.01},youtube:{ctr:0.004,viewRate:0.3,cvr:0.01},ctv:{ctr:0.001,cvr:0.01},
  trade:{ctr:0.001,cvr:0.015},abm:{ctr:0.002,cvr:0.015},events:{ctr:0.005,cvr:0.02},wechat:{ctr:0.008,cvr:0.01},baidu:{ctrCpc:0.04,cvr:0.02},naver:{ctrCpc:0.04,ctr:0.003,cvr:0.02}};
 const funOf=id=>({...FUN,...(CHFUN[id]||{})});
 const BENCH_SRC=[['LinkedIn','CPM $30–90 · CTR 0.44–0.65% · CPC $6–10 ($10+ for software) · lead form completion 6–18% · CPL $75–250','https://www.clickminded.com/linkedin-ads-benchmarks/'],
@@ -549,6 +572,9 @@ const BENCH_SRC=[['LinkedIn','CPM $30–90 · CTR 0.44–0.65% · CPC $6–10 ($
  ['Meta','B2B link CTR ~0.8% · lead ads CPL up ~21% in 2025 · B2B SaaS CPL ~$60','https://wordstream.com/blog/facebook-ads-benchmarks-2025'],
  ['Reddit','CPM $3–12 · promoted post CTR 0.3–1.0% · B2B CPC $0.50–4','https://benly.ai/learn/reddit-ads/reddit-ads-cost-benchmarks'],
  ['YouTube','CPM ~$9 (standard video) · in-stream CPV ~$0.05','https://storegrowers.com/youtube-ads-benchmarks'],
+ ['Connected TV','Average CTV CPM ~$26; B2B planning $30–85 depending on targeting (FAST $15–25, addressable first-party $45–85)','https://directiveconsulting.com/blog/ctv-advertising-cost-b2b-budget-guide/'],
+ ['Brand lift (YouTube)','Average +17% relative lift in awareness and +13% in brand search interest across YouTube Brand Lift studies; in points that is about +3 on an 18% awareness base','https://www.thinkwithgoogle.com/_qs/documents/2695/95bc1_youtube-insights-stats-data-trends-EN.pdf'],
+ ['Brand vs activation (B2B)','Binet & Field for the LinkedIn B2B Institute: B2B grows best at about 46% brand, 54% activation','https://business.linkedin.com/en-uk/marketing-solutions/blog/posts/B2B-Marketing/2019/How-B2B-marketing-really-drives-growth'],
  ['Pipeline','Lead→MQL 31–41% · MQL→SQL 13% median (Salesforce) to 26% for paid search · SQL→opp 30–50% × opp→won 20–35% ≈ 10–15% SQL→customer','https://thedigitalbloom.com/learn/pipeline-performance-benchmarks-2025/'],
  ['Pipeline (trend)','SQL→closed-won fell 5–6 points in 2025 (ICONIQ)','https://www.saastr.com/the-age-of-ai-the-top-10-gtm-learnings-from-iconiqs-2025-b2b-saas-report']];
 function benchHTML(){const ids=CH.filter(c=>S.channels[c.id]?.on).map(c=>c);
@@ -575,7 +601,7 @@ function funnel(R){const o={imp:0,reach:0,clk:0,lpv:0,eng:0,views:0,sends:0,lead
 const GROWTH_DEF={acv:60000,gm:80,life:4,agency:12,creative:40000,tools:15000,sdr:2,perSdr:150,goalType:'cust',goal:40};
 const gr=()=>({...GROWTH_DEF,...(S.growth||{})});
 // Diminishing returns: spend where a channel's results fall to ~63% of linear (planning estimate per flight)
-const SAT_CAP={linkedin:1500000,google:800000,meta:1000000,x:300000,reddit:300000,youtube:800000,trade:300000,creators:200000,abm:600000,events:300000,wechat:300000,baidu:200000,naver:200000};
+const SAT_CAP={linkedin:1500000,google:800000,meta:1000000,x:300000,reddit:300000,youtube:800000,ctv:800000,trade:300000,creators:200000,abm:600000,events:300000,wechat:300000,baidu:200000,naver:200000};
 const satF=(id,x)=>{const c=SAT_CAP[id]||500000,r=x/c;return r>0?(1-Math.exp(-r))/r:1};
 function econ(R,o){const G=gr(),media=sum(R.lines.map(l=>l.budget)),fees=media*G.agency/100,total=media+fees+(+G.creative||0)+(+G.tools||0);
  const pipeline=o.sql*G.acv,rev=o.cust*G.acv,gp=rev*G.gm/100,cacM=o.cust?media/o.cust:0,cacF=o.cust?total/o.cust:0,ltv=G.acv*G.gm/100*G.life;
@@ -661,7 +687,9 @@ function growthAOA(R){const o=funnel(R),E=econ(R,o),G=E.G;return [['GROWTH PLAN 
 /* ==================== MEDIA MIX OUTCOMES ==================== */
 // Brand vs demand. Each Buy Details placement has a role (Awareness placements start as Brand). The tab chains brand spend → lift →
 // demand signals → pipeline → payback, lets you try another brand share, and compares the mix with putting the whole budget into demand.
-const MIX_DEF={studyLift:9,studySpend:0,ex:0.6,consLift:4,recLift:12,baseAw:18,baseCons:9,el:3.5,bl:900,sh:65,cu:35,ou:20,freq:4,geo:''};
+// Brand link defaults are conservative planning placeholders: replace each with your own lift study or geo holdout read.
+// studyLift 3 pts ≈ YouTube's average +17% relative awareness lift on an 18% base; el 4% per pt ≈ YouTube's average +13% brand-search interest lift (Think with Google)
+const MIX_DEF={studyLift:3,studySpend:0,ex:0.6,consLift:1.5,recLift:5,baseAw:18,baseCons:9,el:4,bl:900,sh:50,cu:10,ou:5,freq:4,geo:''};
 const mixOf=()=>({...MIX_DEF,...(S.mix||{})});
 const ROLENAME={brand:'Brand',demand:'Demand'};
 const roleOf=p=>(S.plRole||{})[p.id]||(p.stage==='Awareness'?'brand':'demand');
@@ -669,16 +697,16 @@ const isBrandL=l=>roleOf(l.p)==='brand';
 const roleSelect=pid=>{const r=roleOf(PLMAP[pid]);return `<select class="role-in" data-pid="${pid}" aria-label="Role for ${esc(PLMAP[pid].name)}">${['brand','demand'].map(k=>`<option value="${k}" ${r===k?'selected':''}>${ROLENAME[k]}</option>`).join('')}</select>`};
 function plBudgets(R){const b={};R.lines.forEach(l=>b[l.p.id]=(b[l.p.id]||0)+l.budget);return b}
 // Budgets a brand share would give: brand placements scale together, demand placements share the rest
+// A brand share of media becomes the Brand vs Growth Split's brand share of the whole budget (section 2)
 function mixPins(R,share){const b=plBudgets(R),ids=Object.keys(b),T=sum(ids.map(id=>b[id])),isB=id=>roleOf(PLMAP[id])==='brand';
  const sB=sum(ids.filter(isB).map(id=>b[id])),sD=T-sB,want=T*share;if((want>0&&!sB)||(want<T&&!sD))return null;
- const pl={},ch={};ids.forEach(id=>{const v=isB(id)?b[id]*want/sB:b[id]*(T-want)/sD,c=PLMAP[id].ch.id;pl[id]=v;ch[c]=(ch[c]||0)+v});return {pl,ch}}
+ return {brand:share*(1-splitOf().tl)}}
 // Write pins the same way typing a placement budget in Buy Details does
-function applyPins(St,tier,pins){const T=TIERS[tier];St.plPin=St.plPin||{};St.plPin[T]={...(St.plPin[T]||{}),...pins.pl};St.plPinCh=St.plPinCh||{};St.plPinCh[T]=St.plPinCh[T]||{};
- for(const id in pins.ch){const c=St.channels[id];(c.pin=c.pin||{})[T]=pins.ch[id];St.plPinCh[T][id]=1}}
+function applyPins(St,tier,pins){const keep=S;S=St;try{St.split={...splitOf(),brand:pins.brand}}finally{S=keep}}
 // A version as if Buy Details held these budgets, without touching the saved plan
 function computeWith(tier,pins){if(!pins)return compute(tier);const keep=S;
- S={...keep,plPin:JSON.parse(JSON.stringify(keep.plPin||{})),plPinCh:JSON.parse(JSON.stringify(keep.plPinCh||{})),channels:JSON.parse(JSON.stringify(keep.channels))};
- try{applyPins(S,tier,pins);return compute(tier)}finally{S=keep}}
+ S={...keep,split:{...splitOf(),brand:pins.brand}};
+ try{return compute(tier)}finally{S=keep}}
 const brandSpendOf=R=>sum(R.lines.filter(isBrandL).map(l=>l.budget));
 function mixStudySpend(M){return +M.studySpend||brandSpendOf(compute(1))||1}
 function mixStats(R,M,studySpend){const G=gr(),P=pipe();
@@ -728,7 +756,7 @@ function renderMix(R0){const Z=mixModel(R0),{M,X,A,T}=Z,G=gr(),P=pipe(),b0=plBud
    ${li('Landing page visits',compact(X.b.lpv),'Clicks × channel landing rate','Benchmarks tab')}
    ${li('Video views',X.b.views?compact(X.b.views):'—','CPV buys: budget ÷ rate','Buy Details')}</ul></article>
   <article class="mx-node"><div class="mx-hd"><span class="eyebrow">2 · Brand lift</span><div class="mx-big"${fa(`${M.studyLift} pts × (${money(X.b.spend)} ÷ ${money(Z.ss)}) ^ ${M.ex}. Type a target lift and the brand share moves to buy it: spend = ${money(Z.ss)} × (lift ÷ ${M.studyLift}) ^ (1 ÷ ${M.ex}).`,'Lift study read; response is a benchmark')}>+${X.aw.toFixed(1)} pts<small>aided awareness, exposed vs control</small></div></div>
-   <div class="mx-link"><div class="mx-lt">Link: spend → lift${chip('measured','Lift study')}</div>
+   <div class="mx-link"><div class="mx-lt">Link: spend → lift${chip('assumed','Assumed: replace with your lift study read')}</div>
     <div class="mx-field"><label for="mx-target">Target awareness lift</label><input class="rate" id="mx-target" type="number" min="0" step="0.5" value="${X.aw.toFixed(1)}" style="width:64px!important"><span class="mx-u">pts</span></div>
     ${inp('studyLift','Study read','pts',0.5)}<div class="mx-field"><label for="mx-studySpend">at brand spend of</label><input class="rate mx-in" id="mx-studySpend" type="number" min="0" step="10000" data-k="studySpend" value="${+M.studySpend?esc(M.studySpend):''}" placeholder="${Math.round(Z.ss)}" style="width:96px!important"><span class="mx-u">$</span></div>${inp('ex','Lift response to spend','exp',0.05)}
     <p class="mx-src">Enter the latest brand lift readout and the brand spend it ran on (blank uses the Medium version's brand spend).</p></div>
@@ -738,7 +766,7 @@ function renderMix(R0){const Z=mixModel(R0),{M,X,A,T}=Z,G=gr(),P=pipe(),b0=plBud
    ${li('Awareness per $100K',X.b.spend?'+'+(X.aw/(X.b.spend/1e5)).toFixed(2)+' pts':'—',`${X.aw.toFixed(1)} pts ÷ (${money(X.b.spend)} ÷ $100K)`)}</ul>
    <div class="mx-row2">${inp('consLift','Consideration read','pts',0.5)}${inp('recLift','Ad recall read','pts',0.5)}${inp('baseAw','Awareness baseline','%',1)}</div></article>
   <article class="mx-node"><div class="mx-hd"><span class="eyebrow">3 · Demand signals</span><div class="mx-big"${fa(`${X.aw.toFixed(1)} pts awareness × ${M.el}% branded search per point`,'Benchmark until a geo holdout reads out')}>${sgn(X.bs)}${pct0(Math.abs(X.bs))}<small>branded search volume</small></div></div>
-   <div class="mx-link"><div class="mx-lt">Link: lift → demand${chip('bench','Benchmark')}</div>${inp('el','Branded search per awareness pt','%',0.1)}${inp('bl','Brand-driven leads today','/flight',50,80)}${inp('geo','Geo holdout read (blank if not run)','%',1)}
+   <div class="mx-link"><div class="mx-lt">Link: lift → demand${chip('assumed','Assumed: replace with a geo holdout read')}</div>${inp('el','Branded search per awareness pt','%',0.1)}${inp('bl','Brand-driven leads today','/flight',50,80)}${inp('geo','Geo holdout read (blank if not run)','%',1)}
     <p class="mx-src">Brand-driven leads are the leads that come in from branded search and direct traffic in a normal flight, from your CRM.</p></div>
    <ul class="mx-kv">${li('Branded search',sgn(X.bs)+pct0(Math.abs(X.bs)),`${X.aw.toFixed(1)} × ${M.el}%`,'Benchmark','up')}
    ${li('Direct traffic',sgn(X.bs)+pct0(Math.abs(X.bs*0.6)),'Branded search lift × 0.6','Planning ratio','up')}
@@ -941,7 +969,7 @@ function testPlan(R,edits){
   const d=mk(x.tpl,a,Math.min(defs.filter(d=>d.a.p.id===x.pid).length,3));d.added=true;
   if(x.hyp)d.hyp=x.hyp;if(Array.isArray(x.cells)&&x.cells.length>1)d.cells=x.cells.slice(0,4).map((c,i)=>String.fromCharCode(65+i)+' '+String(c).replace(/^[A-D][\s.:)-]+/,''));if(x.variable)d.variable=x.variable;d.custom=!!(x.hyp||x.cells);defs.push(d)});
  // run each line-based test
- const tests=[],total=+S.budgets[T]||0,held=(S.testShare?.[T]??TEST_SHARE[R.tier])/100;
+ const tests=[],total=+S.budgets[T]||0,held=(S.testShare?.[T]??Math.round(splitOf().tl*100))/100;
  const topOf=a=>{const mk={};a.lines.forEach(l=>mk[l.m.id]=(mk[l.m.id]||0)+l.budget);return Object.keys(mk).sort((x,y)=>mk[y]-mk[x])};
  const base=d=>sum(d.a.lines.filter(l=>l.m.id===topOf(d.a)[0]).map(l=>l.budget))*W/fw,bs=sum(defs.map(base)),k=bs?Math.max(1,held*total/bs):1;
  const deliver=(a,scope,weeks,unit)=>{const ls=a.lines.filter(l=>scope.includes(l.m.id)),cap=sum(ls.map(l=>l.budget))*0.5,raw=sum(ls.map(l=>l.budget))*weeks/fw,kk=raw?Math.min(k,Math.max(1,cap/raw)):1;
@@ -1101,14 +1129,14 @@ function syncBudgetFields(R){
  const mb=sum(S.markets.map(m=>m.on&&ws?Math.round(total*(+m.weight||0)/ws):0)),mw=$('#mk-tot-w'),mbe=$('#mk-tot-b');
  if(mw){mw.textContent=(+ws.toFixed(1))+'%';mw.className='n'+(Math.abs(ws-100)>0.5?' bad':'');mw.title=Math.abs(ws-100)>0.5?'Weights don\'t add to 100%, so they are treated as shares':''}
  if(mbe){mbe.textContent=money(mb);mbe.className='n'+(Math.abs(mb-total)>on.length?' bad':'');mbe.title='Should equal the '+TIERNAME[t]+' budget: '+money(total)}
- const Rs=[0,1,2].map(i=>R&&R.tier===i?R:compute(i)),tots=[0,1,2].map(i=>+S.budgets[TIERS[i]]||0),cbs=Rs.map(Ri=>{const o={};Ri.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o});
+ const Rs=[0,1,2].map(i=>R&&R.tier===i?R:compute(i)),tots=[0,1,2].map(i=>mediaBudget(i)),cbs=Rs.map(Ri=>{const o={};Ri.lines.forEach(l=>o[l.c.id]=(o[l.c.id]||0)+l.budget);return o});
  CH.forEach(c=>[0,1,2].forEach(i=>{const el=$(`#ch-b-${c.id}-${i}`);if(!el)return;const v=cbs[i][c.id],pin=pinOf(c.id,i);el.disabled=false;el.classList.toggle('pinned',pin!=null&&S.channels[c.id].on);
   el.placeholder='0';el.title=pin!=null?'You set this. Clear it to let it share the rest.':!S.channels[c.id].on?'Type a budget to turn this channel on':v?'Shares what’s left after the channels you typed':'Not in this version’s markets yet';if(el!==document.activeElement)el.value=v?Math.round(v):''}));
  [0,1,2].forEach(i=>{const cs=sum(Object.values(cbs[i])),d=cs-tots[i],bE=$('#ch-bud-'+i),dE=$('#ch-diff-'+i);if(bE)bE.textContent=compact(tots[i]).replace(/^/,'$');
   if(dE){const ok=Math.abs(d)<=1;dE.textContent=ok?'✓ matches':(d>0?'+':'−')+compact(Math.abs(d)).replace(/^/,'$');dE.className='n '+(ok?'good':'bad');dE.title=ok?'Channels add up to the '+TIERNAME[i]+' budget':money(Math.abs(d))+(d<0?' not placed':' over')+' the '+TIERNAME[i]+' budget'}});
  [0,1,2].forEach(i=>{const e=$('#ch-tot-b-'+i);if(!e)return;const cs=sum(Object.values(cbs[i]));e.textContent=compact(cs).replace(/^/,'$');e.className='n'+(Math.abs(cs-tots[i])>1?' bad':'');e.title=money(cs)+' · should equal the '+TIERNAME[i]+' budget: '+money(tots[i])});
  const empty=S.markets.filter(m=>m.on&&+m.weight>0&&!Rs.some(Ri=>Ri.lines.some(l=>l.m.id===m.id)));
- const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`+(empty.length?`<span style="display:block;margin-top:4px;color:var(--flag)">${empty.map(m=>m.name).join(', ')} ${empty.length>1?'have':'has'} no checked channel that runs there, so ${empty.length>1?'their':'its'} share goes to the other markets. Check a channel that runs there, or turn the market off in section 3.</span>`:'');
+ const ct=$('#ch-tot');if(ct)ct.innerHTML=`<span>Each column should match its version after the test &amp; learn reserve: ${tots.map((v,i)=>TIERNAME[i]+' '+money(v)).join(' · ')}</span>`+(empty.length?`<span style="display:block;margin-top:4px;color:var(--flag)">${empty.map(m=>m.name).join(', ')} ${empty.length>1?'have':'has'} no checked channel that runs there, so ${empty.length>1?'their':'its'} share goes to the other markets. Check a channel that runs there, or turn the market off in section 3.</span>`:'');
 }
 function setMarketBudget(i,x){
  const t=bTier(),total=+S.budgets[TIERS[t]]||0,m=S.markets[i];if(!total||!m.on)return;
@@ -1151,7 +1179,7 @@ $('#btn-reset').onclick=()=>{S=exampleState();renderInputs();changed();setStatus
 
 /* ==================== OUTPUT RENDERING ==================== */
 let T_=null;function changed(){save();clearTimeout(T_);T_=setTimeout(()=>{renderOut()},120)}
-const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['mix','Media Mix Outcomes'],['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
+const TABS=[['summary','Paid Media Summary'],['growth','Growth Plan'],['mix','Media Mix Outcomes'],...(typeof BG_TABS!=='undefined'?BG_TABS:[]),['bom','BOM'],['spec','Spec Sheet for Creative Studio'],['assets','Assets'],['flight','Flighting & Projected Outcomes'],['assump','Buy Details'],['tests','Test Plan'],['tagging','Spec Sheet & Tagging for Agency']];
 function renderSeg(){
  $('#ver-seg').innerHTML=TIERNAME.map((n,i)=>`<button aria-pressed="${UI.tier===i}" data-t="${i}">${n}<span class="amt">${compact(+S.budgets[TIERS[i]]||0).replace(/^/,'$')}</span></button>`).join('')+`<button aria-pressed="${UI.tier===3}" data-t="3">Compare<span class="amt">all three</span></button>`;
  $('#ver-seg').querySelectorAll('button').forEach(b=>b.onclick=()=>{UI.tier=+b.dataset.t;save();renderOut()});
@@ -1631,7 +1659,7 @@ function _renderOut(){
  $('#x-csv').disabled=false;
  const R=compute(UI.tier);syncBudgetFields(R);
  if(!TABS.some(t=>t[0]===UI.tab))UI.tab='summary';
- v.innerHTML={assets:renderAssets,mix:renderMix,growth:renderGrowth,summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
+ v.innerHTML={...(typeof BG_RENDER!=='undefined'?BG_RENDER:{}),assets:renderAssets,mix:renderMix,growth:R=>(typeof bgGrowthSection!=='undefined'?bgGrowthSection(R):'')+renderGrowth(R),summary:renderSummary,bom:renderMVP,copy:renderAdCopy,lines:renderBOM,spec:renderSpec,flight:renderFlight,assump:renderAssump,tests:renderTests,tagging:renderTagging}[UI.tab](R);
  const tps=$('#tp-share');if(tps)tps.onchange=()=>{S.testShare=S.testShare||{};S.testShare[TIERS[UI.tier]]=Math.max(0,+tps.value||0);changed()};
  const tpl=$('#tp-lift');if(tpl)tpl.onchange=()=>{S.testLift=+tpl.value;changed()};
  if(UI.tab==='tests')wireTestBuilder();
@@ -1645,6 +1673,8 @@ function _renderOut(){
  v.querySelectorAll('.cp-reset').forEach(b=>b.onclick=()=>{if(S.copyEdits)delete S.copyEdits[b.dataset.lk];save();renderOut()});
  const g=$('#grp');if(g)g.onchange=()=>{UI.group=g.value;save();renderOut()};
  if(UI.tab==='assets')wireAssets();
+ if(typeof BG_WIRE!=='undefined'&&BG_WIRE[UI.tab])BG_WIRE[UI.tab](R);
+ if(typeof bgSyncSplit!=='undefined')bgSyncSplit(R);
  if(UI.tab==='mix')wireMix(R);
  v.querySelectorAll('.role-in').forEach(el=>el.onchange=()=>{S.plRole=S.plRole||{};const p=PLMAP[el.dataset.pid],def=p.stage==='Awareness'?'brand':'demand';if(el.value===def)delete S.plRole[p.id];else S.plRole[p.id]=el.value;if(UI.mixShare)delete UI.mixShare[TIERS[UI.tier]];changed()});
  if(UI.tab==='assump'){v.querySelectorAll('.aud-in').forEach(el=>el.onchange=()=>{S.plAud=S.plAud||{};if(el.value)S.plAud[el.dataset.pid]=el.value;else delete S.plAud[el.dataset.pid];changed()});
@@ -1689,7 +1719,11 @@ function workbookFor(tiers){
 }
 function slug(){return (S.name||'media-plan').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,60)||'media-plan'}
 window.__exportWorkbookB64=(all)=>XLSX.write(workbookFor(all?[0,1,2]:[UI.tier===3?1:UI.tier]),{type:'base64',bookType:'xlsx'});
-function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),assets:()=>{const a=assetsAOA(),w=a[0].length;return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},mix:()=>{const a=mixAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]()}
+function currentTable(){const R=compute(UI.tier);return {summary:()=>({cols:[['A','a'],['B','b'],['C','c']],rows:summaryAOA(R).map(r=>({a:r[0],b:r[1],c:r[2]})),raw:true}),bom:()=>mvpTable(R),lines:()=>bomTable(R),tagging:()=>utmTable(R),spec:()=>specTable(R),flight:()=>{const a=flightAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},assump:()=>(UI.bdView==='line'?bomTable(R):assumptionTable(R)),assets:()=>{const a=assetsAOA(),w=a[0].length;return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},mix:()=>{const a=mixAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},growth:()=>{const a=growthAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},tests:()=>{const a=testAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}},copy:()=>{const a=adCopyAOA(R),w=Math.max(...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}}[UI.tab]?.()||viewAOA()}
+// Tabs without their own export: every table on the tab, as shown
+function viewAOA(){const a=[];document.querySelectorAll('#view h2, #view h3, #view table').forEach(el=>{if(el.tagName!=='TABLE'){a.push([el.innerText.trim()]);return}
+ el.querySelectorAll('tr').forEach(tr=>a.push([...tr.children].map(td=>{const i=td.querySelector('input');return (i?i.value:td.innerText).replace(/\s+/g,' ').trim()})));a.push([])});
+ const w=Math.max(1,...a.map(r=>r.length));return {cols:Array.from({length:w},(_,i)=>['',i]),rows:a.map(r=>Object.fromEntries(r.map((v,i)=>[i,v]))),aoa:a}}
 function toDelim(tb,d){const q=v=>{v=v==null?'':String(v);return d===','&&/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v.replace(/\t|\n/g,' ')};
  const rows=tb.aoa?tb.aoa:tb.raw?tb.rows.map(r=>[r.a,r.b,r.c]):[tb.cols.map(c=>c[0]),...tb.rows.map(r=>tb.cols.map(([,k])=>r[k]))];return rows.map(r=>r.map(q).join(d)).join('\n')}
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg;el.classList.toggle('err',!!err)}
@@ -1732,7 +1766,7 @@ $('#in-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;setStatu
  catch(err){runBusy(false);setStatus('#extract-status','Could not read that file: '+err.message,true)}e.target.value=''};
 
 const MKT_RULES=[['NA',/north america|\bus\b|\busa\b|united states|canada/i,'North America','EN'],['EMEA',/emea|europe|\buk\b|turkey|germany|france|middle east/i,'EMEA','EN'],['CN',/china|chinese|mainland/i,'China','ZH'],['JP',/japan/i,'Japan','JA'],['KR',/korea/i,'Korea','KO'],['SEA',/southeast asia|\bsea\b|vietnam|indonesia|thailand|philippines|singapore/i,'Southeast Asia','EN'],['LATAM',/latam|latin america|brazil|mexico/i,'LATAM','ES']];
-const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,trade:/pocketgamer|gamesindustry|adexchanger|trade press|industry press/i,creators:/podcast|newsletter|deconstructor|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
+const CH_RULES={linkedin:/linkedin/i,meta:/\bmeta\b|facebook|instagram/i,google:/google search|paid search|\bsem\b|search ads|llm search|organic search/i,x:/\bx \(twitter\)|twitter|\bx\b/i,reddit:/reddit/i,youtube:/youtube|video series|video testimonial/i,ctv:/connected tv|\bctv\b|\bott\b|streaming tv|programmatic/i,trade:/cfo dive|cfo brew|accounting today|finextra|trade press|industry press|finance trades/i,creators:/podcast|newsletter|influencer|creator/i,abm:/abm|account[- ]based|target account/i,events:/\bgdc\b|chinajoy|conference|summit|event/i,wechat:/wechat|china/i,baidu:/baidu|china/i,naver:/naver|korea/i};
 function applyExtract(x){
  const changes=[];
  if(x.campaignName){S.name=x.campaignName;changes.push('name')}
