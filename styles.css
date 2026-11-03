@@ -344,3 +344,5 @@ tr.bg-g td{background:var(--sunk);font-weight:700;font-size:13px}
 .bg-split .btns .btn{white-space:normal;text-align:left}
 .bg-incr,.bg-lift{width:62px!important}
 .bg-panel td:first-child,.panel .tscroll td:first-child strong{white-space:nowrap}
+.bg-total{display:grid;grid-template-columns:auto auto auto 1fr;align-items:baseline;gap:8px;padding:6px 2px 0;border-top:1px dashed var(--line);font-size:12px;font-variant-numeric:tabular-nums}
+.bg-total span:last-child{text-align:right;font-weight:600}.bg-total.ok span:last-child{color:var(--green)}.bg-total.bad span:last-child{color:var(--over)}
