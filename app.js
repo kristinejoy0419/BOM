@@ -142,6 +142,8 @@ const PLMAP={};CH.forEach(c=>c.pl.forEach(p=>PLMAP[p.id]={...p,ch:c}));
 /* ==================== EXAMPLE STATE (sample GTM, fictional "Fernway", a B2B finance company) ==================== */
 const EX_NAME='Fernway · Spend Platform 2027';
 const EX_OLD=['Example Co. · Growth Platform 2027','One Unity · Unity Acquire 2026'];
+/* any saved plan that still carries the old gaming example (Unity) is swapped for the Fernway example */
+const isOldEx=s=>!!s&&(EX_OLD.includes(s.name)||/\bunity\b/i.test([s.name,s.product,s.brief].join(' ')));
 const EXAMPLE_BRIEF=`GTM Strategy: Fernway · Spend Platform 2027 (fictional sample brief used to pre-fill this example)
 
 Solution: Fernway Spend Platform, corporate cards, expense management, bill pay and business accounts in one finance platform for startups and mid-market companies.
@@ -212,7 +214,7 @@ function defaultFormats(){return Object.fromEntries(FORMATS.map(f=>[f.id,{on:tru
 
 const LSKEY='paid-media-bom-builder-v1';
 let S;try{S=JSON.parse(localStorage.getItem(LSKEY)||'null')}catch(e){S=null}
-if(!S||!S.markets||EX_OLD.includes(S.name))S=exampleState();
+if(!S||!S.markets||isOldEx(S))S=exampleState();
 if(S.name===EX_NAME&&S.budgets&&+S.budgets.lean===400000&&+S.budgets.standard===900000&&+S.budgets.full===1600000)S.budgets={lean:1500000,standard:2500000,full:4000000};
 if(!S.split||(S.split.brand===0.3&&S.split.ss===0.55&&S.split.tl===0.1))S.split={brand:0.46,ss:0.55,tl:0.10};
 if(!S.formats)S.formats=defaultFormats();if(!S.formats._video)S.formats._video={lengths:'15s, 30s'};if(S.landing==null)S.landing='https://example.com/';if(!S.copy)S.copy=exampleCopy();if(S.copy.eyebrow==null&&S.copy.src===EX_NAME)S.copy.eyebrow=exampleCopy().eyebrow;if(S.copy.src==null&&S.name===EX_NAME)S.copy.src=S.name;
@@ -226,7 +228,7 @@ const pjId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)
 let PJ_ERR=false;
 function save(){try{localStorage.setItem(LSKEY,JSON.stringify(S));localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}
  if(UI.pj){const P=pjAll();if(P[UI.pj]){P[UI.pj].S=S;P[UI.pj].saved=Date.now();PJ_ERR=!pjPut(P);const h=document.getElementById('pj-hint');if(h)h.textContent=PJ_ERR?'browser storage full: download a backup':'saved '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}}}
-(function pjEnsure(){const P=pjAll();if(UI.pj&&P[UI.pj]&&EX_OLD.includes(P[UI.pj].name)){P[UI.pj].name=S.name;P[UI.pj].S=S;pjPut(P)}if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
+(function pjEnsure(){const P=pjAll();let ch=false;Object.keys(P).forEach(id=>{if(isOldEx(P[id].S)||EX_OLD.includes(P[id].name)||/\bunity\b/i.test(P[id].name||'')){P[id].name=EX_NAME;P[id].S=id===UI.pj?S:exampleState();ch=true}});if(ch)pjPut(P);if(!UI.pj||!P[UI.pj]){const id=pjId();P[id]={name:S.name||'My first plan',S,saved:Date.now()};UI.pj=id;pjPut(P);try{localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}}})();
 function pjOpen(id){const P=pjAll();if(!P[id])return;try{localStorage.setItem(LSKEY,JSON.stringify(P[id].S));UI.pj=id;localStorage.setItem(LSKEY+'-ui',JSON.stringify(UI))}catch(e){}location.reload()}
 function renderProjects(){const P=pjAll(),ids=Object.keys(P).sort((a,b)=>(P[b].saved||0)-(P[a].saved||0));
  $('#pj-sel').innerHTML=ids.map(id=>`<option value="${id}" ${id===UI.pj?'selected':''}>${esc(P[id].name||'Untitled plan')}</option>`).join('');
